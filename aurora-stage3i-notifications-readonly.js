@@ -1,13 +1,28 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260819-stage3i-notifications-readonly-2';
+  const BUILD = '20260820-stage3i-notifications-readonly-3';
+  const STAGE = '3I';
   let blockedUpdates = 0;
   let originalUpdate = null;
 
   const cleanPageHref = (value) => String(value || '').split('#')[0].split('?')[0].toLowerCase();
 
+  function currentStageOwner() {
+    return String(document.documentElement.dataset.auroraStageOwner || '');
+  }
+
+  function ownsGlobalStage() {
+    const owner = currentStageOwner();
+    return !owner || owner === STAGE;
+  }
+
+  function claimStageIfUnowned() {
+    if (!currentStageOwner()) document.documentElement.dataset.auroraStageOwner = STAGE;
+  }
+
   function stampNavigation() {
+    if (!ownsGlobalStage()) return;
     document.querySelectorAll('.club-nav a[href], .direct-links a[href]').forEach((link) => {
       const target = cleanPageHref(link.getAttribute('href'));
       if (!/^(index|finance|scouting|transfer|registration|squad|income|match-report|club-control|system-health)\.html$/i.test(target)) return;
@@ -38,24 +53,12 @@
         box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
         z-index: 4;
       }
-      .topbar #auroraNotificationBell.aurora-header-notification > span {
-        display: grid;
-        place-items: center;
-      }
-      .topbar #auroraNotificationBell.aurora-header-notification svg {
-        width: 19px;
-        height: 19px;
-      }
-      .topbar #auroraNotificationBell.aurora-header-notification + .status {
-        margin-left: 0;
-      }
-      @media (max-width: 720px) {
+      .topbar #auroraNotificationBell.aurora-header-notification > span { display:grid; place-items:center; }
+      .topbar #auroraNotificationBell.aurora-header-notification svg { width:19px; height:19px; }
+      .topbar #auroraNotificationBell.aurora-header-notification + .status { margin-left:0; }
+      @media (max-width:720px) {
         .topbar #auroraNotificationBell.aurora-header-notification {
-          flex-basis: 34px;
-          width: 34px;
-          height: 34px;
-          min-width: 34px;
-          margin-right: 8px;
+          flex-basis:34px; width:34px; height:34px; min-width:34px; margin-right:8px;
         }
       }
     `;
@@ -83,11 +86,15 @@
   }
 
   function setStage(statusLabel = 'WAITING…') {
-    document.querySelectorAll('.status span').forEach((node) => { node.textContent = 'STAGE 3I'; });
-    document.querySelectorAll('.status b').forEach((node) => { node.textContent = 'NOTIFICATIONS READ-ONLY'; });
-    document.querySelectorAll('.hero small, .department-hero small').forEach((node) => {
-      node.textContent = String(node.textContent || '').replace(/STAGE 3H/gi, 'STAGE 3I');
-    });
+    claimStageIfUnowned();
+    if (ownsGlobalStage()) {
+      document.querySelectorAll('.status span').forEach((node) => { node.textContent = 'STAGE 3I'; });
+      document.querySelectorAll('.status b').forEach((node) => { node.textContent = 'NOTIFICATIONS READ-ONLY'; });
+      document.querySelectorAll('.hero small, .department-hero small').forEach((node) => {
+        node.textContent = String(node.textContent || '').replace(/STAGE 3H/gi, 'STAGE 3I');
+      });
+      stampNavigation();
+    }
 
     let panel = document.getElementById('stage3iNotificationPanel');
     if (!panel && document.querySelector('.hero')) {
@@ -101,7 +108,6 @@
 
     const status = document.getElementById('stage3iNotificationStatus');
     if (status) status.textContent = `Notification Engine: ${statusLabel}`;
-    stampNavigation();
   }
 
   function updatePanel(label, note) {
@@ -115,6 +121,7 @@
     try { notifications = window.AuroraNotifications?.status?.() || null; } catch (_) {}
     return {
       build: BUILD,
+      stageOwner: currentStageOwner(),
       loaded: Boolean(window.AuroraNotifications),
       blockedUpdates,
       notifications,
@@ -137,9 +144,7 @@
     core.update = function auroraStage3iReadonlyUpdate(mutator) {
       blockedUpdates += 1;
       const current = core.read();
-      try {
-        if (typeof mutator === 'function') mutator(current);
-      } catch (_) {}
+      try { if (typeof mutator === 'function') mutator(current); } catch (_) {}
       const info = window.AuroraNotifications?.status?.();
       const count = Number(info?.total || current?.notifications?.records?.length || 0);
       updatePanel('ACTIVE ✅', `Exact Notification Centre is running read-only. Existing records rendered: ${count}. Notification state writes blocked: ${blockedUpdates}. Release Guard and the shielded Cloud lifecycle remain active.`);
@@ -167,7 +172,7 @@
 
     updatePanel('LOADING…', 'Loading the exact old Aurora Notification Centre. Existing records may render, but core notification writes are blocked for this probe.');
     const script = document.createElement('script');
-    script.src = '/aurora-fc-2/aurora-notifications.js?v=20260819-stage3i-notifications-readonly-2';
+    script.src = '/aurora-fc-2/aurora-notifications.js?v=20260820-stage3i-notifications-readonly-3';
     script.async = false;
     script.dataset.auroraStage3 = 'notifications-readonly';
     script.addEventListener('load', () => {
