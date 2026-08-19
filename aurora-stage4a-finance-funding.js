@@ -1,9 +1,9 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-stage4a-finance-funding-probe-4';
+  const BUILD = '20260820-stage4a-finance-funding-probe-5';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
-  const isFinance = currentFile === 'finance.html' || currentFile === 'finance-stage4a.html';
+  const isFinance = currentFile === 'finance.html' || currentFile.startsWith('finance-stage4a');
   const isNexus = currentFile === 'index.html' || currentFile === 'auroracityfc_nexusv2.html';
   let updateAttempts = 0;
   let fundingLoaded = false;
@@ -106,8 +106,6 @@
       updateAttempts += 1;
       report('ACTIVE ✅', 'The exact Funding Engine is running in a local-state dry run.');
       try {
-        // Preserve the already-installed Stage 3I read-only shield underneath
-        // this layer rather than bypassing it.
         return originalUpdate(mutator);
       } catch (_) {
         return core.read();
@@ -121,11 +119,11 @@
     });
 
     const mission = document.createElement('script');
-    mission.src = '/aurora-fc-2/aurora-transfer-mission.js?v=20260820-stage4a-finance-funding-probe-4';
+    mission.src = '/aurora-fc-2/aurora-transfer-mission.js?v=20260820-stage4a-finance-funding-probe-5';
     mission.async = false;
     mission.addEventListener('load', () => {
       const funding = document.createElement('script');
-      funding.src = '/aurora-fc-2/finance-funding.js?v=20260820-stage4a-finance-funding-probe-4';
+      funding.src = '/aurora-fc-2/finance-funding.js?v=20260820-stage4a-finance-funding-probe-5';
       funding.async = false;
       funding.addEventListener('load', () => {
         fundingLoaded = true;
