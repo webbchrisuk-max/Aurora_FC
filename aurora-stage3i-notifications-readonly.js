@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260819-stage3i-notifications-readonly-1';
+  const BUILD = '20260819-stage3i-notifications-readonly-2';
   let blockedUpdates = 0;
   let originalUpdate = null;
 
@@ -13,6 +13,73 @@
       if (!/^(index|finance|scouting|transfer|registration|squad|income|match-report|club-control|system-health)\.html$/i.test(target)) return;
       link.setAttribute('href', `${target}?auroraBuild=${encodeURIComponent(BUILD)}`);
     });
+  }
+
+  function ensureHeaderNotificationStyle() {
+    if (document.getElementById('auroraStage3iHeaderNotificationStyle')) return;
+    const style = document.createElement('style');
+    style.id = 'auroraStage3iHeaderNotificationStyle';
+    style.textContent = `
+      .topbar #auroraNotificationBell.aurora-header-notification {
+        position: relative !important;
+        inset: auto !important;
+        flex: 0 0 38px;
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        margin: 0 12px 0 auto;
+        padding: 0;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(82,217,255,.22);
+        border-radius: 10px;
+        background: rgba(13,31,47,.72);
+        color: #bfefff;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+        z-index: 4;
+      }
+      .topbar #auroraNotificationBell.aurora-header-notification > span {
+        display: grid;
+        place-items: center;
+      }
+      .topbar #auroraNotificationBell.aurora-header-notification svg {
+        width: 19px;
+        height: 19px;
+      }
+      .topbar #auroraNotificationBell.aurora-header-notification + .status {
+        margin-left: 0;
+      }
+      @media (max-width: 720px) {
+        .topbar #auroraNotificationBell.aurora-header-notification {
+          flex-basis: 34px;
+          width: 34px;
+          height: 34px;
+          min-width: 34px;
+          margin-right: 8px;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function mountNotificationBell() {
+    const bell = document.getElementById('auroraNotificationBell');
+    const topbar = document.querySelector('.topbar');
+    const status = topbar?.querySelector('.status');
+    if (!bell || !topbar) return false;
+    ensureHeaderNotificationStyle();
+    bell.classList.add('aurora-header-notification');
+    if (bell.parentElement !== topbar) {
+      if (status) topbar.insertBefore(bell, status);
+      else topbar.appendChild(bell);
+    } else if (status && bell.nextElementSibling !== status) {
+      topbar.insertBefore(bell, status);
+    }
+    return true;
+  }
+
+  function settleNotificationBell() {
+    [0, 50, 200, 600, 1500].forEach((delay) => setTimeout(mountNotificationBell, delay));
   }
 
   function setStage(statusLabel = 'WAITING…') {
@@ -50,7 +117,8 @@
       build: BUILD,
       loaded: Boolean(window.AuroraNotifications),
       blockedUpdates,
-      notifications
+      notifications,
+      bellInHeader: document.getElementById('auroraNotificationBell')?.parentElement?.classList?.contains('topbar') || false
     };
   }
 
@@ -75,6 +143,7 @@
       const info = window.AuroraNotifications?.status?.();
       const count = Number(info?.total || current?.notifications?.records?.length || 0);
       updatePanel('ACTIVE ✅', `Exact Notification Centre is running read-only. Existing records rendered: ${count}. Notification state writes blocked: ${blockedUpdates}. Release Guard and the shielded Cloud lifecycle remain active.`);
+      settleNotificationBell();
       report({ phase: 'UPDATE_BLOCKED' });
       return current;
     };
@@ -91,19 +160,22 @@
     if (window.AuroraNotifications) {
       const info = window.AuroraNotifications.status?.() || {};
       updatePanel('ACTIVE ✅', `Notification Centre was already loaded. Existing records: ${Number(info.total || 0)}. State updates remain blocked for this probe.`);
+      settleNotificationBell();
       report({ loaded: true, reused: true });
       return;
     }
 
     updatePanel('LOADING…', 'Loading the exact old Aurora Notification Centre. Existing records may render, but core notification writes are blocked for this probe.');
     const script = document.createElement('script');
-    script.src = '/aurora-fc-2/aurora-notifications.js?v=20260819-stage3i-notifications-readonly-1';
+    script.src = '/aurora-fc-2/aurora-notifications.js?v=20260819-stage3i-notifications-readonly-2';
     script.async = false;
     script.dataset.auroraStage3 = 'notifications-readonly';
     script.addEventListener('load', () => {
       document.documentElement.dataset.auroraNotifications = 'loaded';
+      settleNotificationBell();
       setTimeout(() => {
         const info = window.AuroraNotifications?.status?.() || {};
+        mountNotificationBell();
         updatePanel('ACTIVE ✅', `Exact Notification Centre is active in read-only mode. Existing records rendered: ${Number(info.total || 0)}. Notification state writes blocked: ${blockedUpdates}. Its state listeners and 5-minute evaluation timer are installed.`);
         report({ loaded: true, phase: 'ACTIVE' });
       }, 500);
@@ -117,6 +189,7 @@
   }
 
   setStage('WAITING…');
+  ensureHeaderNotificationStyle();
 
   let tries = 0;
   const wait = () => {
