@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260819-stage3f-club-command-probe-1';
+  const BUILD = '20260819-stage3g-cloud-lifecycle-dryrun-1';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   const NAV = Object.freeze({
@@ -50,8 +50,8 @@
   });
 
   stampInternalNavigation();
-  document.querySelectorAll('.status span').forEach((node) => { node.textContent = 'STAGE 3F'; });
-  document.querySelectorAll('.status b').forEach((node) => { node.textContent = 'CLUB COMMAND PROBE'; });
+  document.querySelectorAll('.status span').forEach((node) => { node.textContent = 'STAGE 3G'; });
+  document.querySelectorAll('.status b').forEach((node) => { node.textContent = 'CLOUD LIFECYCLE DRY RUN'; });
 
   window.AuroraShell = Object.freeze({
     build: BUILD,
@@ -65,11 +65,21 @@
     syncManagerProbe: true,
     firebaseReadProbe: true,
     clubCommandProbe: true,
-    cloudWritesEnabled: false
+    cloudLifecycleDryRun: true,
+    cloudWritesEnabled: false,
+    localCloudApplyEnabled: false
   });
 
   document.dispatchEvent(new CustomEvent('aurora:shell-ready', {
-    detail: { build: BUILD, navigation: 'native-html-versioned', firebaseReadProbe: true, clubCommandProbe: true, cloudWritesEnabled: false }
+    detail: {
+      build: BUILD,
+      navigation: 'native-html-versioned',
+      firebaseReadProbe: true,
+      clubCommandProbe: true,
+      cloudLifecycleDryRun: true,
+      cloudWritesEnabled: false,
+      localCloudApplyEnabled: false
+    }
   }));
 
   const markState = (overrides = {}) => {
@@ -81,7 +91,9 @@
       firebaseReadProbeLoaded: false,
       firebaseReadStatus: 'WAITING',
       clubCommandLoaded: false,
+      cloudLifecycleProbeLoaded: false,
       cloudWritesEnabled: false,
+      localCloudApplyEnabled: false,
       notificationsLoaded: false,
       dataConnected: false,
       ...overrides
@@ -92,25 +104,83 @@
   window.addEventListener('aurora:firebase-read-probe', (event) => {
     const detail = event.detail || {};
     document.documentElement.dataset.auroraFirebaseRead = String(detail.status || 'unknown').toLowerCase();
-    markState({ coreLoaded: true, platformLoaded: true, syncLoaded: true, firebaseReadProbeLoaded: true, firebaseReadStatus: detail.status || 'UNKNOWN' });
+    markState({
+      coreLoaded: true,
+      platformLoaded: true,
+      syncLoaded: true,
+      firebaseReadProbeLoaded: true,
+      firebaseReadStatus: detail.status || 'UNKNOWN'
+    });
   });
 
+  window.addEventListener('aurora:stage3g-cloud-lifecycle', (event) => {
+    const detail = event.detail || {};
+    markState({
+      coreLoaded: true,
+      platformLoaded: true,
+      syncLoaded: true,
+      firebaseReadProbeLoaded: true,
+      clubCommandLoaded: true,
+      cloudLifecycleProbeLoaded: detail.status !== 'FAILED',
+      cloudLifecycleStatus: detail.status || 'UNKNOWN',
+      cloudLifecyclePhase: detail.phase || 'UNKNOWN',
+      cloudWritesEnabled: false,
+      localCloudApplyEnabled: false
+    });
+  });
+
+  const lifecycleProbe = document.createElement('script');
+  lifecycleProbe.src = 'aurora-stage3g-cloud-lifecycle.js?v=20260819-stage3g-cloud-lifecycle-dryrun-1';
+  lifecycleProbe.async = false;
+  lifecycleProbe.dataset.auroraStage3 = 'cloud-lifecycle-dry-run';
+  lifecycleProbe.addEventListener('load', () => {
+    document.documentElement.dataset.auroraCloudLifecycleProbe = 'loaded';
+  }, { once: true });
+  lifecycleProbe.addEventListener('error', () => {
+    document.documentElement.dataset.auroraCloudLifecycleProbe = 'failed';
+    markState({
+      coreLoaded: true,
+      platformLoaded: true,
+      syncLoaded: true,
+      firebaseReadProbeLoaded: true,
+      clubCommandLoaded: true,
+      cloudLifecycleProbeLoaded: false,
+      error: 'CLOUD_LIFECYCLE_PROBE_LOAD_FAILED'
+    });
+  }, { once: true });
+
   const clubCommand = document.createElement('script');
-  clubCommand.src = '/aurora-fc-2/aurora-club-command.js?v=20260819-stage3f-club-command-probe-1';
+  clubCommand.src = '/aurora-fc-2/aurora-club-command.js?v=20260819-stage3g-cloud-lifecycle-dryrun-1';
   clubCommand.async = false;
   clubCommand.dataset.auroraStage3 = 'club-command-read-only';
   clubCommand.addEventListener('load', () => {
     document.documentElement.dataset.auroraClubCommand = 'loaded';
-    markState({ coreLoaded: true, platformLoaded: true, syncLoaded: true, firebaseReadProbeLoaded: true, clubCommandLoaded: true });
-    document.dispatchEvent(new CustomEvent('aurora:club-command-probe-ready', { detail: { build: BUILD, clubCommandLoaded: true, cloudWritesEnabled: false } }));
+    markState({
+      coreLoaded: true,
+      platformLoaded: true,
+      syncLoaded: true,
+      firebaseReadProbeLoaded: true,
+      clubCommandLoaded: true
+    });
+    document.dispatchEvent(new CustomEvent('aurora:club-command-probe-ready', {
+      detail: { build: BUILD, clubCommandLoaded: true, cloudWritesEnabled: false }
+    }));
+    document.head.appendChild(lifecycleProbe);
   }, { once: true });
   clubCommand.addEventListener('error', () => {
     document.documentElement.dataset.auroraClubCommand = 'failed';
-    markState({ coreLoaded: true, platformLoaded: true, syncLoaded: true, firebaseReadProbeLoaded: true, clubCommandLoaded: false, error: 'CLUB_COMMAND_LOAD_FAILED' });
+    markState({
+      coreLoaded: true,
+      platformLoaded: true,
+      syncLoaded: true,
+      firebaseReadProbeLoaded: true,
+      clubCommandLoaded: false,
+      error: 'CLUB_COMMAND_LOAD_FAILED'
+    });
   }, { once: true });
 
   const readProbe = document.createElement('script');
-  readProbe.src = 'aurora-firebase-read-probe.js?v=20260819-stage3f-club-command-probe-1';
+  readProbe.src = 'aurora-firebase-read-probe.js?v=20260819-stage3g-cloud-lifecycle-dryrun-1';
   readProbe.async = false;
   readProbe.dataset.auroraStage3 = 'firebase-read-only';
   readProbe.addEventListener('load', () => {
@@ -120,13 +190,19 @@
   }, { once: true });
   readProbe.addEventListener('error', () => {
     document.documentElement.dataset.auroraFirebaseReadProbe = 'failed';
-    markState({ coreLoaded: true, platformLoaded: true, syncLoaded: true, firebaseReadProbeLoaded: false, error: 'FIREBASE_READ_PROBE_LOAD_FAILED' });
+    markState({
+      coreLoaded: true,
+      platformLoaded: true,
+      syncLoaded: true,
+      firebaseReadProbeLoaded: false,
+      error: 'FIREBASE_READ_PROBE_LOAD_FAILED'
+    });
   }, { once: true });
 
   const sync = document.createElement('script');
-  sync.src = '/aurora-fc-2/aurora-sync-manager.js?v=20260819-stage3f-club-command-probe-1';
+  sync.src = '/aurora-fc-2/aurora-sync-manager.js?v=20260819-stage3g-cloud-lifecycle-dryrun-1';
   sync.async = false;
-  sync.dataset.auroraStage3 = 'sync-manager-plus-firebase-read-plus-club-command';
+  sync.dataset.auroraStage3 = 'sync-manager-plus-firebase-read-plus-club-command-plus-cloud-lifecycle';
   sync.addEventListener('load', () => {
     document.documentElement.dataset.auroraSyncManager = 'loaded';
     markState({ coreLoaded: true, platformLoaded: true, syncLoaded: true });
@@ -138,7 +214,7 @@
   }, { once: true });
 
   const platform = document.createElement('script');
-  platform.src = '/aurora-fc-2/aurora-platform.js?v=20260819-stage3f-club-command-probe-1';
+  platform.src = '/aurora-fc-2/aurora-platform.js?v=20260819-stage3g-cloud-lifecycle-dryrun-1';
   platform.async = false;
   platform.dataset.auroraStage3 = 'core-plus-platform';
   platform.addEventListener('load', () => {
@@ -152,9 +228,9 @@
   }, { once: true });
 
   const core = document.createElement('script');
-  core.src = '/aurora-fc-2/aurora-core.js?v=20260819-stage3f-club-command-probe-1';
+  core.src = '/aurora-fc-2/aurora-core.js?v=20260819-stage3g-cloud-lifecycle-dryrun-1';
   core.async = false;
-  core.dataset.auroraStage3 = 'core-plus-platform-plus-sync-plus-firebase-read-plus-club-command';
+  core.dataset.auroraStage3 = 'core-plus-platform-plus-sync-plus-firebase-read-plus-club-command-plus-cloud-lifecycle';
   core.addEventListener('load', () => {
     document.documentElement.dataset.auroraCore = 'loaded';
     markState({ coreLoaded: true });
