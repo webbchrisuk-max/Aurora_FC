@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260819-stage4a-finance-funding-probe-1';
+  const BUILD = '20260819-stage4a-finance-funding-probe-2';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
   const isFinance = currentFile === 'finance.html';
   const isNexus = currentFile === 'index.html' || currentFile === 'auroracityfc_nexusv2.html';
@@ -15,6 +15,39 @@
       if (!/^(index|finance|scouting|transfer|registration|squad|income|match-report|club-control|system-health)\.html$/i.test(target)) return;
       link.setAttribute('href', `${target}?auroraBuild=${encodeURIComponent(BUILD)}`);
     });
+  }
+
+  function mountNotificationBell() {
+    const bell = document.getElementById('auroraNotificationBell');
+    const topbar = document.querySelector('.topbar');
+    const status = topbar?.querySelector('.status');
+    if (!bell || !topbar) return false;
+    bell.classList.add('aurora-header-notification');
+    bell.style.position = 'relative';
+    bell.style.inset = 'auto';
+    bell.style.width = '38px';
+    bell.style.height = '38px';
+    bell.style.minWidth = '38px';
+    bell.style.margin = '0 12px 0 auto';
+    bell.style.padding = '0';
+    bell.style.display = 'grid';
+    bell.style.placeItems = 'center';
+    bell.style.border = '1px solid rgba(82,217,255,.22)';
+    bell.style.borderRadius = '10px';
+    bell.style.background = 'rgba(13,31,47,.72)';
+    bell.style.color = '#bfefff';
+    bell.style.zIndex = '4';
+    if (bell.parentElement !== topbar) {
+      if (status) topbar.insertBefore(bell, status);
+      else topbar.appendChild(bell);
+    } else if (status && bell.nextElementSibling !== status) {
+      topbar.insertBefore(bell, status);
+    }
+    return true;
+  }
+
+  function settleNotificationBell() {
+    [0, 50, 200, 600, 1500, 3000].forEach((delay) => setTimeout(mountNotificationBell, delay));
   }
 
   function setGlobalStatus() {
@@ -42,12 +75,14 @@
     const text = document.getElementById('stage4aFundingNote');
     if (title) title.textContent = `Finance Funding: ${label}`;
     if (text) text.textContent = `${note} State update attempts blocked: ${updateAttempts}.`;
+    settleNotificationBell();
     window.AuroraStage4A = Object.freeze({
       build: BUILD,
       financePage: isFinance,
       fundingLoaded,
       updateAttempts,
-      stateWritesEnabled: false
+      stateWritesEnabled: false,
+      notificationBellInHeader: document.getElementById('auroraNotificationBell')?.parentElement?.classList?.contains('topbar') || false
     });
   }
 
@@ -94,6 +129,7 @@
   setGlobalStatus();
   stampNavigation();
   ensurePanel();
+  settleNotificationBell();
 
   if (!isFinance) {
     window.AuroraStage4A = Object.freeze({ build: BUILD, financePage: false, fundingLoaded: false, stateWritesEnabled: false });
