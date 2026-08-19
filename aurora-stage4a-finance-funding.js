@@ -4,6 +4,7 @@
   const BUILD = '20260819-stage4a-finance-funding-probe-1';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
   const isFinance = currentFile === 'finance.html';
+  const isNexus = currentFile === 'index.html' || currentFile === 'auroracityfc_nexusv2.html';
   let updateAttempts = 0;
   let fundingLoaded = false;
 
@@ -22,12 +23,16 @@
   }
 
   function ensurePanel() {
-    if (!isFinance || document.getElementById('stage4aFundingPanel')) return;
+    if ((!isFinance && !isNexus) || document.getElementById('stage4aFundingPanel')) return;
     const main = document.querySelector('main.page') || document.querySelector('main') || document.body;
     const panel = document.createElement('section');
     panel.className = 'panel';
     panel.id = 'stage4aFundingPanel';
-    panel.innerHTML = '<small>STAGE 4A RUNTIME CHECK</small><h2 id="stage4aFundingStatus">Finance Funding: WAITING…</h2><p id="stage4aFundingNote">Waiting for Aurora Core before loading the exact old Finance Funding Engine.</p>';
+    if (isFinance) {
+      panel.innerHTML = '<small>STAGE 4A RUNTIME CHECK</small><h2 id="stage4aFundingStatus">Finance Funding: WAITING…</h2><p id="stage4aFundingNote">Waiting for Aurora Core before loading the exact old Finance Funding Engine.</p>';
+    } else {
+      panel.innerHTML = '<small>STAGE 4A DEPARTMENT PROBE</small><h2>Finance Funding isolated</h2><p>The shared Stage 3I runtime remains verified. Open Finance Command to run the exact old Finance Funding Engine in a protected local-state dry run.</p>';
+    }
     main.appendChild(panel);
   }
 
