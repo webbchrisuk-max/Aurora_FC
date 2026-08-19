@@ -1,12 +1,17 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-stage4a-finance-funding-probe-3';
+  const BUILD = '20260820-stage4a-finance-funding-probe-4';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
   const isFinance = currentFile === 'finance.html' || currentFile === 'finance-stage4a.html';
   const isNexus = currentFile === 'index.html' || currentFile === 'auroracityfc_nexusv2.html';
   let updateAttempts = 0;
   let fundingLoaded = false;
+
+  // Newer stages own the global stage badge/navigation. Older probes may keep
+  // running their own engines/panels but must never roll the page backwards.
+  document.documentElement.dataset.auroraStageOwner = '4A';
+  window.AuroraStageOwner = { stage: '4A', build: BUILD, priority: 40 };
 
   function stampNavigation() {
     document.querySelectorAll('.club-nav a[href], .direct-links a[href]').forEach((link) => {
@@ -73,6 +78,8 @@
   }
 
   function report(label, note) {
+    setGlobalStatus();
+    stampNavigation();
     ensurePanel();
     const title = document.getElementById('stage4aFundingStatus');
     const text = document.getElementById('stage4aFundingNote');
@@ -81,6 +88,7 @@
     settleNotificationBell();
     window.AuroraStage4A = Object.freeze({
       build: BUILD,
+      stageOwner: document.documentElement.dataset.auroraStageOwner,
       financePage: isFinance,
       fundingLoaded,
       updateAttempts,
@@ -98,10 +106,12 @@
       updateAttempts += 1;
       report('ACTIVE ✅', 'The exact Funding Engine is running in a local-state dry run.');
       try {
-        const current = core.read();
-        if (typeof mutator === 'function') mutator(current);
-      } catch (_) {}
-      return core.read();
+        // Preserve the already-installed Stage 3I read-only shield underneath
+        // this layer rather than bypassing it.
+        return originalUpdate(mutator);
+      } catch (_) {
+        return core.read();
+      }
     };
 
     window.AuroraStage4AFundingShield = Object.freeze({
@@ -111,11 +121,11 @@
     });
 
     const mission = document.createElement('script');
-    mission.src = '/aurora-fc-2/aurora-transfer-mission.js?v=20260820-stage4a-finance-funding-probe-3';
+    mission.src = '/aurora-fc-2/aurora-transfer-mission.js?v=20260820-stage4a-finance-funding-probe-4';
     mission.async = false;
     mission.addEventListener('load', () => {
       const funding = document.createElement('script');
-      funding.src = '/aurora-fc-2/finance-funding.js?v=20260820-stage4a-finance-funding-probe-3';
+      funding.src = '/aurora-fc-2/finance-funding.js?v=20260820-stage4a-finance-funding-probe-4';
       funding.async = false;
       funding.addEventListener('load', () => {
         fundingLoaded = true;
@@ -135,7 +145,7 @@
   settleNotificationBell();
 
   if (!isFinance) {
-    window.AuroraStage4A = Object.freeze({ build: BUILD, financePage: false, fundingLoaded: false, stateWritesEnabled: false });
+    window.AuroraStage4A = Object.freeze({ build: BUILD, stageOwner: '4A', financePage: false, fundingLoaded: false, stateWritesEnabled: false });
     return;
   }
 
