@@ -1,8 +1,34 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260819-stage3d-cloud-init-probe-1';
+  const BUILD = '20260819-stage3d-cloud-init-probe-2';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
+
+  const NAV = Object.freeze({
+    'index.html': ['🏟', 'Nexus Headquarters', 'Master club command'],
+    'finance.html': ['💷', 'Finance Command', 'Cash, payday and pots'],
+    'scouting.html': ['🔎', 'Scouting Centre', 'Evidence and recruitment'],
+    'transfer.html': ['🔄', 'Transfer Centre', 'Deployment planning'],
+    'registration.html': ['📝', 'Registration Desk', 'Broker execution'],
+    'squad.html': ['⚽', 'Squad Hub', 'Canonical holdings'],
+    'income.html': ['💰', 'Income Centre', 'Dividend truth'],
+    'match-report.html': ['🏆', 'Match Report', 'Daily full-time review'],
+    'club-control.html': ['⚙️', 'Club Control', 'Preferences and controls'],
+    'system-health.html': ['🛡️', 'System Health', 'Integrity and diagnostics']
+  });
+
+  function repairSidebarMarkup() {
+    document.querySelectorAll('.club-nav nav>a[href]').forEach((link) => {
+      const href = (link.getAttribute('href') || '').split('#')[0].toLowerCase();
+      const meta = NAV[href];
+      if (meta && !link.querySelector(':scope > span')) {
+        const [icon, label, description] = meta;
+        link.innerHTML = `${icon} <span><b>${label}</b><em>${description}</em></span>`;
+      }
+    });
+  }
+
+  repairSidebarMarkup();
 
   document.documentElement.dataset.auroraShell = 'ready';
   document.documentElement.dataset.auroraShellBuild = BUILD;
@@ -73,7 +99,7 @@
   };
 
   const cloud = document.createElement('script');
-  cloud.src = '/aurora-fc-2/aurora-cloud-sync.js?v=20260819-stage3d-cloud-init-probe-1';
+  cloud.src = '/aurora-fc-2/aurora-cloud-sync.js?v=20260819-stage3d-cloud-init-probe-2';
   cloud.async = false;
   cloud.dataset.auroraStage3 = 'cloud-init-network-blocked';
   cloud.addEventListener('load', () => {
@@ -99,7 +125,7 @@
   }, { once: true });
 
   const sync = document.createElement('script');
-  sync.src = '/aurora-fc-2/aurora-sync-manager.js?v=20260819-stage3d-cloud-init-probe-1';
+  sync.src = '/aurora-fc-2/aurora-sync-manager.js?v=20260819-stage3d-cloud-init-probe-2';
   sync.async = false;
   sync.dataset.auroraStage3 = 'sync-manager-plus-cloud-init';
   sync.addEventListener('load', () => {
@@ -114,7 +140,7 @@
   }, { once: true });
 
   const platform = document.createElement('script');
-  platform.src = '/aurora-fc-2/aurora-platform.js?v=20260819-stage3d-cloud-init-probe-1';
+  platform.src = '/aurora-fc-2/aurora-platform.js?v=20260819-stage3d-cloud-init-probe-2';
   platform.async = false;
   platform.dataset.auroraStage3 = 'core-plus-platform';
   platform.addEventListener('load', () => {
@@ -129,7 +155,7 @@
   }, { once: true });
 
   const core = document.createElement('script');
-  core.src = '/aurora-fc-2/aurora-core.js?v=20260819-stage3d-cloud-init-probe-1';
+  core.src = '/aurora-fc-2/aurora-core.js?v=20260819-stage3d-cloud-init-probe-2';
   core.async = false;
   core.dataset.auroraStage3 = 'core-plus-platform-plus-sync-plus-cloud-init';
   core.addEventListener('load', () => {
