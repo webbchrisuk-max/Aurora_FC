@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260819-stage3d-cloud-init-probe-2';
+  const BUILD = '20260819-stage3e-firebase-read-probe-1';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   const NAV = Object.freeze({
@@ -40,8 +40,8 @@
     link.classList.toggle('active', target === currentFile || isNexusAlias);
   });
 
-  document.querySelectorAll('.status span').forEach((node) => { node.textContent = 'STAGE 3D'; });
-  document.querySelectorAll('.status b').forEach((node) => { node.textContent = 'CLOUD INIT PROBE'; });
+  document.querySelectorAll('.status span').forEach((node) => { node.textContent = 'STAGE 3E'; });
+  document.querySelectorAll('.status b').forEach((node) => { node.textContent = 'FIREBASE READ PROBE'; });
 
   window.AuroraShell = Object.freeze({
     build: BUILD,
@@ -53,12 +53,12 @@
     coreProbe: true,
     platformProbe: true,
     syncManagerProbe: true,
-    cloudInitProbe: true,
-    cloudNetworkBlocked: true
+    firebaseReadProbe: true,
+    cloudWritesEnabled: false
   });
 
   document.dispatchEvent(new CustomEvent('aurora:shell-ready', {
-    detail: { build: BUILD, navigation: 'native-html', cloudInitProbe: true, cloudNetworkBlocked: true }
+    detail: { build: BUILD, navigation: 'native-html', firebaseReadProbe: true, cloudWritesEnabled: false }
   }));
 
   const markState = (overrides = {}) => {
@@ -67,8 +67,9 @@
       coreLoaded: false,
       platformLoaded: false,
       syncLoaded: false,
-      cloudLoaded: false,
-      cloudNetworkBlocked: true,
+      firebaseReadProbeLoaded: false,
+      firebaseReadStatus: 'WAITING',
+      cloudWritesEnabled: false,
       notificationsLoaded: false,
       dataConnected: false,
       ...overrides
@@ -76,71 +77,47 @@
   };
   markState();
 
-  const nativeFetch = window.fetch.bind(window);
-  const firebaseHosts = new Set([
-    'identitytoolkit.googleapis.com',
-    'securetoken.googleapis.com',
-    'firestore.googleapis.com'
-  ]);
-  window.fetch = function auroraCloudProbeFetch(input, init) {
-    let url = '';
-    try { url = typeof input === 'string' ? input : String(input?.url || input || ''); } catch (_) {}
-    try {
-      const parsed = new URL(url, location.href);
-      if (firebaseHosts.has(parsed.hostname)) {
-        return Promise.reject(new TypeError('AURORA_CLOUD_PROBE_NETWORK_BLOCKED'));
-      }
-    } catch (_) {}
-    return nativeFetch(input, init);
-  };
+  window.addEventListener('aurora:firebase-read-probe', (event) => {
+    const detail = event.detail || {};
+    document.documentElement.dataset.auroraFirebaseRead = String(detail.status || 'unknown').toLowerCase();
+    markState({
+      coreLoaded: true,
+      platformLoaded: true,
+      syncLoaded: true,
+      firebaseReadProbeLoaded: true,
+      firebaseReadStatus: detail.status || 'UNKNOWN'
+    });
+  });
 
-  const restoreFetch = () => {
-    if (window.fetch?.name === 'auroraCloudProbeFetch') window.fetch = nativeFetch;
-  };
-
-  const cloud = document.createElement('script');
-  cloud.src = '/aurora-fc-2/aurora-cloud-sync.js?v=20260819-stage3d-cloud-init-probe-2';
-  cloud.async = false;
-  cloud.dataset.auroraStage3 = 'cloud-init-network-blocked';
-  cloud.addEventListener('load', () => {
-    document.documentElement.dataset.auroraCloud = 'loaded';
-    markState({ coreLoaded: true, platformLoaded: true, syncLoaded: true, cloudLoaded: true });
-    const ready = window.AuroraCloudSync?.ready;
-    if (ready && typeof ready.finally === 'function') {
-      ready.finally(() => {
-        restoreFetch();
-        document.documentElement.dataset.auroraCloudInit = 'complete';
-        document.dispatchEvent(new CustomEvent('aurora:cloud-init-probe-ready', {
-          detail: { build: BUILD, cloudLoaded: true, networkBlocked: true }
-        }));
-      });
-    } else {
-      restoreFetch();
-    }
+  const readProbe = document.createElement('script');
+  readProbe.src = 'aurora-firebase-read-probe.js?v=20260819-stage3e-firebase-read-probe-1';
+  readProbe.async = false;
+  readProbe.dataset.auroraStage3 = 'firebase-read-only';
+  readProbe.addEventListener('load', () => {
+    document.documentElement.dataset.auroraFirebaseReadProbe = 'loaded';
+    markState({ coreLoaded: true, platformLoaded: true, syncLoaded: true, firebaseReadProbeLoaded: true });
   }, { once: true });
-  cloud.addEventListener('error', () => {
-    restoreFetch();
-    document.documentElement.dataset.auroraCloud = 'failed';
-    markState({ coreLoaded: true, platformLoaded: true, syncLoaded: true, cloudLoaded: false, error: 'CLOUD_LOAD_FAILED' });
+  readProbe.addEventListener('error', () => {
+    document.documentElement.dataset.auroraFirebaseReadProbe = 'failed';
+    markState({ coreLoaded: true, platformLoaded: true, syncLoaded: true, firebaseReadProbeLoaded: false, error: 'FIREBASE_READ_PROBE_LOAD_FAILED' });
   }, { once: true });
 
   const sync = document.createElement('script');
-  sync.src = '/aurora-fc-2/aurora-sync-manager.js?v=20260819-stage3d-cloud-init-probe-2';
+  sync.src = '/aurora-fc-2/aurora-sync-manager.js?v=20260819-stage3e-firebase-read-probe-1';
   sync.async = false;
-  sync.dataset.auroraStage3 = 'sync-manager-plus-cloud-init';
+  sync.dataset.auroraStage3 = 'sync-manager-plus-firebase-read';
   sync.addEventListener('load', () => {
     document.documentElement.dataset.auroraSyncManager = 'loaded';
     markState({ coreLoaded: true, platformLoaded: true, syncLoaded: true });
-    document.head.appendChild(cloud);
+    document.head.appendChild(readProbe);
   }, { once: true });
   sync.addEventListener('error', () => {
-    restoreFetch();
     document.documentElement.dataset.auroraSyncManager = 'failed';
     markState({ coreLoaded: true, platformLoaded: true, syncLoaded: false, error: 'SYNC_MANAGER_LOAD_FAILED' });
   }, { once: true });
 
   const platform = document.createElement('script');
-  platform.src = '/aurora-fc-2/aurora-platform.js?v=20260819-stage3d-cloud-init-probe-2';
+  platform.src = '/aurora-fc-2/aurora-platform.js?v=20260819-stage3e-firebase-read-probe-1';
   platform.async = false;
   platform.dataset.auroraStage3 = 'core-plus-platform';
   platform.addEventListener('load', () => {
@@ -149,22 +126,20 @@
     document.head.appendChild(sync);
   }, { once: true });
   platform.addEventListener('error', () => {
-    restoreFetch();
     document.documentElement.dataset.auroraPlatform = 'failed';
     markState({ coreLoaded: true, platformLoaded: false, error: 'PLATFORM_LOAD_FAILED' });
   }, { once: true });
 
   const core = document.createElement('script');
-  core.src = '/aurora-fc-2/aurora-core.js?v=20260819-stage3d-cloud-init-probe-2';
+  core.src = '/aurora-fc-2/aurora-core.js?v=20260819-stage3e-firebase-read-probe-1';
   core.async = false;
-  core.dataset.auroraStage3 = 'core-plus-platform-plus-sync-plus-cloud-init';
+  core.dataset.auroraStage3 = 'core-plus-platform-plus-sync-plus-firebase-read';
   core.addEventListener('load', () => {
     document.documentElement.dataset.auroraCore = 'loaded';
     markState({ coreLoaded: true });
     document.head.appendChild(platform);
   }, { once: true });
   core.addEventListener('error', () => {
-    restoreFetch();
     document.documentElement.dataset.auroraCore = 'failed';
     markState({ coreLoaded: false, error: 'CORE_LOAD_FAILED' });
   }, { once: true });
