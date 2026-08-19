@@ -1,9 +1,9 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260819-stage4a-finance-funding-probe-2';
+  const BUILD = '20260820-stage4a-finance-funding-probe-3';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
-  const isFinance = currentFile === 'finance.html';
+  const isFinance = currentFile === 'finance.html' || currentFile === 'finance-stage4a.html';
   const isNexus = currentFile === 'index.html' || currentFile === 'auroracityfc_nexusv2.html';
   let updateAttempts = 0;
   let fundingLoaded = false;
@@ -53,6 +53,9 @@
   function setGlobalStatus() {
     document.querySelectorAll('.status span').forEach((node) => { node.textContent = 'STAGE 4A'; });
     document.querySelectorAll('.status b').forEach((node) => { node.textContent = 'FINANCE FUNDING PROBE'; });
+    document.querySelectorAll('.department-hero small, .hero small').forEach((node) => {
+      node.textContent = String(node.textContent || '').replace(/STAGE 3[HI]/gi, 'STAGE 4A');
+    });
   }
 
   function ensurePanel() {
@@ -108,11 +111,11 @@
     });
 
     const mission = document.createElement('script');
-    mission.src = '/aurora-fc-2/aurora-transfer-mission.js?v=20260819-stage4a-finance-funding-probe-1';
+    mission.src = '/aurora-fc-2/aurora-transfer-mission.js?v=20260820-stage4a-finance-funding-probe-3';
     mission.async = false;
     mission.addEventListener('load', () => {
       const funding = document.createElement('script');
-      funding.src = '/aurora-fc-2/finance-funding.js?v=20260819-stage4a-finance-funding-probe-1';
+      funding.src = '/aurora-fc-2/finance-funding.js?v=20260820-stage4a-finance-funding-probe-3';
       funding.async = false;
       funding.addEventListener('load', () => {
         fundingLoaded = true;
