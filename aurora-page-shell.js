@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260819-stage3e-firebase-read-probe-1';
+  const BUILD = '20260819-stage3e-firebase-read-probe-2';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   const NAV = Object.freeze({
@@ -17,14 +17,24 @@
     'system-health.html': ['🛡️', 'System Health', 'Integrity and diagnostics']
   });
 
+  const cleanPageHref = (value) => String(value || '').split('#')[0].split('?')[0].toLowerCase();
+
   function repairSidebarMarkup() {
     document.querySelectorAll('.club-nav nav>a[href]').forEach((link) => {
-      const href = (link.getAttribute('href') || '').split('#')[0].toLowerCase();
+      const href = cleanPageHref(link.getAttribute('href'));
       const meta = NAV[href];
       if (meta && !link.querySelector(':scope > span')) {
         const [icon, label, description] = meta;
         link.innerHTML = `${icon} <span><b>${label}</b><em>${description}</em></span>`;
       }
+    });
+  }
+
+  function stampInternalNavigation() {
+    document.querySelectorAll('.club-nav a[href], .direct-links a[href]').forEach((link) => {
+      const target = cleanPageHref(link.getAttribute('href'));
+      if (!NAV[target]) return;
+      link.setAttribute('href', `${target}?auroraBuild=${encodeURIComponent(BUILD)}`);
     });
   }
 
@@ -34,11 +44,13 @@
   document.documentElement.dataset.auroraShellBuild = BUILD;
 
   document.querySelectorAll('.club-nav a[href]').forEach((link) => {
-    const href = (link.getAttribute('href') || '').split('#')[0].toLowerCase();
+    const href = cleanPageHref(link.getAttribute('href'));
     const target = href || 'index.html';
     const isNexusAlias = currentFile === 'auroracityfc_nexusv2.html' && target === 'index.html';
     link.classList.toggle('active', target === currentFile || isNexusAlias);
   });
+
+  stampInternalNavigation();
 
   document.querySelectorAll('.status span').forEach((node) => { node.textContent = 'STAGE 3E'; });
   document.querySelectorAll('.status b').forEach((node) => { node.textContent = 'FIREBASE READ PROBE'; });
@@ -46,7 +58,7 @@
   window.AuroraShell = Object.freeze({
     build: BUILD,
     ready: true,
-    navigation: 'native-html',
+    navigation: 'native-html-versioned',
     dataConnected: false,
     sessionEnabled: false,
     dynamicLoading: true,
@@ -58,7 +70,7 @@
   });
 
   document.dispatchEvent(new CustomEvent('aurora:shell-ready', {
-    detail: { build: BUILD, navigation: 'native-html', firebaseReadProbe: true, cloudWritesEnabled: false }
+    detail: { build: BUILD, navigation: 'native-html-versioned', firebaseReadProbe: true, cloudWritesEnabled: false }
   }));
 
   const markState = (overrides = {}) => {
@@ -90,7 +102,7 @@
   });
 
   const readProbe = document.createElement('script');
-  readProbe.src = 'aurora-firebase-read-probe.js?v=20260819-stage3e-firebase-read-probe-1';
+  readProbe.src = 'aurora-firebase-read-probe.js?v=20260819-stage3e-firebase-read-probe-2';
   readProbe.async = false;
   readProbe.dataset.auroraStage3 = 'firebase-read-only';
   readProbe.addEventListener('load', () => {
@@ -103,7 +115,7 @@
   }, { once: true });
 
   const sync = document.createElement('script');
-  sync.src = '/aurora-fc-2/aurora-sync-manager.js?v=20260819-stage3e-firebase-read-probe-1';
+  sync.src = '/aurora-fc-2/aurora-sync-manager.js?v=20260819-stage3e-firebase-read-probe-2';
   sync.async = false;
   sync.dataset.auroraStage3 = 'sync-manager-plus-firebase-read';
   sync.addEventListener('load', () => {
@@ -117,7 +129,7 @@
   }, { once: true });
 
   const platform = document.createElement('script');
-  platform.src = '/aurora-fc-2/aurora-platform.js?v=20260819-stage3e-firebase-read-probe-1';
+  platform.src = '/aurora-fc-2/aurora-platform.js?v=20260819-stage3e-firebase-read-probe-2';
   platform.async = false;
   platform.dataset.auroraStage3 = 'core-plus-platform';
   platform.addEventListener('load', () => {
@@ -131,7 +143,7 @@
   }, { once: true });
 
   const core = document.createElement('script');
-  core.src = '/aurora-fc-2/aurora-core.js?v=20260819-stage3e-firebase-read-probe-1';
+  core.src = '/aurora-fc-2/aurora-core.js?v=20260819-stage3e-firebase-read-probe-2';
   core.async = false;
   core.dataset.auroraStage3 = 'core-plus-platform-plus-sync-plus-firebase-read';
   core.addEventListener('load', () => {
