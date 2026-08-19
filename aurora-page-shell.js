@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260819-stage3b-platform-probe-1';
+  const BUILD = '20260819-stage3c-sync-manager-probe-1';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   document.documentElement.dataset.auroraShell = 'ready';
@@ -14,8 +14,8 @@
     link.classList.toggle('active', target === currentFile || isNexusAlias);
   });
 
-  document.querySelectorAll('.status span').forEach((node) => { node.textContent = 'STAGE 3B'; });
-  document.querySelectorAll('.status b').forEach((node) => { node.textContent = 'PLATFORM PROBE'; });
+  document.querySelectorAll('.status span').forEach((node) => { node.textContent = 'STAGE 3C'; });
+  document.querySelectorAll('.status b').forEach((node) => { node.textContent = 'SYNC MANAGER PROBE'; });
 
   window.AuroraShell = Object.freeze({
     build: BUILD,
@@ -23,13 +23,14 @@
     navigation: 'native-html',
     dataConnected: false,
     sessionEnabled: false,
-    dynamicLoading: false,
+    dynamicLoading: true,
     coreProbe: true,
-    platformProbe: true
+    platformProbe: true,
+    syncManagerProbe: true
   });
 
   document.dispatchEvent(new CustomEvent('aurora:shell-ready', {
-    detail: { build: BUILD, navigation: 'native-html', coreProbe: true, platformProbe: true }
+    detail: { build: BUILD, navigation: 'native-html', coreProbe: true, platformProbe: true, syncManagerProbe: true }
   }));
 
   const markState = (overrides = {}) => {
@@ -46,26 +47,40 @@
   };
   markState();
 
+  const sync = document.createElement('script');
+  sync.src = '/aurora-fc-2/aurora-sync-manager.js?v=20260819-stage3c-sync-manager-probe-1';
+  sync.async = false;
+  sync.dataset.auroraStage3 = 'sync-manager-only';
+  sync.addEventListener('load', () => {
+    document.documentElement.dataset.auroraSyncManager = 'loaded';
+    markState({ coreLoaded: true, platformLoaded: true, syncLoaded: true });
+    document.dispatchEvent(new CustomEvent('aurora:sync-manager-probe-ready', {
+      detail: { build: BUILD, coreLoaded: true, platformLoaded: true, syncLoaded: true }
+    }));
+  }, { once: true });
+  sync.addEventListener('error', () => {
+    document.documentElement.dataset.auroraSyncManager = 'failed';
+    markState({ coreLoaded: true, platformLoaded: true, syncLoaded: false, error: 'SYNC_MANAGER_LOAD_FAILED' });
+  }, { once: true });
+
   const platform = document.createElement('script');
-  platform.src = '/aurora-fc-2/aurora-platform.js?v=20260819-stage3b-platform-probe-1';
+  platform.src = '/aurora-fc-2/aurora-platform.js?v=20260819-stage3c-sync-manager-probe-1';
   platform.async = false;
-  platform.dataset.auroraStage3 = 'platform-only';
+  platform.dataset.auroraStage3 = 'core-plus-platform';
   platform.addEventListener('load', () => {
     document.documentElement.dataset.auroraPlatform = 'loaded';
     markState({ coreLoaded: true, platformLoaded: true });
-    document.dispatchEvent(new CustomEvent('aurora:platform-probe-ready', {
-      detail: { build: BUILD, coreLoaded: true, platformLoaded: true }
-    }));
+    document.head.appendChild(sync);
   }, { once: true });
   platform.addEventListener('error', () => {
     document.documentElement.dataset.auroraPlatform = 'failed';
-    markState({ coreLoaded: true, platformLoaded: false, error: 'PLATFORM_LOAD_FAILED' });
+    markState({ coreLoaded: true, platformLoaded: false, syncLoaded: false, error: 'PLATFORM_LOAD_FAILED' });
   }, { once: true });
 
   const core = document.createElement('script');
-  core.src = '/aurora-fc-2/aurora-core.js?v=20260819-stage3b-platform-probe-1';
+  core.src = '/aurora-fc-2/aurora-core.js?v=20260819-stage3c-sync-manager-probe-1';
   core.async = false;
-  core.dataset.auroraStage3 = 'core-plus-platform';
+  core.dataset.auroraStage3 = 'core-plus-platform-plus-sync';
   core.addEventListener('load', () => {
     document.documentElement.dataset.auroraCore = 'loaded';
     markState({ coreLoaded: true });
@@ -73,7 +88,7 @@
   }, { once: true });
   core.addEventListener('error', () => {
     document.documentElement.dataset.auroraCore = 'failed';
-    markState({ coreLoaded: false, platformLoaded: false, error: 'CORE_LOAD_FAILED' });
+    markState({ coreLoaded: false, platformLoaded: false, syncLoaded: false, error: 'CORE_LOAD_FAILED' });
   }, { once: true });
   document.head.appendChild(core);
 })();
