@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-payday-preview-1';
+  const BUILD = '20260820-finance-payday-preview-2';
+  const STATE_KEY = 'aurora2:state:v1';
   const FIELD_KEYS = ['paydayDate','openingCash','expectedWages','wagesReceived','extraCash','protectedCash','releaseAmount'];
   let ready = false;
   let dirty = false;
@@ -18,6 +19,16 @@
   function financeState() {
     try { return window.Aurora2?.core?.read?.() || null; }
     catch (_) { return null; }
+  }
+
+  function savedPlanFromStorage() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(STATE_KEY) || 'null');
+      const plan = parsed?.finance?.plan;
+      return plan && typeof plan === 'object' ? { ...plan } : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   function inputs() {
@@ -44,9 +55,10 @@
     return (state?.finance?.pots || []).find(p => !p.archived && String(p.name || '').trim().toLowerCase() === 'holding pot') || null;
   }
 
-  function seedDraftFromState() {
-    const state = financeState();
-    draftPlan = { ...(state?.finance?.plan || {}) };
+  function seedDraftFromSavedPlan() {
+    const persisted = savedPlanFromStorage();
+    const fallback = financeState()?.finance?.plan || {};
+    draftPlan = { ...(persisted || fallback) };
     dirty = false;
     seedInputs(draftPlan);
   }
@@ -60,11 +72,12 @@
     if (fields[4]) fields[4].value = Number(plan?.extraCash || 0).toFixed(2);
     if (fields[5]) fields[5].value = Number(plan?.protectedCash || 0).toFixed(2);
     if (fields[6]) fields[6].value = Number(plan?.releaseAmount || 0).toFixed(2);
+    fields[0]?.dispatchEvent(new Event('aurora:date-display-sync'));
   }
 
   function readDraftFromInputs() {
     const fields = inputs();
-    const next = { ...(draftPlan || financeState()?.finance?.plan || {}) };
+    const next = { ...(draftPlan || savedPlanFromStorage() || financeState()?.finance?.plan || {}) };
     next.paydayDate = String(fields[0]?.value || '');
     ['openingCash','expectedWages','wagesReceived','extraCash','protectedCash','releaseAmount'].forEach((key, index) => {
       const value = Number(fields[index + 1]?.value);
@@ -80,11 +93,11 @@
     if (!state?.finance || typeof control?.paydayFundingPreview !== 'function') return;
 
     let preview;
-    try { preview = control.paydayFundingPreview(state, draftPlan || state.finance.plan || {}); }
+    try { preview = control.paydayFundingPreview(state, draftPlan || savedPlanFromStorage() || state.finance.plan || {}); }
     catch (error) { recordError(error); return; }
 
     const c = preview?.c || {};
-    const normalized = c.plan || draftPlan || state.finance.plan || {};
+    const normalized = c.plan || draftPlan || savedPlanFromStorage() || state.finance.plan || {};
     const auto = c.auto || {};
     const hp = holdingPot(state);
     const hpBalance = Math.max(0, Number(hp?.balance) || 0);
@@ -156,8 +169,17 @@
       runtimeErrors: [...runtimeErrors],
       draftPlan: { ...normalized },
       safeSurplus: Number(c.safeSurplus || 0),
-      commitments: Number(c.commitments || 0)
+      commitments: Number(c.commitments || 0),
+      resetToSaved: resetToSavedValues
     });
+  }
+
+  function resetToSavedValues() {
+    seedDraftFromSavedPlan();
+    renderDraft();
+    const dateInput = inputs()[0];
+    dateInput?.dispatchEvent(new Event('change', { bubbles: false }));
+    return { ...(draftPlan || {}) };
   }
 
   function ensureResetButton() {
@@ -168,10 +190,7 @@
     button.className = 'mini-link-btn';
     button.dataset.financePreviewReset = '1';
     button.textContent = 'Reset to saved values';
-    button.addEventListener('click', () => {
-      seedDraftFromState();
-      renderDraft();
-    });
+    button.addEventListener('click', resetToSavedValues);
     panel.appendChild(button);
   }
 
@@ -196,7 +215,7 @@
   function restoreAfterBaseRender() {
     setTimeout(() => {
       if (!ready) return;
-      if (!dirty) draftPlan = { ...(financeState()?.finance?.plan || {}) };
+      if (!dirty) draftPlan = { ...(savedPlanFromStorage() || financeState()?.finance?.plan || {}) };
       seedInputs(draftPlan || {});
       inputs().forEach((field) => { field.disabled = false; field.removeAttribute('disabled'); });
       renderDraft();
@@ -217,7 +236,7 @@
       const apiReady = typeof window.Aurora2?.financePaydayControl?.paydayFundingPreview === 'function';
       if (baseReady && apiReady) {
         ready = true;
-        seedDraftFromState();
+        seedDraftFromSavedPlan();
         enablePreviewEditing();
         renderDraft();
         window.addEventListener('focus', restoreAfterBaseRender);
