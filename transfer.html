@@ -6,7 +6,8 @@
 <meta name="theme-color" content="#07040b">
 <title>Aurora City FC — Transfer Centre</title>
 <link rel="stylesheet" href="aurora-shell.css?v=foundation-1">
-<script src="transfer-live-mission.js?v=20260820-transfer-mission-intake-1" defer></script>
+<script src="transfer-live-mission.js?v=20260820-transfer-mission-intake-2" defer></script>
+<script src="transfer-scouting-intake.js?v=20260820-transfer-scouting-intake-1" defer></script>
 <style>
 :root{--tr-red:#ff4f61;--tr-gold:#ffd56b;--tr-cyan:#6ee7ff;--tr-green:#59ff9a;--tr-bg:#06040a;--tr-panel:rgba(14,8,18,.88)}
 body{margin:0;background:radial-gradient(circle at 78% 12%,rgba(160,20,52,.18),transparent 34%),radial-gradient(circle at 12% 54%,rgba(110,231,255,.08),transparent 34%),#06040a;color:#f5f3f8}.transfer-page{max-width:1360px;margin:0 auto;padding:30px 24px 80px}.transfer-hero{position:relative;overflow:hidden;border:1px solid rgba(255,79,97,.2);border-radius:30px;padding:38px;background:linear-gradient(135deg,rgba(45,8,18,.96),rgba(7,8,16,.96) 62%,rgba(14,21,28,.94));box-shadow:0 25px 70px rgba(0,0,0,.32)}.transfer-hero:after{content:"TRANSFER";position:absolute;right:-18px;bottom:-38px;font:900 clamp(72px,14vw,190px)/.8 system-ui;color:rgba(255,255,255,.025);letter-spacing:-.06em}.transfer-eyebrow{display:block;color:#ff9aa4;font:800 13px/1.2 system-ui;text-transform:uppercase;letter-spacing:.16em}.transfer-hero h1{margin:10px 0 10px;font:900 clamp(46px,8vw,96px)/.86 system-ui;letter-spacing:-.06em;text-transform:uppercase}.transfer-hero h1 span{display:block;color:transparent;-webkit-text-stroke:1.4px var(--tr-red)}.transfer-hero p{max-width:740px;margin:20px 0 0;color:#b8aebc;font:500 clamp(17px,2.2vw,25px)/1.5 system-ui}.transfer-status{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}.transfer-status span{border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:9px 14px;font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase}.transfer-status .live{border-color:rgba(89,255,154,.35);color:#a6ffc5;background:rgba(89,255,154,.06)}.transfer-status .safe{border-color:rgba(255,213,107,.25);color:#ffe299;background:rgba(255,213,107,.05)}.transfer-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:22px;margin-top:22px}.transfer-card{border:1px solid rgba(255,255,255,.09);border-radius:24px;background:linear-gradient(180deg,rgba(15,10,21,.94),rgba(5,9,16,.94));padding:26px;box-shadow:0 18px 55px rgba(0,0,0,.22)}.transfer-card h2,.transfer-card h3{margin:0}.transfer-kicker{display:block;color:#ff8996;font:800 11px/1.2 system-ui;letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px}.mission-card{border-color:rgba(255,213,107,.24);background:linear-gradient(145deg,rgba(57,37,4,.72),rgba(12,8,16,.94) 58%,rgba(4,14,20,.95))}.mission-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.mission-head h2{font:900 clamp(28px,5vw,48px)/1 system-ui}.mission-chip{border:1px solid rgba(255,213,107,.3);border-radius:999px;padding:9px 12px;color:#ffe29c;font:800 10px/1 system-ui;letter-spacing:.1em;text-transform:uppercase}.mission-budget{margin:28px 0 4px;font:900 clamp(54px,9vw,92px)/.9 system-ui;color:#ffe39b;letter-spacing:-.05em}.mission-status{font:900 20px/1 system-ui;color:#ffd56b;text-transform:uppercase}.mission-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:26px}.mission-meta div,.transfer-kpis div{border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;background:rgba(0,0,0,.16)}.mission-meta small,.transfer-kpis small{display:block;color:#817988;font:800 10px/1.2 system-ui;text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px}.mission-meta strong,.transfer-kpis strong{font:800 17px/1.25 system-ui;overflow-wrap:anywhere}.mission-source{margin-top:15px;border:1px solid rgba(110,231,255,.12);border-radius:15px;padding:14px;color:#8fa5af;font:500 13px/1.5 system-ui}.transfer-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.transfer-kpis strong{font-size:22px}.transfer-gate{margin-top:18px;border-radius:18px;padding:18px;border:1px solid rgba(255,255,255,.1)}.transfer-gate strong{display:block;font:900 13px/1 system-ui;letter-spacing:.12em;margin-bottom:7px}.transfer-gate span{color:#a9a0ad;font:500 14px/1.5 system-ui}.transfer-gate.open{border-color:rgba(89,255,154,.3);background:rgba(89,255,154,.05)}.transfer-gate.open strong{color:#92ffb8}.transfer-gate.hold{border-color:rgba(255,213,107,.28);background:rgba(255,213,107,.04)}.next-layer{margin-top:22px}.next-layer h3{font:900 26px/1.05 system-ui}.next-layer p{color:#9b929f;line-height:1.55}.layer-list{display:grid;gap:10px;margin-top:18px}.layer-list div{display:flex;gap:12px;align-items:flex-start;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:14px}.layer-list b{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:rgba(255,79,97,.09);color:#ff8996;font:800 11px/1 system-ui}.layer-list span{color:#c3bac5;font:600 14px/1.45 system-ui}.transfer-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.transfer-actions a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:11px 14px;color:#f5edf5;font:800 12px/1 system-ui}.transfer-actions a.primary{border-color:rgba(255,79,97,.32);color:#ff9da7;background:rgba(255,79,97,.06)}.stage-note{margin-top:22px;border:1px dashed rgba(110,231,255,.15);border-radius:20px;padding:18px;color:#79909b;font:600 13px/1.55 system-ui}.stage-note strong{color:#dff7ff}.topbar .status span{color:#ff8996}.topbar .status b{color:#ffe29a}
@@ -16,7 +17,7 @@ body{margin:0;background:radial-gradient(circle at 78% 12%,rgba(160,20,52,.18),t
 <body>
 <header class="topbar">
   <div class="brand"><a class="menu" href="#club-nav">☰</a><div class="crest">A</div><div><strong>Aurora City FC</strong><span>TRANSFER CENTRE</span></div></div>
-  <div class="status"><span>TRANSFER</span><b>MISSION INTAKE</b></div>
+  <div class="status"><span>TRANSFER</span><b>MISSION + SCOUTING</b></div>
 </header>
 <aside class="club-nav" id="club-nav">
   <div class="nav-head"><div class="crest">A</div><div><strong>Aurora City FC</strong><span>Stable rebuild</span></div><a href="#" class="nav-close">×</a></div>
@@ -28,10 +29,10 @@ body{margin:0;background:radial-gradient(circle at 78% 12%,rgba(160,20,52,.18),t
 </aside><a class="nav-backdrop" href="#"></a>
 <main class="transfer-page">
   <section class="transfer-hero">
-    <div class="transfer-status"><span class="live">● TRANSFER SYSTEM LIVE</span><span class="safe">READ-ONLY MISSION INTAKE</span></div>
+    <div class="transfer-status"><span class="live">● TRANSFER SYSTEM LIVE</span><span class="safe">READ-ONLY MISSION + SCOUTING</span></div>
     <span class="transfer-eyebrow">Aurora City FC • Football Operations</span>
     <h1>Transfer <span>Centre</span></h1>
-    <p>Receive the exact budget released by Finance, freeze it as the mission authority, then build the investment route without ever changing the approved cash.</p>
+    <p>Receive the exact budget released by Finance, then consume the approved Scouting shortlist without changing either authority.</p>
   </section>
 
   <section class="transfer-grid" id="transferMissionShell" data-state="checking">
@@ -62,14 +63,14 @@ body{margin:0;background:radial-gradient(circle at 78% 12%,rgba(160,20,52,.18),t
       </article>
       <article class="transfer-card next-layer">
         <span class="transfer-kicker">Controlled Rebuild</span>
-        <h3>Next allocation layer</h3>
-        <p>Once mission intake is confirmed, we reconnect Transfer in controlled steps.</p>
-        <div class="layer-list"><div><b>01</b><span>Consume the frozen Finance budget without editing it.</span></div><div><b>02</b><span>Read the approved Scouting strategy and ranked targets.</span></div><div><b>03</b><span>Build broker allocations that reconcile exactly to the mission.</span></div><div><b>04</b><span>Lock the route before Registration can record purchases.</span></div></div>
+        <h3>Allocation engine comes next</h3>
+        <p>Finance authority and Scouting authority are now isolated. Only after both pass will Transfer be allowed to create purchase legs.</p>
+        <div class="layer-list"><div><b>01</b><span>Finance budget remains frozen.</span></div><div><b>02</b><span>Scouting shortlist remains read-only.</span></div><div><b>03</b><span>Next: build broker allocations that reconcile exactly to the mission.</span></div><div><b>04</b><span>Then lock the route before Registration can record purchases.</span></div></div>
       </article>
     </aside>
   </section>
 
-  <div class="stage-note"><strong>Stage T1 — Mission Intake.</strong> This page currently performs no Transfer writes. Its only job is to prove the exact frozen Finance mission survives the hand-off intact before allocation logic is reintroduced.</div>
+  <div class="stage-note"><strong>Stage T2 — Scouting Intake.</strong> Transfer still performs no allocation writes. It now proves both authorities independently: Finance owns the exact cash budget; Scouting owns the approved ranked shortlist.</div>
 </main>
 </body>
 </html>
