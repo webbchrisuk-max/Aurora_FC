@@ -177,8 +177,9 @@
     if (!tk) return null;
     const rawStatus = upper(first(row,['status','Status','position_status','holding_status']) || '');
     const shares = maybeNum(first(row,['shares','Shares','quantity','Quantity','units','Units'])) || 0;
-    if (!CLOSED.has(rawStatus) && shares > 0) return null;
     const note = String(first(row,['manager_note','managerNote','Manager Note','notes','note','Note']) || '').trim();
+    const hasExitEvidence = CLOSED.has(rawStatus) || /\b(sold|exited|closed|archived)\b/i.test(note);
+    if (!hasExitEvidence) return null;
     const soldAt = isoDateFromText(note) || String(first(row,['sold_at','soldAt','closed_at','closedAt','date_checked','date','Date']) || '').trim();
     const proceeds = moneyFromNote(note,['Net proceeds','Total proceeds','Proceeds']);
     const book = moneyFromNote(note,['Original book cost','book cost']);
