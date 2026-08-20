@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD = '20260820-stage4e-live-finance-17';
+  const BUILD = '20260820-stage4e-live-finance-18';
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
 
   function fixFinanceLinks() {
@@ -12,6 +12,15 @@
       if (!/^finance(?:-stage4c(?:-4d)?)?\.html$/i.test(file)) return;
       link.setAttribute('href', `/Aurora_FC/finance.html?auroraBuild=${encodeURIComponent(BUILD)}`);
     });
+  }
+
+  function loadFinalize() {
+    if (currentFile !== 'finance.html' || window.AuroraFinanceLiveFinalizeLoadStarted) return;
+    window.AuroraFinanceLiveFinalizeLoadStarted = true;
+    const script = document.createElement('script');
+    script.src = `finance-live-finalize.js?v=${encodeURIComponent(BUILD)}`;
+    script.async = false;
+    document.head.appendChild(script);
   }
 
   function loadMissionRelease() {
@@ -203,6 +212,7 @@
 
   fixFinanceLinks();
   loadReadonlyFinanceData();
+  loadFinalize();
   document.addEventListener('DOMContentLoaded', fixFinanceLinks, { once: true });
   setTimeout(fixFinanceLinks, 250);
   setTimeout(fixFinanceLinks, 1200);
@@ -222,6 +232,7 @@
     potsBillsReadonly: currentFile === 'finance.html',
     potsBillsActions: currentFile === 'finance.html',
     potDelete: currentFile === 'finance.html',
-    houseProjects: currentFile === 'finance.html'
+    houseProjects: currentFile === 'finance.html',
+    liveFinalize: currentFile === 'finance.html'
   });
 })();
