@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-date-display-2';
+  const BUILD = '20260820-finance-date-display-3';
 
   function installStyles() {
     if (document.getElementById('auroraFinanceDateFieldStyles')) return;
@@ -113,6 +113,7 @@
     input.addEventListener('input', update);
     input.addEventListener('change', update);
     input.addEventListener('blur', update);
+    input.addEventListener('aurora:date-display-sync', update);
 
     update();
 
