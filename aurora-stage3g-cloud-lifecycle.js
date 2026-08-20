@@ -111,8 +111,9 @@
   }
 
   function maybeRecoverProtectedError(state) {
-    if (!backgroundPaused || recoveryScheduled || !isProtectedWriteError(state)) return;
-    if (state?.working || !state?.signedIn || arr(state?.conflicts).length) return;
+    if (!isProtectedWriteError(state)) return;
+    if (!backgroundPaused) pauseBackgroundSync('protected-write-error');
+    if (recoveryScheduled || state?.working || !state?.signedIn || arr(state?.conflicts).length) return;
     recoveryScheduled = true;
     setTimeout(async () => {
       try {
@@ -135,6 +136,8 @@
   wrapSyncManager();
   if (backgroundPaused) writeCloudAutoSyncNative(false);
 
+  // Shield local canonical state from remote apply while still allowing the
+  // exact old Cloud Sync decision engine to execute.
   const originalCoreWrite = window.Aurora2.core.write;
   window.Aurora2.core.write = function auroraStage3gDryRunCoreWrite() {
     coreWriteBlocks += 1;
@@ -142,6 +145,8 @@
     return window.Aurora2.core.read();
   };
 
+  // Keep the probe from changing Cloud Sync base metadata or signal-watch
+  // state. Session refreshes and device identity writes remain allowed.
   Storage.prototype.setItem = function auroraStage3gSetItem(key, value) {
     if (this === window.localStorage && (String(key) === CLOUD_META_KEY || String(key) === SIGNAL_WATCH_KEY)) {
       localMetaBlocks += 1;
@@ -151,6 +156,8 @@
     return nativeSetItem.call(this, key, value);
   };
 
+  // Allow Firebase auth + Firestore reads. Block only Firestore document
+  // PATCH requests so this probe cannot alter the cloud master.
   const nativeFetch = window.fetch.bind(window);
   window.fetch = function auroraStage3gFetch(input, init = {}) {
     let url = '';
