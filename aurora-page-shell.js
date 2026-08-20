@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260819-stage3g-cloud-lifecycle-dryrun-1';
+  const BUILD = '20260820-stage3g-cloud-lifecycle-dryrun-2';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   const NAV = Object.freeze({
@@ -130,7 +130,7 @@
   });
 
   const lifecycleProbe = document.createElement('script');
-  lifecycleProbe.src = 'aurora-stage3g-cloud-lifecycle.js?v=20260819-stage3g-cloud-lifecycle-dryrun-1';
+  lifecycleProbe.src = 'aurora-stage3g-cloud-lifecycle.js?v=20260820-stage3g-cloud-lifecycle-dryrun-2';
   lifecycleProbe.async = false;
   lifecycleProbe.dataset.auroraStage3 = 'cloud-lifecycle-dry-run';
   lifecycleProbe.addEventListener('load', () => {
