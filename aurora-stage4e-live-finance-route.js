@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD = '20260820-stage4e-live-finance-13';
+  const BUILD = '20260820-stage4e-live-finance-14';
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
 
   function fixFinanceLinks() {
@@ -14,12 +14,31 @@
     });
   }
 
+  function loadPotsBillsActions() {
+    if (currentFile !== 'finance.html' || window.AuroraFinancePotsBillsActionsLoadStarted) return;
+    window.AuroraFinancePotsBillsActionsLoadStarted = true;
+    const script = document.createElement('script');
+    script.src = `finance-pots-bills-actions.js?v=${encodeURIComponent(BUILD)}`;
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
   function loadPotsBillsReadonly() {
-    if (currentFile !== 'finance.html' || window.AuroraFinancePotsBillsReadonlyLoadStarted) return;
+    if (currentFile !== 'finance.html') return;
+    if (window.AuroraFinancePotsBillsReadonly?.ready) { loadPotsBillsActions(); return; }
+    if (window.AuroraFinancePotsBillsReadonlyLoadStarted) {
+      const wait = () => window.AuroraFinancePotsBillsReadonly?.ready ? loadPotsBillsActions() : setTimeout(wait, 25);
+      wait();
+      return;
+    }
     window.AuroraFinancePotsBillsReadonlyLoadStarted = true;
     const script = document.createElement('script');
     script.src = `finance-pots-bills-readonly.js?v=${encodeURIComponent(BUILD)}`;
     script.async = false;
+    script.addEventListener('load', () => {
+      const wait = () => window.AuroraFinancePotsBillsReadonly?.ready ? loadPotsBillsActions() : setTimeout(wait, 25);
+      wait();
+    }, { once: true });
     document.head.appendChild(script);
   }
 
@@ -136,6 +155,7 @@
     paydaySave: currentFile === 'finance.html',
     hardPaydayReset: currentFile === 'finance.html',
     protectedBills: currentFile === 'finance.html',
-    potsBillsReadonly: currentFile === 'finance.html'
+    potsBillsReadonly: currentFile === 'finance.html',
+    potsBillsActions: currentFile === 'finance.html'
   });
 })();
