@@ -1,9 +1,14 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-payday-preview-3';
+  const BUILD = '20260820-finance-payday-preview-4';
   const STATE_KEY = 'aurora2:state:v1';
   const FIELD_KEYS = ['paydayDate','openingCash','expectedWages','wagesReceived','extraCash','protectedCash','releaseAmount'];
+  const PAYDAY_BASELINE = Object.freeze({
+    expectedWages: 2100,
+    wagesReceived: 0,
+    protectedCash: 300
+  });
   let ready = false;
   let dirty = false;
   let draftPlan = null;
@@ -31,6 +36,21 @@
     }
   }
 
+  function nextCycleBaseline(plan) {
+    return {
+      ...(plan || {}),
+      expectedWages: PAYDAY_BASELINE.expectedWages,
+      wagesReceived: PAYDAY_BASELINE.wagesReceived,
+      protectedCash: PAYDAY_BASELINE.protectedCash
+    };
+  }
+
+  function savedBaselinePlan() {
+    const persisted = savedPlanFromStorage();
+    const fallback = financeState()?.finance?.plan || {};
+    return nextCycleBaseline(persisted || fallback);
+  }
+
   function inputs() {
     return qa('#paydayPanel .finance-field-grid .field input');
   }
@@ -56,9 +76,7 @@
   }
 
   function seedDraftFromSavedPlan() {
-    const persisted = savedPlanFromStorage();
-    const fallback = financeState()?.finance?.plan || {};
-    draftPlan = { ...(persisted || fallback) };
+    draftPlan = savedBaselinePlan();
     dirty = false;
     seedInputs(draftPlan);
   }
@@ -67,17 +85,17 @@
     const fields = inputs();
     if (fields[0]) fields[0].value = String(plan?.paydayDate || '');
     if (fields[1]) fields[1].value = Number(plan?.openingCash || 0).toFixed(2);
-    if (fields[2]) fields[2].value = Number(plan?.expectedWages || 0).toFixed(2);
-    if (fields[3]) fields[3].value = Number(plan?.wagesReceived || 0).toFixed(2);
+    if (fields[2]) fields[2].value = Number(plan?.expectedWages ?? PAYDAY_BASELINE.expectedWages).toFixed(2);
+    if (fields[3]) fields[3].value = Number(plan?.wagesReceived ?? PAYDAY_BASELINE.wagesReceived).toFixed(2);
     if (fields[4]) fields[4].value = Number(plan?.extraCash || 0).toFixed(2);
-    if (fields[5]) fields[5].value = Number(plan?.protectedCash || 0).toFixed(2);
+    if (fields[5]) fields[5].value = Number(plan?.protectedCash ?? PAYDAY_BASELINE.protectedCash).toFixed(2);
     if (fields[6]) fields[6].value = Number(plan?.releaseAmount || 0).toFixed(2);
     fields[0]?.dispatchEvent(new Event('aurora:date-display-sync'));
   }
 
   function readDraftFromInputs() {
     const fields = inputs();
-    const next = { ...(draftPlan || savedPlanFromStorage() || financeState()?.finance?.plan || {}) };
+    const next = { ...(draftPlan || savedBaselinePlan()) };
     next.paydayDate = String(fields[0]?.value || '');
     ['openingCash','expectedWages','wagesReceived','extraCash','protectedCash','releaseAmount'].forEach((key, index) => {
       const value = Number(fields[index + 1]?.value);
@@ -93,11 +111,11 @@
     if (!state?.finance || typeof control?.paydayFundingPreview !== 'function') return;
 
     let preview;
-    try { preview = control.paydayFundingPreview(state, draftPlan || savedPlanFromStorage() || state.finance.plan || {}); }
+    try { preview = control.paydayFundingPreview(state, draftPlan || savedBaselinePlan()); }
     catch (error) { recordError(error); return; }
 
     const c = preview?.c || {};
-    const normalized = c.plan || draftPlan || savedPlanFromStorage() || state.finance.plan || {};
+    const normalized = c.plan || draftPlan || savedBaselinePlan();
     const auto = c.auto || {};
     const hp = holdingPot(state);
     const hpBalance = Math.max(0, Number(hp?.balance) || 0);
@@ -159,7 +177,7 @@
         ? `Preview encountered ${runtimeErrors.length} runtime error${runtimeErrors.length === 1 ? '' : 's'}. Aurora state has not been changed.`
         : dirty
           ? `Unsaved preview only. Safe release is ${money(c.safeSurplus)}. Your saved Finance plan has not changed.`
-          : 'Payday fields are editable for live calculations. Nothing is saved until the next controlled rebuild step.';
+          : 'Next payday baseline: £2,100 expected wages, £0 received and £300 protected spending.';
     }
 
     window.AuroraFinancePaydayPreview = Object.freeze({
@@ -170,6 +188,7 @@
       draftPlan: { ...normalized },
       safeSurplus: Number(c.safeSurplus || 0),
       commitments: Number(c.commitments || 0),
+      paydayBaseline: { ...PAYDAY_BASELINE },
       resetToSaved: resetToSavedValues
     });
   }
@@ -213,8 +232,8 @@
   function restoreAfterBaseRender() {
     setTimeout(() => {
       if (!ready) return;
-      if (!dirty) draftPlan = { ...(savedPlanFromStorage() || financeState()?.finance?.plan || {}) };
-      seedInputs(draftPlan || {});
+      if (!dirty) draftPlan = savedBaselinePlan();
+      seedInputs(draftPlan || savedBaselinePlan());
       inputs().forEach((field) => { field.disabled = false; field.removeAttribute('disabled'); });
       renderDraft();
     }, 0);
