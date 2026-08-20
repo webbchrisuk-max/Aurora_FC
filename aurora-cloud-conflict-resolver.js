@@ -179,6 +179,8 @@
   async function resolve(mode) {
     if (!['cloud','device'].includes(mode)) throw new Error('Unknown conflict-resolution mode.');
     if (resolving) throw new Error('A cloud resolution is already running.');
+    const initial = requireReady();
+    if (typeof initial.cloud.inspectCloud === 'function') await initial.cloud.inspectCloud();
     const context = validatePrepared();
     const { cloud, core, status: before } = context;
 
@@ -291,7 +293,7 @@
         const cloudName = s?.cloudDeviceName || 'the cloud copy';
         const currentName = s?.deviceName || 'this device';
         const conflicts = sorted(s?.conflicts).join(', ');
-        const okay = confirm(`Use ${cloudName} as the winning Aurora copy?\n\nThis will back up ${currentName} first, then replace the conflicting local departments with the cloud copy.\n\nConflicts: ${conflicts}\n\nContinue?`);
+        const okay = confirm(`Use ${cloudName} as the winning Aurora copy?\n\nThis will back up ${currentName} first, then make the cloud master authoritative across all Aurora cloud-managed departments on this device.\n\nConflicts: ${conflicts}\n\nContinue?`);
         if (!okay) return;
         await runResolution('cloud', status);
       });
@@ -301,7 +303,7 @@
         const currentName = s?.deviceName || 'this device';
         const cloudName = s?.cloudDeviceName || 'the current cloud copy';
         const conflicts = sorted(s?.conflicts).join(', ');
-        const okay = confirm(`Make ${currentName} the new Aurora Cloud master?\n\nAurora will create a fresh local backup and the cloud engine will back up ${cloudName} before replacing the cloud master.\n\nConflicts: ${conflicts}\n\nContinue?`);
+        const okay = confirm(`Make ${currentName} the new Aurora Cloud master?\n\nAurora will create a fresh local backup and the cloud engine will back up ${cloudName} before replacing the full Aurora cloud master with this device's cloud-managed state.\n\nConflicts: ${conflicts}\n\nContinue?`);
         if (!okay) return;
         await runResolution('device', status);
       });
