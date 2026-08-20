@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD = '20260820-stage4e-live-finance-11';
+  const BUILD = '20260820-stage4e-live-finance-12';
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
 
   function fixFinanceLinks() {
@@ -23,6 +23,15 @@
     document.head.appendChild(script);
   }
 
+  function loadProtectedBills() {
+    if (currentFile !== 'finance.html' || window.AuroraFinanceProtectedBillsLoadStarted) return;
+    window.AuroraFinanceProtectedBillsLoadStarted = true;
+    const script = document.createElement('script');
+    script.src = `finance-protected-bills.js?v=${encodeURIComponent(BUILD)}`;
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
   function loadHardPaydayReset() {
     if (currentFile !== 'finance.html' || window.AuroraFinancePaydayHardResetLoadStarted) return;
     window.AuroraFinancePaydayHardResetLoadStarted = true;
@@ -34,6 +43,7 @@
 
   function continueAfterPaydaySave() {
     loadHardPaydayReset();
+    loadProtectedBills();
     loadPotsBillsReadonly();
   }
 
@@ -125,6 +135,7 @@
     customDateDisplay: currentFile === 'finance.html',
     paydaySave: currentFile === 'finance.html',
     hardPaydayReset: currentFile === 'finance.html',
+    protectedBills: currentFile === 'finance.html',
     potsBillsReadonly: currentFile === 'finance.html'
   });
 })();
