@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-payday-preview-4';
+  const BUILD = '20260820-finance-payday-preview-5';
   const STATE_KEY = 'aurora2:state:v1';
   const FIELD_KEYS = ['paydayDate','openingCash','expectedWages','wagesReceived','extraCash','protectedCash','releaseAmount'];
   const PAYDAY_BASELINE = Object.freeze({
@@ -12,6 +12,7 @@
   let ready = false;
   let dirty = false;
   let draftPlan = null;
+  let releaseManuallyEdited = false;
   let runtimeErrors = [];
 
   const money = (value) => new Intl.NumberFormat('en-GB', {
@@ -75,9 +76,16 @@
     return (state?.finance?.pots || []).find(p => !p.archived && String(p.name || '').trim().toLowerCase() === 'holding pot') || null;
   }
 
+  function calculate(plan, state = financeState()) {
+    const control = window.Aurora2?.financePaydayControl;
+    if (!state?.finance || typeof control?.paydayFundingPreview !== 'function') return null;
+    return control.paydayFundingPreview(state, plan || {});
+  }
+
   function seedDraftFromSavedPlan() {
     draftPlan = savedBaselinePlan();
     dirty = false;
+    releaseManuallyEdited = false;
     seedInputs(draftPlan);
   }
 
@@ -104,15 +112,39 @@
     return next;
   }
 
+  function syncReleaseToSafeSurplus() {
+    const state = financeState();
+    if (!state?.finance || !draftPlan) return;
+    let preview;
+    try { preview = calculate(draftPlan, state); }
+    catch (error) { recordError(error); return; }
+    if (!preview) return;
+
+    const safe = Math.max(0, Number(preview?.c?.safeSurplus) || 0);
+    const releaseInput = inputs()[6];
+
+    if (!releaseManuallyEdited) {
+      draftPlan = { ...draftPlan, releaseAmount: Number(safe.toFixed(2)) };
+      if (releaseInput) releaseInput.value = safe.toFixed(2);
+      return;
+    }
+
+    const currentRelease = Math.max(0, Number(draftPlan.releaseAmount) || 0);
+    if (currentRelease > safe + 0.005) {
+      draftPlan = { ...draftPlan, releaseAmount: Number(safe.toFixed(2)) };
+      if (releaseInput) releaseInput.value = safe.toFixed(2);
+    }
+  }
+
   function renderDraft() {
     if (!ready) return;
     const state = financeState();
-    const control = window.Aurora2?.financePaydayControl;
-    if (!state?.finance || typeof control?.paydayFundingPreview !== 'function') return;
+    if (!state?.finance) return;
 
     let preview;
-    try { preview = control.paydayFundingPreview(state, draftPlan || savedBaselinePlan()); }
+    try { preview = calculate(draftPlan || savedBaselinePlan(), state); }
     catch (error) { recordError(error); return; }
+    if (!preview) return;
 
     const c = preview?.c || {};
     const normalized = c.plan || draftPlan || savedBaselinePlan();
@@ -162,7 +194,8 @@
 
     const releaseInput = inputs()[6];
     if (releaseInput) {
-      releaseInput.style.outline = Number(normalized.releaseAmount || 0) > Number(c.safeSurplus || 0) + 0.005 ? '2px solid #d97706' : '';
+      const release = Math.max(0, Number(releaseInput.value) || 0);
+      releaseInput.style.outline = dirty && release > Number(c.safeSurplus || 0) + 0.005 ? '2px solid #d97706' : '';
     }
 
     const pill = q('.finance-version-pill');
@@ -176,7 +209,7 @@
       note.textContent = runtimeErrors.length
         ? `Preview encountered ${runtimeErrors.length} runtime error${runtimeErrors.length === 1 ? '' : 's'}. Aurora state has not been changed.`
         : dirty
-          ? `Unsaved preview only. Safe release is ${money(c.safeSurplus)}. Your saved Finance plan has not changed.`
+          ? `Unsaved preview only. Safe release is ${money(c.safeSurplus)}. ${releaseManuallyEdited ? 'Your chosen release is preserved unless it exceeds the safe amount.' : 'Investment release is following the safe amount automatically.'}`
           : 'Next payday baseline: £2,100 expected wages, £0 received and £300 protected spending.';
     }
 
@@ -185,9 +218,10 @@
       ready: true,
       dirty,
       runtimeErrors: [...runtimeErrors],
-      draftPlan: { ...normalized },
+      draftPlan: { ...normalized, releaseAmount: Math.max(0, Number(inputs()[6]?.value) || Number(normalized.releaseAmount) || 0) },
       safeSurplus: Number(c.safeSurplus || 0),
       commitments: Number(c.commitments || 0),
+      releaseManuallyEdited,
       paydayBaseline: { ...PAYDAY_BASELINE },
       resetToSaved: resetToSavedValues
     });
@@ -212,19 +246,20 @@
   }
 
   function enablePreviewEditing() {
-    inputs().forEach((field) => {
+    inputs().forEach((field, index) => {
       field.disabled = false;
       field.removeAttribute('disabled');
-      field.addEventListener('input', () => {
+
+      const update = () => {
         draftPlan = readDraftFromInputs();
         dirty = true;
+        if (index === 6) releaseManuallyEdited = true;
+        else syncReleaseToSafeSurplus();
         renderDraft();
-      });
-      field.addEventListener('change', () => {
-        draftPlan = readDraftFromInputs();
-        dirty = true;
-        renderDraft();
-      });
+      };
+
+      field.addEventListener('input', update);
+      field.addEventListener('change', update);
     });
     ensureResetButton();
   }
@@ -232,7 +267,10 @@
   function restoreAfterBaseRender() {
     setTimeout(() => {
       if (!ready) return;
-      if (!dirty) draftPlan = savedBaselinePlan();
+      if (!dirty) {
+        draftPlan = savedBaselinePlan();
+        releaseManuallyEdited = false;
+      }
       seedInputs(draftPlan || savedBaselinePlan());
       inputs().forEach((field) => { field.disabled = false; field.removeAttribute('disabled'); });
       renderDraft();
