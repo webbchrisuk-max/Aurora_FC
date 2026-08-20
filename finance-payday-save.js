@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-payday-save-1';
+  const BUILD = '20260820-finance-payday-save-2';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const BACKUP_META_KEY = 'aurora2:state:backup:meta';
@@ -105,53 +105,73 @@
       if (chip) chip.textContent = 'ERROR';
       if (note) note.textContent = message || 'Nothing was saved.';
     } else {
-      if (title) title.textContent = 'Live preview only';
+      if (title) title.textContent = 'Payday plan editor';
       if (chip) chip.textContent = 'READY TO SAVE';
       if (note) note.textContent = 'Preview your changes first, then save only the seven Payday Planner fields.';
     }
   }
 
-  function ensureSaveButton() {
-    const panel = q('#paydayPanel .finance-panel:last-child');
-    if (!panel || panel.querySelector('[data-finance-payday-save]')) return;
-
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'mini-link-btn';
-    button.dataset.financePaydaySave = '1';
-    button.textContent = 'Save Payday Plan';
-    button.style.marginLeft = '8px';
-
-    button.addEventListener('click', () => {
-      if (saving) return;
-      saving = true;
-      lastError = null;
-      button.disabled = true;
-      button.textContent = 'Saving…';
-      setPanelState('saving');
-
-      try {
-        const plan = readPlanFromFields();
-        persistPlan(plan);
-        setPanelState('saved');
-        button.textContent = 'Saved ✓';
-        setTimeout(() => {
-          window.location.reload();
-        }, 700);
-      } catch (error) {
-        lastError = String(error?.message || error || 'Unknown save error');
-        console.error('[Aurora Finance payday save]', lastError);
-        setPanelState('error', `Nothing was saved. ${lastError}`);
-        button.disabled = false;
-        button.textContent = 'Save Payday Plan';
-        saving = false;
-      }
+  function bindReadyState() {
+    inputs().forEach((field) => {
+      if (field.dataset.auroraPaydaySaveBound === '1') return;
+      field.dataset.auroraPaydaySaveBound = '1';
+      const restore = () => setTimeout(() => { if (!saving) setPanelState('ready'); }, 0);
+      field.addEventListener('input', restore);
+      field.addEventListener('change', restore);
     });
 
-    const reset = panel.querySelector('[data-finance-preview-reset]');
-    if (reset?.parentNode) reset.parentNode.insertBefore(button, reset.nextSibling);
-    else panel.appendChild(button);
+    const reset = q('[data-finance-preview-reset]');
+    if (reset && reset.dataset.auroraPaydaySaveBound !== '1') {
+      reset.dataset.auroraPaydaySaveBound = '1';
+      reset.addEventListener('click', () => setTimeout(() => { if (!saving) setPanelState('ready'); }, 0));
+    }
+  }
 
+  function ensureSaveButton() {
+    const panel = q('#paydayPanel .finance-panel:last-child');
+    if (!panel) return;
+
+    let button = panel.querySelector('[data-finance-payday-save]');
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'mini-link-btn';
+      button.dataset.financePaydaySave = '1';
+      button.textContent = 'Save Payday Plan';
+      button.style.marginLeft = '8px';
+
+      button.addEventListener('click', () => {
+        if (saving) return;
+        saving = true;
+        lastError = null;
+        button.disabled = true;
+        button.textContent = 'Saving…';
+        setPanelState('saving');
+
+        try {
+          const plan = readPlanFromFields();
+          persistPlan(plan);
+          setPanelState('saved');
+          button.textContent = 'Saved ✓';
+          setTimeout(() => {
+            window.location.reload();
+          }, 700);
+        } catch (error) {
+          lastError = String(error?.message || error || 'Unknown save error');
+          console.error('[Aurora Finance payday save]', lastError);
+          setPanelState('error', `Nothing was saved. ${lastError}`);
+          button.disabled = false;
+          button.textContent = 'Save Payday Plan';
+          saving = false;
+        }
+      });
+
+      const reset = panel.querySelector('[data-finance-preview-reset]');
+      if (reset?.parentNode) reset.parentNode.insertBefore(button, reset.nextSibling);
+      else panel.appendChild(button);
+    }
+
+    bindReadyState();
     setPanelState('ready');
   }
 
