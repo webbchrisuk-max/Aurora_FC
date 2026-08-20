@@ -1,16 +1,12 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-payday-save-4';
+  const BUILD = '20260820-finance-payday-save-5';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const BACKUP_META_KEY = 'aurora2:state:backup:meta';
   const FIELD_KEYS = ['paydayDate','openingCash','expectedWages','wagesReceived','extraCash','protectedCash','releaseAmount'];
-  const PAYDAY_BASELINE = Object.freeze({
-    expectedWages: 2100,
-    wagesReceived: 0,
-    protectedCash: 300
-  });
+  const OLD_RESET_BASELINE = Object.freeze({ expectedWages: 2100, wagesReceived: 0, protectedCash: 300 });
   let saving = false;
   let lastError = null;
 
@@ -35,9 +31,7 @@
     if (fields.length < 7) throw new Error('PAYDAY_FIELDS_NOT_READY');
 
     const paydayDate = String(fields[0]?.value || '').trim();
-    if (paydayDate && !/^\d{4}-\d{2}-\d{2}$/.test(paydayDate)) {
-      throw new Error('PAYDAY_DATE_INVALID');
-    }
+    if (paydayDate && !/^\d{4}-\d{2}-\d{2}$/.test(paydayDate)) throw new Error('PAYDAY_DATE_INVALID');
 
     const plan = { paydayDate };
     FIELD_KEYS.slice(1).forEach((key, index) => {
@@ -50,70 +44,49 @@
 
   function actualPaydayRelease(plan, state) {
     const control = window.Aurora2?.financePaydayControl;
-    if (!state?.finance || typeof control?.paydayFundingPreview !== 'function') {
-      throw new Error('PAYDAY_PREVIEW_API_NOT_READY');
-    }
+    if (!state?.finance || typeof control?.paydayFundingPreview !== 'function') throw new Error('PAYDAY_PREVIEW_API_NOT_READY');
 
     const preview = control.paydayFundingPreview(state, plan);
     const safeSurplus = Math.max(0, Number(preview?.c?.safeSurplus) || 0);
     const manuallyEdited = Boolean(window.AuroraFinancePaydayPreview?.releaseManuallyEdited);
     const requested = Math.max(0, Number(plan.releaseAmount) || 0);
-    const capturedRelease = manuallyEdited
-      ? Math.min(requested, safeSurplus)
-      : safeSurplus;
+    const capturedRelease = manuallyEdited ? Math.min(requested, safeSurplus) : safeSurplus;
 
     return {
-      plan: {
-        ...plan,
-        releaseAmount: Number(capturedRelease.toFixed(2))
-      },
+      plan: { ...plan, releaseAmount: Number(capturedRelease.toFixed(2)) },
       safeSurplus: Number(safeSurplus.toFixed(2)),
       manuallyEdited
     };
   }
 
-  function nextCycleBaseline(plan) {
-    return {
-      ...(plan || {}),
-      expectedWages: PAYDAY_BASELINE.expectedWages,
-      wagesReceived: PAYDAY_BASELINE.wagesReceived,
-      protectedCash: PAYDAY_BASELINE.protectedCash
-    };
-  }
-
-  function backupCurrentState(rawText) {
+  function backupCurrentState(rawText, reason = 'pre-finance-payday-plan-save') {
     if (!rawText) return;
     try {
       const parsed = JSON.parse(rawText);
       if (!parsed || typeof parsed !== 'object') return;
       localStorage.setItem(BACKUP_KEY, rawText);
       localStorage.setItem(BACKUP_META_KEY, JSON.stringify({
-        at: new Date().toISOString(),
-        reason: 'pre-finance-payday-plan-save',
-        schemaVersion: Number(parsed.schemaVersion) || null
+        at: new Date().toISOString(), reason, schemaVersion: Number(parsed.schemaVersion) || null
       }));
     } catch (error) {
       throw new Error(`PAYDAY_BACKUP_FAILED:${error?.message || error}`);
     }
   }
 
-  function persistPlan(plan) {
+  function persistPlan(plan, extraFinance = {}) {
     const raw = localStorage.getItem(STATE_KEY);
     const current = readPrimaryState();
     if (!current) throw new Error('AURORA_PRIMARY_STATE_NOT_FOUND');
 
     backupCurrentState(raw);
-
     const now = new Date().toISOString();
     const next = {
       ...current,
       updatedAt: now,
       finance: {
         ...(current.finance || {}),
-        plan: {
-          ...(current.finance?.plan || {}),
-          ...plan
-        },
+        ...extraFinance,
+        plan: { ...(current.finance?.plan || {}), ...plan },
         lastCalculatedAt: now
       }
     };
@@ -121,6 +94,50 @@
     localStorage.setItem(STATE_KEY, JSON.stringify(next));
     window.dispatchEvent(new CustomEvent('aurora2:state', { detail: next }));
     return next;
+  }
+
+  function recoverOldResetIfNeeded() {
+    const current = readPrimaryState();
+    const finance = current?.finance;
+    const plan = finance?.plan || {};
+    const candidate = finance?.paydayReleaseCandidate;
+    const source = candidate?.sourcePlan;
+    if (!finance || finance.paydayResetRecoveryApplied || !source || typeof source !== 'object') return false;
+
+    const looksLikeOldReset =
+      Number(plan.expectedWages || 0) === OLD_RESET_BASELINE.expectedWages &&
+      Number(plan.wagesReceived || 0) === OLD_RESET_BASELINE.wagesReceived &&
+      Number(plan.protectedCash || 0) === OLD_RESET_BASELINE.protectedCash;
+
+    const sourceDiffers =
+      Number(source.expectedWages || 0) !== Number(plan.expectedWages || 0) ||
+      Number(source.wagesReceived || 0) !== Number(plan.wagesReceived || 0) ||
+      Number(source.protectedCash || 0) !== Number(plan.protectedCash || 0);
+
+    if (!looksLikeOldReset || !sourceDiffers) return false;
+
+    const raw = localStorage.getItem(STATE_KEY);
+    backupCurrentState(raw, 'pre-finance-payday-reset-recovery');
+    const now = new Date().toISOString();
+    const restoredPlan = {
+      ...(plan || {}),
+      ...source,
+      releaseAmount: Number(candidate.releaseAmount ?? source.releaseAmount ?? 0)
+    };
+    const next = {
+      ...current,
+      updatedAt: now,
+      finance: {
+        ...finance,
+        plan: restoredPlan,
+        paydayResetRecoveryApplied: true,
+        paydayResetRecoveredAt: now,
+        lastCalculatedAt: now
+      }
+    };
+    localStorage.setItem(STATE_KEY, JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent('aurora2:state', { detail: next }));
+    return true;
   }
 
   function setPanelState(mode, message) {
@@ -133,11 +150,11 @@
     if (mode === 'saved') {
       if (title) title.textContent = 'Payday plan saved';
       if (chip) chip.textContent = 'SAVED';
-      if (note) note.textContent = message || 'Payday release captured from the actual wage. Next-cycle baseline restored to £2,100 expected wages, £0 wages received and £300 protected spending.';
+      if (note) note.textContent = message || 'The actual payday values and calculated release have been saved. They remain in Finance until the payday cycle is completed or you edit them.';
     } else if (mode === 'saving') {
       if (title) title.textContent = 'Saving Payday plan';
       if (chip) chip.textContent = 'SAVING';
-      if (note) note.textContent = 'Calculating the safe release from the actual wage first, then restoring the next-payday wage baseline.';
+      if (note) note.textContent = 'Calculating the safe release and saving the actual payday values exactly as entered.';
     } else if (mode === 'error') {
       if (title) title.textContent = 'Payday save blocked';
       if (chip) chip.textContent = 'ERROR';
@@ -145,7 +162,7 @@
     } else {
       if (title) title.textContent = 'Payday plan editor';
       if (chip) chip.textContent = 'READY TO SAVE';
-      if (note) note.textContent = 'Enter the actual wage. Aurora recalculates the release before Save, then resets the next cycle to £2,100 expected / £0 received / £300 protected.';
+      if (note) note.textContent = 'Enter the payday values. Save keeps the actual figures in Finance and captures the verified safe release for Transfer.';
     }
   }
 
@@ -192,17 +209,14 @@
           if (!current) throw new Error('AURORA_PRIMARY_STATE_NOT_FOUND');
 
           const actual = actualPaydayRelease(enteredPlan, current);
-          const savedPlan = nextCycleBaseline(actual.plan);
-          persistPlan(savedPlan);
+          persistPlan(actual.plan, { paydayResetRecoveryApplied: true });
 
           const releaseText = new Intl.NumberFormat('en-GB', {
             style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2
           }).format(actual.plan.releaseAmount);
-          setPanelState('saved', `Captured ${releaseText} investment release from the actual payday calculation. Wages received is now reset to £0 for the next cycle.`);
+          setPanelState('saved', `Saved the actual payday values and captured ${releaseText} as the verified investment release. Nothing has been reset.`);
           button.textContent = 'Saved ✓';
-          setTimeout(() => {
-            window.location.reload();
-          }, 700);
+          setTimeout(() => window.location.reload(), 500);
         } catch (error) {
           lastError = String(error?.message || error || 'Unknown save error');
           console.error('[Aurora Finance payday save]', lastError);
@@ -228,14 +242,18 @@
       const previewReady = Boolean(window.AuroraFinancePaydayPreview?.ready);
       const dateReady = Boolean(window.AuroraFinanceDateField?.ready);
       if (previewReady && dateReady && inputs().length >= 7) {
+        if (recoverOldResetIfNeeded()) {
+          setTimeout(() => window.location.reload(), 100);
+          return;
+        }
         ensureSaveButton();
         window.AuroraFinancePaydaySave = Object.freeze({
           build: BUILD,
           ready: true,
           scope: 'finance.plan only',
           fields: [...FIELD_KEYS],
-          paydayBaseline: { ...PAYDAY_BASELINE },
-          captureOrder: 'actual wage -> safe release -> next-cycle baseline',
+          saveBehavior: 'preserve actual payday values',
+          resetBehavior: 'only on explicit payday completion/reset',
           lastError
         });
         return;
