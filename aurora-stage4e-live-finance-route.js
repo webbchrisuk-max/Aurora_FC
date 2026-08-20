@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD = '20260820-stage4e-live-finance-18';
+  const BUILD = '20260820-stage4e-live-finance-19';
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
 
   function fixFinanceLinks() {
