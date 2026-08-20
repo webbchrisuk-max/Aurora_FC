@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-payday-preview-2';
+  const BUILD = '20260820-finance-payday-preview-3';
   const STATE_KEY = 'aurora2:state:v1';
   const FIELD_KEYS = ['paydayDate','openingCash','expectedWages','wagesReceived','extraCash','protectedCash','releaseAmount'];
   let ready = false;
@@ -177,8 +177,6 @@
   function resetToSavedValues() {
     seedDraftFromSavedPlan();
     renderDraft();
-    const dateInput = inputs()[0];
-    dateInput?.dispatchEvent(new Event('change', { bubbles: false }));
     return { ...(draftPlan || {}) };
   }
 
