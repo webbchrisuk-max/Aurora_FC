@@ -1,277 +1,101 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-squad-former-history-1';
-  const LEGACY_URLS = [
+  const BUILD='20260820-squad-former-history-live-1';
+  const CLIENT='/aurora-fc-2/aurora-data2-client.js?v=20260820-squad-former-history-live-1';
+  const MASTER_URLS=[
     'https://webbchrisuk-max.github.io/aurora-fc-2/AuroraMaster.json',
-    'https://raw.githubusercontent.com/webbchrisuk-max/aurora-fc-2/main/AuroraMaster.json'
+    'https://raw.githubusercontent.com/webbchrisuk-max/aurora-fc-2/main/AuroraMaster.json',
+    'https://webbchrisuk-max.github.io/aurora-city-fc/AuroraMaster.json'
   ];
-  const CLOSED = new Set(['SOLD','ARCHIVED','CLOSED','EXITED']);
+  const CLOSED=new Set(['SOLD','ARCHIVED','CLOSED','EXITED']);
+  const arr=v=>Array.isArray(v)?v:[];
+  const upper=v=>String(v||'').trim().toUpperCase();
+  const tk=v=>upper(v).replace(/^LON:/,'').replace(/\.L$/,'').replace(/\.GB$/,'');
+  const norm=v=>String(v??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const n=v=>{if(v===null||v===undefined||String(v).trim()==='')return null;const x=Number(String(v).replace(/[^0-9.-]/g,''));return Number.isFinite(x)?x:null};
+  const first=(row,keys)=>{for(const key of keys){const v=row?.[key];if(v!==undefined&&v!==null&&String(v).trim()!=='')return v}return null};
+  const acct=v=>/trade ?212|trading ?212|t212/.test(norm(v))?'Trading 212 ISA':/\big\b|ig isa/.test(norm(v))?'IG ISA':String(v||'Account Review').trim()||'Account Review';
+  let rows=[],state={source:'Checking AuroraData sale history',liveLoaded:false,legacyLoaded:false,lastError:''},loading=null;
 
-  const VERIFIED = [
-    {
-      ticker:'MNG', name:'M&G PLC', account:'IG ISA', status:'SOLD', soldAt:'2026-06-29',
-      sharesSold:5737, executionPriceDisplay:'334.004p', netProceedsGbp:19160.31,
-      bookCostGbp:13258.48, realisedProfitGbp:5901.83, feesGbp:1.50,
-      sector:'FINANCIALS', source:'AuroraData Holdings',
-      note:'Sold 5,737 MNG at 334.004p on 29/06/2026. Proceeds £19,160.31 after £1.50 charges. Original book cost £13,258.48; realised profit approx £5,901.83.'
-    },
-    {
-      ticker:'SDLF', name:'STANDARD LIFE HOLDINGS', account:'IG ISA', status:'SOLD', soldAt:'2026-07-03',
-      sharesSold:1692, executionPriceDisplay:'851.86p', netProceedsGbp:14413.47,
-      bookCostGbp:11111.08, realisedProfitGbp:3302.39, feesGbp:null,
-      sector:'FINANCIALS', source:'AuroraData Holdings',
-      note:'Sold 1,692 Standard Life plc at 851.86p on 03/07/2026. Total proceeds £14,413.47. Original book cost £11,111.08; realised profit approx £3,302.39.'
-    },
-    {
-      ticker:'LGEN', name:'LEGAL & GENERAL', account:'IG ISA', status:'SOLD', soldAt:'2026-07-03',
-      sharesSold:8102, executionPriceDisplay:'292.736p', grossProceedsGbp:23717.47, netProceedsGbp:23715.97,
-      bookCostGbp:19706.12, realisedProfitGbp:4009.85, feesGbp:1.50,
-      sector:'FINANCIALS', source:'AuroraData Holdings',
-      note:'Sold 8,102 Legal & General Group PLC at 292.736p on 03/07/2026. Consideration £23,717.47 less £1.50 PTM levy; total proceeds £23,715.97. Original book cost £19,706.12; realised profit approx £4,009.85.'
-    },
-    {
-      ticker:'UKW', name:'GREENCOAT WIND', account:'IG ISA', status:'SOLD', soldAt:'2026-08-04',
-      sharesSold:7021, executionPriceDisplay:'115.6p', netProceedsGbp:8116.276, feesGbp:0,
-      bookCostGbp:7328.79, realisedProfitGbp:null, sector:'RENEWABLE ENERGY',
-      ticketId:'SELL-1785843006225-C9D07369', transactionId:'SALE-1785843273023',
-      source:'AuroraData SellDesk • EXECUTED',
-      note:'Completed manually with broker and recorded in Aurora. Sold 7,021 UKW at 115.6p on 04/08/2026; net proceeds £8,116.28.'
-    },
-    {
-      ticker:'VWRA', name:'VANGUARD FTSE ALL-WORLD', account:'Trading 212 ISA', status:'SOLD', soldAt:'2026-08-05',
-      sharesSold:40.42249269, executionPriceDisplay:'£143.82', netProceedsGbp:5804.812899, feesGbp:8.75,
-      bookCostGbp:null, realisedProfitGbp:null, sector:'GLOBAL EQUINITY ETF',
-      ticketId:'SELL-1785916806080-6DDAF449', transactionId:'SALE-1785917115882',
-      source:'AuroraData SellDesk • EXECUTED',
-      note:'Completed manually with broker and recorded in Aurora. Sold 40.42249269 VWRA at £143.82 on 05/08/2026; net proceeds £5,804.81.'
-    },
-    {
-      ticker:'IITU', name:'ISHARES S&P 500', account:'Trading 212 ISA', status:'SOLD', soldAt:'2026-08-05',
-      sharesSold:64.18067352, executionPriceDisplay:'3819p (£38.19)', netProceedsGbp:2451.06, feesGbp:null,
-      bookCostGbp:null, realisedProfitGbp:580.45, sector:'TECHNOLOGY ETF', orderId:'EO55214293578',
-      source:'AuroraData Holdings',
-      note:'Sold full IITU position on 05/08/2026: 64.18067352 shares at 3819p (£38.19). Proceeds £2,451.06; realised profit £580.45.'
+  function rowsFromValue(v){
+    if(Array.isArray(v)) return v.every(x=>x&&typeof x==='object'&&!Array.isArray(x))?v:[];
+    if(!v||typeof v!=='object')return [];
+    for(const key of ['rows','values','data']){
+      const data=v[key]; if(!Array.isArray(data))continue;
+      if(data.every(x=>x&&typeof x==='object'&&!Array.isArray(x)))return data;
+      const headers=Array.isArray(v.headers)?v.headers.map(String):Array.isArray(v.columns)?v.columns.map((x,i)=>String(x?.label||x?.name||x||`column_${i+1}`)):[];
+      if(headers.length&&data.every(Array.isArray))return data.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]])));
     }
-  ];
-
-  const arr = value => Array.isArray(value) ? value : [];
-  const upper = value => String(value || '').trim().toUpperCase();
-  const ticker = value => upper(value).replace(/^LON:/,'').replace(/\.L$/,'').replace(/\.GB$/,'');
-  const norm = value => String(value ?? '').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-  const maybeNum = value => {
-    if (value === null || value === undefined || String(value).trim() === '') return null;
-    const parsed = Number(String(value).replace(/[^0-9.-]/g,''));
-    return Number.isFinite(parsed) ? parsed : null;
-  };
-  const first = (row, keys) => {
-    for (const key of keys) {
-      if (row && row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') return row[key];
+    if(Array.isArray(v.cols)&&Array.isArray(v.rows)){
+      const headers=v.cols.map((c,i)=>String(c?.label||c?.id||`column_${i+1}`));
+      return v.rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r?.c?.[i]?.v??r?.c?.[i]?.f??''])));
     }
-    return null;
-  };
-  const account = value => {
-    const text = norm(value);
-    if (/trade ?212|trading ?212|t212/.test(text)) return 'Trading 212 ISA';
-    if (/\big\b|ig isa/.test(text)) return 'IG ISA';
-    return String(value || 'Account Review').trim() || 'Account Review';
-  };
-
-  let historyRows = VERIFIED.map(row => ({...row}));
-  let status = {source:'AuroraData verified snapshot', legacyLoaded:false, lastError:''};
-  let loading = null;
-
-  function rowsFromValue(value) {
-    if (Array.isArray(value)) {
-      if (!value.length) return [];
-      if (value.every(item => item && typeof item === 'object' && !Array.isArray(item))) return value;
-      return [];
+    return [];
+  }
+  function readTab(master,label){
+    const wanted=norm(label).replace(/\s/g,'');
+    for(const box of [master,master?.data,master?.tabs,master?.sheets,master?.feeds,master?.tables,master?.payload]){
+      if(!box||typeof box!=='object')continue;
+      for(const key of Object.keys(box)) if(norm(key).replace(/\s/g,'')===wanted){const found=rowsFromValue(box[key]);if(found.length)return found}
     }
-    if (!value || typeof value !== 'object') return [];
-    for (const key of ['rows','values','data']) {
-      if (!Array.isArray(value[key])) continue;
-      const candidate = value[key];
-      if (candidate.every(item => item && typeof item === 'object' && !Array.isArray(item))) return candidate;
-      const headers = Array.isArray(value.headers)
-        ? value.headers.map(String)
-        : Array.isArray(value.columns)
-          ? value.columns.map((item,index) => String(item?.label || item?.name || item || `column_${index+1}`))
-          : [];
-      if (headers.length && candidate.every(Array.isArray)) {
-        return candidate.map(row => {
-          const out = {};
-          headers.forEach((header,index) => { out[header] = row[index]; });
-          return out;
-        });
-      }
-    }
-    if (Array.isArray(value.cols) && Array.isArray(value.rows)) {
-      const headers = value.cols.map((col,index) => String(col?.label || col?.id || `column_${index+1}`));
-      return value.rows.map(row => {
-        const cells = Array.isArray(row?.c) ? row.c : [];
-        const out = {};
-        headers.forEach((header,index) => { out[header] = cells[index]?.v ?? cells[index]?.f ?? ''; });
-        return out;
+    return [];
+  }
+  function dateFromText(text){
+    const s=String(text||''); let m=s.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/); if(m)return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+    m=s.match(/\b(\d{4})-(\d{2})-(\d{2})\b/); return m?`${m[1]}-${m[2]}-${m[3]}`:'';
+  }
+  function noteMoney(note,labels){for(const label of labels){const m=String(note||'').match(new RegExp(`${label}\\s*(?:approx\\s*)?£([0-9,]+(?:\\.[0-9]+)?)`,'i'));if(m)return n(m[1])}return null}
+  function noteShares(note){const s=String(note||'');const m=s.match(/sold\s+([0-9,]+(?:\.[0-9]+)?)\s+(?:[A-Z0-9.]+|[^.]{1,40}?)\s+at\s+/i)||s.match(/([0-9,]+(?:\.[0-9]+)?)\s+shares\s+at\s+/i);return m?n(m[1]):null}
+  function notePrice(note){const s=String(note||'');let m=s.match(/\bat\s+£([0-9,]+(?:\.[0-9]+)?)/i);if(m)return `£${m[1]}`;m=s.match(/\bat\s+([0-9,]+(?:\.[0-9]+)?)p\b/i);if(m)return `${m[1]}p`;m=s.match(/\bat\s+\$([0-9,]+(?:\.[0-9]+)?)/i);return m?`$${m[1]}`:''}
+  function noteId(note,label){const m=String(note||'').match(new RegExp(`${label}\\s+([A-Z0-9-]+)`,'i'));return m?m[1]:''}
+  function legacyRecord(row){
+    const ticker=tk(first(row,['ticker','Ticker','symbol','Symbol'])); if(!ticker)return null;
+    const status=upper(first(row,['status','Status','position_status','holding_status'])||''); const shares=n(first(row,['shares','Shares','quantity','Quantity','units','Units']))||0;
+    if(!CLOSED.has(status)&&shares>0)return null;
+    const note=String(first(row,['manager_note','managerNote','Manager Note','notes','note','Note'])||'').trim();
+    return {ticker,name:String(first(row,['name','Name','company','Company','company_name','Company Name'])||ticker),account:acct(first(row,['account','Account','platform','Platform','broker','Broker'])),status:'SOLD',soldAt:dateFromText(note)||String(first(row,['sold_at','soldAt','closed_at','closedAt','date_checked','date','Date'])||''),sharesSold:noteShares(note),executionPriceDisplay:notePrice(note),netProceedsGbp:noteMoney(note,['Net proceeds','Total proceeds','Proceeds']),bookCostGbp:noteMoney(note,['Original book cost','book cost']),realisedProfitGbp:noteMoney(note,['realised profit','realized profit']),feesGbp:noteMoney(note,['Fees','charges','PTM levy']),sector:String(first(row,['sector','Sector'])||''),ticketId:noteId(note,'Ticket'),transactionId:noteId(note,'Transaction'),orderId:noteId(note,'order'),source:'AuroraData Holdings history',note};
+  }
+  async function getLegacy(){
+    let error='';
+    for(const url of MASTER_URLS){try{const r=await fetch(`${url}?v=${Date.now()}`,{cache:'no-store'});if(!r.ok)throw new Error(`HTTP ${r.status}`);const master=await r.json();const found=readTab(master,'Holdings').map(legacyRecord).filter(Boolean);if(found.length)return {rows:found,loaded:true,error:''}}catch(e){error=String(e?.message||e)}}
+    return {rows:[],loaded:false,error};
+  }
+  function loadScript(src,ready){
+    if(ready())return Promise.resolve();const base=src.split('?')[0];const existing=[...document.scripts].find(s=>String(s.src||'').includes(base));
+    if(existing)return new Promise(resolve=>{let tries=0;const wait=()=>ready()?resolve():(tries++>160?resolve():setTimeout(wait,25));wait()});
+    return new Promise(resolve=>{const s=document.createElement('script');s.src=src;s.async=true;s.onload=resolve;s.onerror=resolve;document.head.appendChild(s)});
+  }
+  function priceDisplay(price,unit,currency){const value=n(price);if(value===null||value<=0)return '';if(upper(unit)==='PENCE')return `${value.toLocaleString('en-GB',{maximumFractionDigits:4})}p`;if(upper(currency)==='USD'||upper(unit)==='USD')return `$${value.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:6})}`;return `£${value.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:6})}`}
+  function ticketFromReg(row){const m=String(row?.note||'').match(/SellDesk ticket\s+([^;.\s]+)/i);return m?m[1]:''}
+  async function getLive(legacy){
+    await loadScript(CLIENT,()=>!!window.AuroraData2Client);const client=window.AuroraData2Client,cfg=client?.config?.()||{};
+    if(!client?.get||!cfg.endpoint||!cfg.token)return {rows:[],loaded:false,error:'AuroraData connection is not configured in this browser.'};
+    try{
+      const [a,b]=await Promise.all([client.get('listSellTickets',{limit:100,includeClosed:true}),client.get('listRecentRegistrations',{limit:50})]);
+      const tickets=arr(a?.tickets).filter(x=>upper(x?.approvalStatus)==='EXECUTED');
+      const regs=arr(b?.registrations).filter(x=>upper(x?.side)==='SELL'&&upper(x?.status)==='REGISTERED_SELL');
+      const regByTicket=new Map(regs.map(x=>[ticketFromReg(x),x]).filter(([id])=>id));
+      const legacyByKey=new Map(legacy.map(x=>[`${tk(x.ticker)}|${acct(x.account)}`,x]));
+      const out=[];
+      tickets.forEach(ticket=>{
+        const reg=regByTicket.get(String(ticket?.ticketId||''))||null;const ticker=tk(ticket?.ticker||reg?.ticker);const account=acct(ticket?.account||reg?.account);const old=legacyByKey.get(`${ticker}|${account}`)||null;const newShares=reg?n(reg?.newShares):null;
+        if(newShares!==null?newShares>1e-8:!old)return;
+        const proceeds=n(ticket?.actualProceedsGbp)??n(reg?.totalCostGbp);const book=old?.bookCostGbp??null;
+        out.push({ticker,name:String(ticket?.name||reg?.name||old?.name||ticker),account,status:'SOLD',soldAt:String(ticket?.executedAt||reg?.tradeDate||old?.soldAt||''),sharesSold:n(reg?.shares)??n(ticket?.proposedShares)??old?.sharesSold??null,executionPriceDisplay:priceDisplay(ticket?.executionPrice??reg?.priceInput,ticket?.priceUnit??reg?.priceUnit,ticket?.currency??reg?.currency)||old?.executionPriceDisplay||'',netProceedsGbp:proceeds,bookCostGbp:book,realisedProfitGbp:proceeds!==null&&book!==null?proceeds-book:old?.realisedProfitGbp??null,feesGbp:upper(ticket?.currency||reg?.currency)==='GBP'?n(ticket?.fees):null,sector:old?.sector||'',ticketId:String(ticket?.ticketId||''),transactionId:String(reg?.transactionId||old?.transactionId||''),source:'AuroraData SellDesk • EXECUTED',note:String(ticket?.executionNote||ticket?.reason||old?.note||'')});
       });
-    }
-    return [];
+      regs.forEach(reg=>{
+        if((n(reg?.newShares)??1)>1e-8)return;const id=ticketFromReg(reg);if(id&&tickets.some(t=>String(t?.ticketId||'')===id))return;const ticker=tk(reg?.ticker),account=acct(reg?.account),old=legacyByKey.get(`${ticker}|${account}`)||null,proceeds=n(reg?.totalCostGbp),book=old?.bookCostGbp??null;
+        out.push({ticker,name:String(reg?.name||old?.name||ticker),account,status:'SOLD',soldAt:String(reg?.tradeDate||reg?.submittedAt||old?.soldAt||''),sharesSold:n(reg?.shares)??old?.sharesSold??null,executionPriceDisplay:priceDisplay(reg?.priceInput,reg?.priceUnit,reg?.currency)||old?.executionPriceDisplay||'',netProceedsGbp:proceeds,bookCostGbp:book,realisedProfitGbp:proceeds!==null&&book!==null?proceeds-book:old?.realisedProfitGbp??null,feesGbp:old?.feesGbp??null,sector:old?.sector||'',ticketId:id||old?.ticketId||'',transactionId:String(reg?.transactionId||old?.transactionId||''),source:'AuroraData Registration • REGISTERED_SELL',note:String(reg?.note||old?.note||'')});
+      });
+      return {rows:out,loaded:true,error:''};
+    }catch(e){return {rows:[],loaded:false,error:String(e?.message||e||'AuroraData sale history could not be read.')}}
   }
-
-  function readTab(master, label) {
-    const wanted = norm(label).replace(/\s/g,'');
-    const containers = [master,master?.data,master?.tabs,master?.sheets,master?.feeds,master?.tables,master?.payload]
-      .filter(value => value && typeof value === 'object');
-    for (const container of containers) {
-      for (const key of Object.keys(container)) {
-        if (norm(key).replace(/\s/g,'') !== wanted) continue;
-        const rows = rowsFromValue(container[key]);
-        if (rows.length) return rows;
-      }
-    }
-    return [];
-  }
-
-  function isoDateFromText(text) {
-    const match = String(text || '').match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
-    if (!match) return '';
-    return `${match[3]}-${String(match[2]).padStart(2,'0')}-${String(match[1]).padStart(2,'0')}`;
-  }
-  function moneyFromNote(note, labels) {
-    const text = String(note || '');
-    for (const label of labels) {
-      const match = text.match(new RegExp(`${label}\\s*(?:approx\\s*)?£([0-9,]+(?:\\.[0-9]+)?)`,'i'));
-      if (match) return maybeNum(match[1]);
-    }
-    return null;
-  }
-  function sharesFromNote(note) {
-    const text = String(note || '');
-    let match = text.match(/sold\s+([0-9,]+(?:\.[0-9]+)?)\s+(?:[A-Z0-9.]+|[^.]{1,40}?)\s+at\s+/i);
-    if (!match) match = text.match(/:\s*([0-9,]+(?:\.[0-9]+)?)\s+shares\s+at\s+/i);
-    if (!match) match = text.match(/([0-9,]+(?:\.[0-9]+)?)\s+shares\s+at\s+/i);
-    return match ? maybeNum(match[1]) : null;
-  }
-  function priceFromNote(note) {
-    const text = String(note || '');
-    const gbp = text.match(/\bat\s+£([0-9,]+(?:\.[0-9]+)?)/i);
-    if (gbp) return `£${gbp[1]}`;
-    const pence = text.match(/\bat\s+([0-9,]+(?:\.[0-9]+)?)p\b/i);
-    if (pence) {
-      const bracket = text.match(/\bat\s+[0-9,]+(?:\.[0-9]+)?p\s*\(£([0-9,]+(?:\.[0-9]+)?)\)/i);
-      return bracket ? `${pence[1]}p (£${bracket[1]})` : `${pence[1]}p`;
-    }
-    return '';
-  }
-  function feesFromNote(note) {
-    const text = String(note || '');
-    const match = text.match(/(?:after|less)\s+£([0-9,]+(?:\.[0-9]+)?)\s+(?:charges?|PTM levy|fees?)/i);
-    return match ? maybeNum(match[1]) : null;
-  }
-  function idFromNote(note, label) {
-    const match = String(note || '').match(new RegExp(`${label}\\s+([A-Z0-9-]+)`,'i'));
-    return match ? match[1] : '';
-  }
-
-  function legacyRecord(row) {
-    const tk = ticker(first(row,['ticker','Ticker','symbol','Symbol']));
-    if (!tk) return null;
-    const rawStatus = upper(first(row,['status','Status','position_status','holding_status']) || '');
-    const shares = maybeNum(first(row,['shares','Shares','quantity','Quantity','units','Units'])) || 0;
-    const note = String(first(row,['manager_note','managerNote','Manager Note','notes','note','Note']) || '').trim();
-    const hasExitEvidence = CLOSED.has(rawStatus) || /\b(sold|exited|closed|archived)\b/i.test(note);
-    if (!hasExitEvidence) return null;
-    const soldAt = isoDateFromText(note) || String(first(row,['sold_at','soldAt','closed_at','closedAt','date_checked','date','Date']) || '').trim();
-    const proceeds = moneyFromNote(note,['Net proceeds','Total proceeds','Proceeds']);
-    const book = moneyFromNote(note,['Original book cost','book cost']);
-    const profit = moneyFromNote(note,['realised profit']);
-    return {
-      ticker:tk,
-      name:String(first(row,['name','Name','company','Company','company_name','Company Name']) || tk),
-      account:account(first(row,['account','Account','platform','Platform','broker','Broker'])),
-      status:'SOLD',
-      soldAt,
-      sharesSold:sharesFromNote(note),
-      executionPriceDisplay:priceFromNote(note),
-      netProceedsGbp:proceeds,
-      bookCostGbp:book,
-      realisedProfitGbp:profit,
-      feesGbp:feesFromNote(note),
-      sector:String(first(row,['sector','Sector']) || ''),
-      ticketId:idFromNote(note,'Ticket'),
-      transactionId:idFromNote(note,'Transaction'),
-      orderId:idFromNote(note,'order'),
-      source:'Aurora legacy Holdings export',
-      note
-    };
-  }
-
-  function meaningful(value) {
-    if (value === null || value === undefined || value === '') return false;
-    if (typeof value === 'number' && !Number.isFinite(value)) return false;
-    return true;
-  }
-  function mergeRecord(base, next) {
-    const out = {...(base || {})};
-    Object.entries(next || {}).forEach(([key,value]) => {
-      if (!meaningful(value)) return;
-      if (typeof value === 'number' && value === 0 && meaningful(out[key]) && out[key] !== 0) return;
-      out[key] = value;
-    });
-    return out;
-  }
-  function mergeRows(...groups) {
-    const map = new Map();
-    groups.flat().filter(Boolean).forEach(row => {
-      const tk = ticker(row?.ticker);
-      if (!tk) return;
-      const key = `${tk}|${account(row?.account)}`;
-      map.set(key, mergeRecord(map.get(key), {...row,ticker:tk,account:account(row?.account),status:'SOLD'}));
-    });
-    return [...map.values()].sort((a,b) => String(b.soldAt || '').localeCompare(String(a.soldAt || '')) || a.ticker.localeCompare(b.ticker));
-  }
-
-  function emit() {
-    window.dispatchEvent(new CustomEvent('aurora:squad-former-history', {
-      detail:{count:historyRows.length,source:status.source,legacyLoaded:status.legacyLoaded,lastError:status.lastError}
-    }));
-  }
-
-  async function refresh() {
-    if (loading) return loading;
-    loading = (async () => {
-      let legacy = [];
-      let source = '';
-      let lastError = '';
-      for (const url of LEGACY_URLS) {
-        try {
-          const response = await fetch(`${url}${url.includes('?')?'&':'?'}v=${Date.now()}`,{cache:'no-store'});
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const master = await response.json();
-          legacy = readTab(master,'Holdings').map(legacyRecord).filter(Boolean);
-          if (legacy.length) { source = url; break; }
-        } catch (error) {
-          lastError = String(error?.message || error || 'History source unavailable');
-        }
-      }
-      historyRows = mergeRows(legacy, VERIFIED);
-      status = {
-        source:source ? 'Aurora legacy Holdings + verified AuroraData sale history' : 'AuroraData verified sale history',
-        legacyLoaded:!!source,
-        lastError:source ? '' : lastError
-      };
-      emit();
-      return historyRows.slice();
-    })().finally(() => { loading = null; });
-    return loading;
-  }
-
-  window.AuroraSquadFormerPlayers = {
-    build:BUILD,
-    readOnly:true,
-    rows:() => historyRows.map(row => ({...row})),
-    status:() => ({...status}),
-    refresh
-  };
-
-  setTimeout(() => refresh().catch(() => emit()),0);
+  function meaningful(v){return !(v===null||v===undefined||v===''||(typeof v==='number'&&!Number.isFinite(v)))}
+  function merge(base,next){const out={...(base||{})};for(const [k,v] of Object.entries(next||{})){if(!meaningful(v))continue;if(typeof v==='number'&&v===0&&meaningful(out[k])&&out[k]!==0)continue;out[k]=v}return out}
+  function mergeRows(legacy,live){const map=new Map();for(const group of [legacy,live])for(const row of arr(group)){const ticker=tk(row?.ticker);if(!ticker)continue;const key=`${ticker}|${acct(row?.account)}`;map.set(key,merge(map.get(key),{...row,ticker,account:acct(row?.account),status:'SOLD'}))}return [...map.values()].sort((a,b)=>String(b.soldAt||'').localeCompare(String(a.soldAt||''))||a.ticker.localeCompare(b.ticker))}
+  function emit(){window.dispatchEvent(new CustomEvent('aurora:squad-former-history',{detail:{count:rows.length,...state}}))}
+  async function refresh(){if(loading)return loading;loading=(async()=>{const legacy=await getLegacy(),live=await getLive(legacy.rows);rows=mergeRows(legacy.rows,live.rows);const sources=[];if(live.loaded)sources.push('AuroraData SellDesk / Registration');if(legacy.loaded)sources.push('AuroraData Holdings history');state={source:sources.join(' + ')||'No sale-history source available',liveLoaded:live.loaded,legacyLoaded:legacy.loaded,lastError:[live.error,legacy.error].filter(Boolean).join(' • ')};emit();return rows.map(x=>({...x}))})().finally(()=>{loading=null});return loading}
+  window.AuroraSquadFormerPlayers={build:BUILD,readOnly:true,rows:()=>rows.map(x=>({...x})),status:()=>({...state}),refresh};
+  setTimeout(()=>refresh().catch(()=>emit()),0);
 })();
