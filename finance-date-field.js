@@ -1,7 +1,67 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-date-display-1';
+  const BUILD = '20260820-finance-date-display-2';
+
+  function installStyles() {
+    if (document.getElementById('auroraFinanceDateFieldStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'auroraFinanceDateFieldStyles';
+    style.textContent = `
+      #paydayPanel .aurora-date-shell{
+        position:relative;
+        display:block;
+        width:100%;
+        min-width:0;
+        min-height:43px;
+      }
+      #paydayPanel .aurora-date-display{
+        display:flex;
+        align-items:center;
+        width:100%;
+        min-width:0;
+        min-height:43px;
+        box-sizing:border-box;
+        padding:8px 10px;
+        border:1px solid rgba(89,255,154,.09);
+        border-radius:10px;
+        background:rgba(2,9,16,.76);
+        color:#edf7ff;
+        font:inherit;
+        line-height:1.2;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      #paydayPanel .aurora-date-display.is-empty{color:#697e73}
+      #paydayPanel .aurora-date-shell:focus-within .aurora-date-display{
+        border-color:rgba(89,255,154,.28);
+        box-shadow:0 0 0 3px rgba(89,255,154,.04);
+      }
+      #paydayPanel .aurora-date-shell > input[type="date"]{
+        position:absolute !important;
+        inset:0 !important;
+        z-index:2 !important;
+        display:block !important;
+        width:100% !important;
+        max-width:none !important;
+        min-width:0 !important;
+        min-inline-size:0 !important;
+        height:100% !important;
+        min-height:43px !important;
+        margin:0 !important;
+        padding:0 !important;
+        border:0 !important;
+        border-radius:10px !important;
+        box-sizing:border-box !important;
+        opacity:0 !important;
+        cursor:pointer !important;
+        -webkit-appearance:none !important;
+        appearance:none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
 
   function formatDate(value) {
     if (!value) return 'Choose date';
@@ -22,7 +82,15 @@
 
   function install() {
     const input = document.querySelector('#paydayPanel .finance-field-grid .field input[type="date"]');
-    if (!input || input.dataset.auroraDateWrapped === '1') return Boolean(input);
+    if (!input) return false;
+
+    installStyles();
+
+    if (input.dataset.auroraDateWrapped === '1') {
+      const display = input.parentElement?.querySelector('.aurora-date-display');
+      syncDisplay(input, display);
+      return true;
+    }
 
     const field = input.closest('.field');
     if (!field) return false;
