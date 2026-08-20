@@ -1,12 +1,16 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-stage3i-notifications-readonly-3';
+  const BUILD = '20260820-stage3i-notifications-stable-1';
   const STAGE = '3I';
   let blockedUpdates = 0;
+  let allowedNotificationUpdates = 0;
   let originalUpdate = null;
 
   const cleanPageHref = (value) => String(value || '').split('#')[0].split('?')[0].toLowerCase();
+  const clone = (value) => {
+    try { return JSON.parse(JSON.stringify(value)); } catch (_) { return value; }
+  };
 
   function currentStageOwner() {
     return String(document.documentElement.dataset.auroraStageOwner || '');
@@ -89,7 +93,7 @@
     claimStageIfUnowned();
     if (ownsGlobalStage()) {
       document.querySelectorAll('.status span').forEach((node) => { node.textContent = 'STAGE 3I'; });
-      document.querySelectorAll('.status b').forEach((node) => { node.textContent = 'NOTIFICATIONS READ-ONLY'; });
+      document.querySelectorAll('.status b').forEach((node) => { node.textContent = 'NOTIFICATIONS STABLE'; });
       document.querySelectorAll('.hero small, .department-hero small').forEach((node) => {
         node.textContent = String(node.textContent || '').replace(/STAGE 3H/gi, 'STAGE 3I');
       });
@@ -101,9 +105,8 @@
       panel = document.createElement('section');
       panel.className = 'panel';
       panel.id = 'stage3iNotificationPanel';
-      panel.innerHTML = '<small>STAGE 3I RUNTIME CHECK</small><h2 id="stage3iNotificationStatus">Notification Engine: WAITING…</h2><p id="stage3iNotificationNote">Waiting for Release Guard before loading the exact old Notification Centre in read-only mode.</p>';
-      const hero = document.querySelector('.hero');
-      hero.insertAdjacentElement('afterend', panel);
+      panel.innerHTML = '<small>STAGE 3I RUNTIME CHECK</small><h2 id="stage3iNotificationStatus">Notification Engine: WAITING…</h2><p id="stage3iNotificationNote">Loading the Aurora Notification Centre with notification-only state persistence.</p>';
+      document.querySelector('.hero')?.insertAdjacentElement('afterend', panel);
     }
 
     const status = document.getElementById('stage3iNotificationStatus');
@@ -123,7 +126,10 @@
       build: BUILD,
       stageOwner: currentStageOwner(),
       loaded: Boolean(window.AuroraNotifications),
+      allowedNotificationUpdates,
       blockedUpdates,
+      notificationWritesEnabled: true,
+      nonNotificationWritesBlocked: true,
       notifications,
       bellInHeader: document.getElementById('auroraNotificationBell')?.parentElement?.classList?.contains('topbar') || false
     };
@@ -132,8 +138,27 @@
   function report(extra = {}) {
     const payload = { ...statusSnapshot(), ...extra };
     window.AuroraStage3I = Object.freeze(payload);
-    document.documentElement.dataset.auroraNotificationsReadonly = payload.loaded ? 'loaded' : 'waiting';
+    document.documentElement.dataset.auroraNotificationsReadonly = payload.loaded ? 'stable' : 'waiting';
     window.dispatchEvent(new CustomEvent('aurora:stage3i-notifications', { detail: payload }));
+  }
+
+  function onlyNotificationsChanged(current, proposed) {
+    if (!proposed || typeof proposed !== 'object') return false;
+    const keys = new Set([...Object.keys(current || {}), ...Object.keys(proposed || {})]);
+    keys.delete('notifications');
+    keys.delete('updatedAt');
+    for (const key of keys) {
+      try {
+        if (JSON.stringify(current?.[key]) !== JSON.stringify(proposed?.[key])) return false;
+      } catch (_) {
+        if (current?.[key] !== proposed?.[key]) return false;
+      }
+    }
+    try {
+      return JSON.stringify(current?.notifications) !== JSON.stringify(proposed?.notifications);
+    } catch (_) {
+      return current?.notifications !== proposed?.notifications;
+    }
   }
 
   function installUpdateShield() {
@@ -141,15 +166,36 @@
     if (!core?.read || !core?.update) return false;
     if (originalUpdate) return true;
     originalUpdate = core.update;
-    core.update = function auroraStage3iReadonlyUpdate(mutator) {
-      blockedUpdates += 1;
+
+    core.update = function auroraStage3iNotificationOnlyUpdate(mutator) {
       const current = core.read();
-      try { if (typeof mutator === 'function') mutator(current); } catch (_) {}
+      let proposed = null;
+      try {
+        const draft = clone(current);
+        const result = typeof mutator === 'function' ? mutator(draft) : { ...draft, ...(mutator || {}) };
+        proposed = result && typeof result === 'object' ? result : draft;
+      } catch (_) {
+        blockedUpdates += 1;
+        report({ phase: 'UPDATE_PROBE_FAILED' });
+        return current;
+      }
+
+      if (onlyNotificationsChanged(current, proposed)) {
+        allowedNotificationUpdates += 1;
+        const saved = originalUpdate(() => proposed);
+        const info = window.AuroraNotifications?.status?.();
+        updatePanel('ACTIVE ✅', `Notification Centre is stable. Notification records/read state can persist, so repeated conflict toasts are deduplicated. Allowed notification updates: ${allowedNotificationUpdates}. Non-notification writes remain shielded.`);
+        settleNotificationBell();
+        report({ phase: 'NOTIFICATION_UPDATE_ALLOWED', notifications: info || null });
+        return saved;
+      }
+
+      blockedUpdates += 1;
       const info = window.AuroraNotifications?.status?.();
       const count = Number(info?.total || current?.notifications?.records?.length || 0);
-      updatePanel('ACTIVE ✅', `Exact Notification Centre is running read-only. Existing records rendered: ${count}. Notification state writes blocked: ${blockedUpdates}. Release Guard and the shielded Cloud lifecycle remain active.`);
+      updatePanel('ACTIVE ✅', `Notification Centre is stable. Existing records: ${count}. Non-notification core writes blocked by this stage: ${blockedUpdates}.`);
       settleNotificationBell();
-      report({ phase: 'UPDATE_BLOCKED' });
+      report({ phase: 'NON_NOTIFICATION_UPDATE_BLOCKED' });
       return current;
     };
     return true;
@@ -157,37 +203,37 @@
 
   function loadNotifications() {
     if (!installUpdateShield()) {
-      updatePanel('FAILED ❌', 'Aurora Core update API was not ready for the Notifications read-only shield.');
+      updatePanel('FAILED ❌', 'Aurora Core update API was not ready for the Notifications safety gate.');
       report({ error: 'CORE_UPDATE_NOT_READY' });
       return;
     }
 
     if (window.AuroraNotifications) {
       const info = window.AuroraNotifications.status?.() || {};
-      updatePanel('ACTIVE ✅', `Notification Centre was already loaded. Existing records: ${Number(info.total || 0)}. State updates remain blocked for this probe.`);
+      updatePanel('ACTIVE ✅', `Notification Centre was already loaded. Existing records: ${Number(info.total || 0)}. Notification-only state persistence is enabled.`);
       settleNotificationBell();
       report({ loaded: true, reused: true });
       return;
     }
 
-    updatePanel('LOADING…', 'Loading the exact old Aurora Notification Centre. Existing records may render, but core notification writes are blocked for this probe.');
+    updatePanel('LOADING…', 'Loading the Aurora Notification Centre with notification-only state persistence.');
     const script = document.createElement('script');
-    script.src = '/aurora-fc-2/aurora-notifications.js?v=20260820-stage3i-notifications-readonly-3';
+    script.src = '/aurora-fc-2/aurora-notifications.js?v=20260820-stage3i-notifications-stable-1';
     script.async = false;
-    script.dataset.auroraStage3 = 'notifications-readonly';
+    script.dataset.auroraStage3 = 'notifications-stable';
     script.addEventListener('load', () => {
       document.documentElement.dataset.auroraNotifications = 'loaded';
       settleNotificationBell();
       setTimeout(() => {
         const info = window.AuroraNotifications?.status?.() || {};
         mountNotificationBell();
-        updatePanel('ACTIVE ✅', `Exact Notification Centre is active in read-only mode. Existing records rendered: ${Number(info.total || 0)}. Notification state writes blocked: ${blockedUpdates}. Its state listeners and 5-minute evaluation timer are installed.`);
+        updatePanel('ACTIVE ✅', `Notification Centre is active. Existing records: ${Number(info.total || 0)}. Notification state persists for dedupe/read/dismiss while non-notification writes remain shielded.`);
         report({ loaded: true, phase: 'ACTIVE' });
       }, 500);
     }, { once: true });
     script.addEventListener('error', () => {
       document.documentElement.dataset.auroraNotifications = 'failed';
-      updatePanel('FAILED ❌', 'The old Notification Centre failed to load.');
+      updatePanel('FAILED ❌', 'The Aurora Notification Centre failed to load.');
       report({ loaded: false, error: 'NOTIFICATIONS_LOAD_FAILED' });
     }, { once: true });
     document.head.appendChild(script);
@@ -204,7 +250,7 @@
     }
     tries += 1;
     if (tries > 320) {
-      updatePanel('FAILED ❌', 'Core or Release Guard did not become ready in time for the Notifications probe.');
+      updatePanel('FAILED ❌', 'Core or Release Guard did not become ready in time for Notifications.');
       report({ error: 'DEPENDENCY_WAIT_TIMEOUT' });
       return;
     }
