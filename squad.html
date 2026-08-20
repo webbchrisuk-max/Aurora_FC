@@ -7,6 +7,7 @@
 <title>Aurora City FC — Squad Hub</title>
 <link rel="stylesheet" href="aurora-shell.css?v=foundation-1">
 <link rel="stylesheet" href="squad-rebuild.css?v=20260820-squad-readonly-1">
+<link rel="stylesheet" href="squad-pitch.css?v=20260820-squad-pitch-profiles-1">
 <script src="aurora-page-shell.js?v=20260819-stage3g-cloud-lifecycle-dryrun-1" defer></script>
 <script src="aurora-stage3h-release-guard.js?v=20260819-stage3h-release-guard-probe-1" defer></script>
 <script src="aurora-stage3i-notifications-readonly.js?v=20260819-stage3i-notifications-readonly-1" defer></script>
@@ -15,6 +16,7 @@
 <script src="aurora-stage4d-finance-ui.js?v=20260820-stage4d-global-1" defer></script>
 <script src="aurora-stage4e-motion-core.js?v=20260820-stage4e-global-1" defer></script>
 <script src="squad-rebuild.js?v=20260820-squad-readonly-1" defer></script>
+<script src="squad-pitch.js?v=20260820-squad-pitch-profiles-1" defer></script>
 </head>
 <body>
 <header class="topbar">
@@ -36,7 +38,7 @@
     <span class="squad-eyebrow">Aurora City FC • Canonical First Team • Holdings Authority</span>
     <h1>Squad <span>Hub</span></h1>
     <p>Registration confirms broker reality. Squad owns the finished account-scoped holding. This rebuild reads the canonical first team, portfolio balance and confirmed Registration receipts without inventing or changing a single share.</p>
-    <div class="squad-actions"><a class="primary" href="registration.html">← Registration Desk</a><a href="income.html">Income Centre →</a></div>
+    <div class="squad-actions"><a class="primary" href="#valueXI">⚽ View Value XI</a><a href="registration.html">← Registration Desk</a><a href="income.html">Income Centre →</a></div>
   </section>
 
   <section class="squad-kpis">
@@ -71,6 +73,34 @@
     </aside>
   </section>
 
+  <section class="squad-card squad-pitch-command" id="valueXI">
+    <div class="squad-head">
+      <div><span class="squad-kicker">Matchday View • Restored</span><h2>Starting XI — Value Formation</h2><p>The old Aurora football view is back. The eleven largest unique Squad players line up in the 4-3-3 Value XI. Tap any player to open the full right-hand analytical profile.</p></div>
+      <span class="authority-chip live">INTERACTIVE XI</span>
+    </div>
+    <div class="squad-pitch-summary">
+      <div><small>Starting XI Value</small><strong id="pitchXIValue">£0.00</strong><span id="pitchXIValueMeta">0.0% of Squad</span></div>
+      <div><small>Starting XI Income</small><strong id="pitchXIIncome">£0.00</strong><span>annual forward income</span></div>
+      <div><small>Starting XI P/L</small><strong id="pitchXIProfit">£0.00</strong><span>value minus book cost</span></div>
+      <div><small>Formation</small><strong>4-3-3</strong><span>ranked by market value</span></div>
+    </div>
+    <div class="squad-pitch-layout">
+      <article class="squad-pitch-panel">
+        <div class="squad-pitch-panel-head"><div><span class="squad-kicker" style="margin-top:0">First Team Pitch</span><h3>Value XI</h3></div><span>ONE COMPANY = ONE PLAYER<br>MULTI-BROKER POSITIONS COMBINED</span></div>
+        <div class="squad-pitch-field">
+          <div class="squad-pitch-halfway"></div><div class="squad-pitch-centre-circle"></div><span class="squad-pitch-centre-spot"></span>
+          <span class="squad-pitch-box top"></span><span class="squad-pitch-box bottom"></span><span class="squad-pitch-goal top"></span><span class="squad-pitch-goal bottom"></span>
+          <div class="squad-pitch-players" id="squadPitchPlayers"></div>
+          <span class="squad-pitch-hint">Tap a player for full company analysis ↗</span>
+        </div>
+      </article>
+      <aside class="squad-bench-panel">
+        <div class="squad-bench-head"><div><span class="squad-kicker" style="margin-top:0">Squad Depth</span><h3>Bench</h3></div><span id="pitchBenchMeta">0 PLAYERS</span></div>
+        <div class="squad-bench-list" id="squadPitchBench"><div class="squad-empty">Checking Squad depth…</div></div>
+      </aside>
+    </div>
+  </section>
+
   <section class="account-strip">
     <article class="mini-card ig"><small>IG ISA</small><strong id="igValue">£0.00</strong><span id="igMeta">0 positions</span></article>
     <article class="mini-card t212"><small>Trading 212 ISA</small><strong id="t212Value">£0.00</strong><span id="t212Meta">0 positions</span></article>
@@ -102,7 +132,14 @@
     </aside>
   </section>
 
-  <div class="squad-gate ready" style="margin-top:22px"><strong>SQUAD S1 — READ-ONLY REBUILD</strong><span>No manual holding editor, no legacy import and no receipt promotion write are enabled in this pass. Registration remains the execution authority; the next controlled stage can connect confirmed receipts into Squad.</span></div>
+  <div class="squad-gate ready" style="margin-top:22px"><strong>SQUAD S1 — READ-ONLY REBUILD + RESTORED VALUE XI</strong><span>The old football pitch and player analytical drawer are restored as a presentation layer. No manual holding editor, legacy import or receipt promotion write is enabled in this pass.</span></div>
 </main>
+
+<div class="squad-player-drawer-backdrop" id="squadPlayerDrawerBackdrop" hidden></div>
+<aside class="squad-player-drawer" id="squadPlayerDrawer" aria-hidden="true" aria-label="Holding analytical profile">
+  <div class="squad-drawer-head"><div><span class="squad-drawer-kicker">Player analytical profile</span><h2 id="squadDrawerTitle">Player</h2><p id="squadDrawerSubtitle">Loading profile…</p></div><button id="squadDrawerClose" type="button" aria-label="Close player profile">×</button></div>
+  <div class="squad-drawer-content" id="squadDrawerContent"></div>
+  <div class="squad-drawer-actions"><button id="squadDrawerPrevious" type="button">← Previous</button><a href="#valueXI">Back to Pitch</a><button id="squadDrawerNext" type="button">Next →</button></div>
+</aside>
 </body>
 </html>
