@@ -1,1 +1,85 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07111f"><title>Aurora City FC — Registration Desk</title><link rel="stylesheet" href="aurora-shell.css?v=foundation-1"><script src="aurora-page-shell.js?v=20260819-stage3g-cloud-lifecycle-dryrun-1" defer></script><script src="aurora-stage3h-release-guard.js?v=20260819-stage3h-release-guard-probe-1" defer></script><script src="aurora-stage3i-notifications-readonly.js?v=20260819-stage3i-notifications-readonly-1" defer></script><script src="aurora-stage4a-finance-funding.js?v=20260819-stage4a-finance-funding-probe-1" defer></script><script src="aurora-stage4c-finance-main.js?v=20260820-stage4c-global-2" defer></script><script src="aurora-stage4d-finance-ui.js?v=20260820-stage4d-global-1" defer></script><script src="aurora-stage4e-motion-core.js?v=20260820-stage4e-global-1" defer></script></head><body><header class="topbar"><div class="brand"><a class="menu" href="#club-nav">☰</a><div class="crest">A</div><div><strong>Aurora City FC</strong><span>REGISTRATION DESK</span></div></div><div class="status"><span>STAGE 3H</span><b>RELEASE GUARD PROBE</b></div></header><aside class="club-nav" id="club-nav"><div class="nav-head"><div class="crest">A</div><div><strong>Aurora City FC</strong><span>Clean Rebuild</span></div><a href="#" class="nav-close">×</a></div><nav><small>CLUB COMMAND</small><a href="index.html">🏟 <span><b>Nexus Headquarters</b><em>Master club command</em></span></a><small>FOOTBALL OPERATIONS</small><a href="finance.html">💷 <span><b>Finance Command</b><em>Cash, payday and pots</em></span></a><a href="scouting.html">🔎 <span><b>Scouting Centre</b><em>Evidence and recruitment</em></span></a><a href="transfer.html">🔄 <span><b>Transfer Centre</b><em>Deployment planning</em></span></a><a class="active" href="registration.html">📝 <span><b>Registration Desk</b><em>Broker execution</em></span></a><a href="squad.html">⚽ <span><b>Squad Hub</b><em>Canonical holdings</em></span></a><a href="income.html">💰 <span><b>Income Centre</b><em>Dividend truth</em></span></a><a href="match-report.html">🏆 <span><b>Match Report</b><em>Daily full-time review</em></span></a><small>CLUB SYSTEM</small><a href="club-control.html">⚙️ <span><b>Club Control</b><em>Preferences and controls</em></span></a><a href="system-health.html">🛡️ <span><b>System Health</b><em>Integrity and diagnostics</em></span></a></nav></aside><a class="nav-backdrop" href="#"></a><main class="page"><section class="department-hero"><small>CLEAN REBUILD • STAGE 3H</small><h1>Registration Desk</h1><p>Release Guard probe. The old Aurora Release shared housekeeping is active; broker writes and AuroraData remain disconnected.</p></section></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#041117">
+<title>Aurora City FC — Registration Desk</title>
+<link rel="stylesheet" href="aurora-shell.css?v=foundation-1">
+<script src="registration-route-intake.js?v=20260820-registration-route-intake-1" defer></script>
+<style>
+:root{--reg-cyan:#6ee7ff;--reg-green:#59ff9a;--reg-gold:#ffd56b;--reg-purple:#b49cff;--reg-bg:#031017}
+body{margin:0;background:radial-gradient(circle at 76% 8%,rgba(15,151,177,.15),transparent 34%),radial-gradient(circle at 12% 60%,rgba(89,255,154,.06),transparent 35%),#031017;color:#edf8fb}.registration-page{max-width:1360px;margin:0 auto;padding:30px 24px 80px}.registration-hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(300px,.7fr);gap:22px;border:1px solid rgba(110,231,255,.18);border-radius:30px;padding:36px;background:linear-gradient(135deg,rgba(4,34,43,.96),rgba(5,12,20,.96) 64%,rgba(17,8,28,.94));box-shadow:0 24px 70px rgba(0,0,0,.28);overflow:hidden;position:relative}.registration-hero:after{content:'REGISTRATION';position:absolute;right:-10px;bottom:-34px;font:900 clamp(62px,11vw,150px)/.8 system-ui;color:rgba(255,255,255,.02);letter-spacing:-.06em}.registration-status-line{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}.registration-pill{border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:9px 13px;font:800 10px/1 system-ui;letter-spacing:.12em;text-transform:uppercase}.registration-pill.live{border-color:rgba(89,255,154,.32);color:#a8ffc6;background:rgba(89,255,154,.05)}.registration-pill.readonly{border-color:rgba(255,213,107,.26);color:#ffe29a;background:rgba(255,213,107,.04)}.registration-eyebrow,.registration-kicker{display:block;color:#80edff;font:800 11px/1.2 system-ui;text-transform:uppercase;letter-spacing:.16em}.registration-hero h1{margin:10px 0 16px;font:900 clamp(46px,8vw,88px)/.88 system-ui;letter-spacing:-.055em}.registration-hero h1 span{display:block;color:transparent;-webkit-text-stroke:1.3px var(--reg-cyan)}.registration-hero p{max-width:760px;color:#9bb0b9;font:500 clamp(16px,2vw,22px)/1.55 system-ui}.route-card{position:relative;z-index:1;border:1px solid rgba(255,213,107,.2);border-radius:22px;padding:22px;background:linear-gradient(145deg,rgba(55,37,5,.55),rgba(4,13,20,.9))}.route-card small{display:block;color:#8b9696;font:800 9px/1.2 system-ui;letter-spacing:.12em;text-transform:uppercase}.route-card .budget{font:900 clamp(42px,7vw,70px)/.9 system-ui;color:#ffe29a;margin:20px 0 8px}.route-card h3{margin:0;color:#9affbd;font:900 18px/1.2 system-ui}.route-card p{font-size:13px;color:#9ba6a5}.route-lock{margin-top:16px;border:1px solid rgba(89,255,154,.18);border-radius:13px;padding:13px;color:#9fffc0;background:rgba(89,255,154,.04);font:700 12px/1.5 system-ui}.reg-scoreboard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:22px}.reg-score{border:1px solid rgba(255,255,255,.08);border-radius:19px;padding:18px;background:rgba(4,13,20,.8)}.reg-score small{display:block;color:#71838b;font:800 9px/1.2 system-ui;text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px}.reg-score strong{font:900 24px/1.1 system-ui}.reg-score span{display:block;color:#798a91;font:600 11px/1.4 system-ui;margin-top:6px}.reg-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:22px;margin-top:22px}.reg-panel{border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:26px;background:linear-gradient(180deg,rgba(5,17,24,.94),rgba(3,10,16,.95));box-shadow:0 18px 50px rgba(0,0,0,.2)}.reg-panel h2,.reg-panel h3{margin:0}.reg-panel h2{font:900 clamp(28px,5vw,44px)/1 system-ui}.reg-panel p{color:#899ca4;line-height:1.55}.reg-panel-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.command-chip{border:1px solid rgba(110,231,255,.24);border-radius:999px;padding:9px 12px;color:#a7f5ff;font:800 10px/1 system-ui;letter-spacing:.1em;text-transform:uppercase}.reg-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:20px}.reg-flow article{border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:15px;background:rgba(0,0,0,.14)}.reg-flow i{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:rgba(110,231,255,.08);color:#8df0ff;font:900 10px/1 system-ui;font-style:normal;margin-bottom:14px}.reg-flow small{display:block;color:#71838b;font:800 8px/1.2 system-ui;letter-spacing:.1em;text-transform:uppercase}.reg-flow strong{display:block;margin-top:6px;font:900 15px/1.2 system-ui}.reg-flow span{display:block;color:#7f9299;font:600 11px/1.45 system-ui;margin-top:5px}.reg-flow b{display:inline-block;margin-top:12px;color:#99ffc0;font:900 9px/1 system-ui;letter-spacing:.08em}.reg-side-list{display:grid;gap:10px;margin-top:18px}.reg-side-list div{border:1px solid rgba(255,255,255,.07);border-radius:15px;padding:14px;background:rgba(0,0,0,.12)}.reg-side-list small{display:block;color:#71838b;font:800 9px/1.2 system-ui;text-transform:uppercase;letter-spacing:.1em}.reg-side-list strong{display:block;margin-top:7px}.reg-note{margin-top:18px;border:1px solid rgba(255,213,107,.2);border-radius:15px;padding:15px;background:rgba(255,213,107,.04);color:#ffe1a0;font:650 13px/1.5 system-ui}.reg-allocations{margin-top:22px}.reg-allocation-list{display:grid;gap:11px;margin-top:18px}.reg-allocation-row{display:grid;grid-template-columns:44px minmax(220px,1.4fr) repeat(5,minmax(105px,.55fr));gap:12px;align-items:center;border:1px solid rgba(255,255,255,.07);border-radius:17px;padding:15px;background:rgba(0,0,0,.14)}.reg-allocation-rank{font:900 19px/1 system-ui;color:#7cecff}.reg-allocation-main small,.reg-allocation-row>div>small{display:block;color:#6f838b;font:800 8px/1.2 system-ui;letter-spacing:.1em;text-transform:uppercase}.reg-allocation-main strong{display:block;margin:5px 0 4px;font:900 15px/1.25 system-ui}.reg-allocation-main span{display:block;color:#64767d;font:700 9px/1.3 system-ui;overflow-wrap:anywhere}.reg-allocation-row>div>strong{display:block;margin-top:6px;font:900 14px/1.2 system-ui}.gold{color:#ffe19b}.green{color:#9affbd}.cyan{color:#8df0ff}.reg-empty{border:1px dashed rgba(255,213,107,.18);border-radius:16px;padding:18px;color:#bba77c}.registration-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.registration-actions a{display:inline-flex;text-decoration:none;border:1px solid rgba(110,231,255,.22);border-radius:12px;padding:11px 14px;color:#b5f7ff;font:800 11px/1 system-ui}.stage-note{margin-top:22px;border:1px dashed rgba(110,231,255,.15);border-radius:20px;padding:18px;color:#78909a;font:600 13px/1.55 system-ui}.stage-note strong{color:#dff8ff}.topbar .status span{color:#80edff}.topbar .status b{color:#9affbd}
+@media(max-width:950px){.registration-hero,.reg-grid{grid-template-columns:1fr}.reg-scoreboard{grid-template-columns:repeat(2,minmax(0,1fr))}.reg-flow{grid-template-columns:repeat(2,minmax(0,1fr))}.reg-allocation-row{grid-template-columns:40px minmax(0,1fr)}.reg-allocation-row>div:not(.reg-allocation-rank):not(.reg-allocation-main){grid-column:2}}
+@media(max-width:560px){.registration-page{padding:18px 14px 60px}.registration-hero{padding:24px 20px}.reg-scoreboard,.reg-flow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><a class="menu" href="#club-nav">☰</a><div class="crest">A</div><div><strong>Aurora City FC</strong><span>REGISTRATION DESK</span></div></div>
+  <div class="status"><span>REGISTRATION</span><b>ROUTE INTAKE</b></div>
+</header>
+<aside class="club-nav" id="club-nav">
+  <div class="nav-head"><div class="crest">A</div><div><strong>Aurora City FC</strong><span>Stable rebuild</span></div><a href="#" class="nav-close">×</a></div>
+  <nav>
+    <small>CLUB COMMAND</small><a href="index.html">🏟 <span><b>Nexus Headquarters</b><em>Master club command</em></span></a>
+    <small>FOOTBALL OPERATIONS</small><a href="finance.html">💷 <span><b>Finance Command</b><em>Cash, payday and pots</em></span></a><a href="scouting.html">🔎 <span><b>Scouting Centre</b><em>Evidence and recruitment</em></span></a><a href="transfer.html">🔄 <span><b>Transfer Centre</b><em>Deployment planning</em></span></a><a class="active" href="registration.html">📝 <span><b>Registration Desk</b><em>Broker execution</em></span></a><a href="squad.html">⚽ <span><b>Squad Hub</b><em>Canonical holdings</em></span></a><a href="income.html">💰 <span><b>Income Centre</b><em>Dividend truth</em></span></a><a href="match-report.html">🏆 <span><b>Match Report</b><em>Daily full-time review</em></span></a>
+    <small>CLUB SYSTEM</small><a href="club-control.html">⚙️ <span><b>Club Control</b><em>Preferences and controls</em></span></a><a href="system-health.html">🛡️ <span><b>System Health</b><em>Integrity and diagnostics</em></span></a>
+  </nav>
+</aside><a class="nav-backdrop" href="#"></a>
+<main class="registration-page">
+  <section class="registration-hero">
+    <div>
+      <div class="registration-status-line"><span class="registration-pill live">● REGISTRATION DESK LIVE</span><span class="registration-pill readonly">LOCKED ROUTE • READ ONLY</span></div>
+      <span class="registration-eyebrow">Aurora City FC • Broker Confirmation • Canonical Registration</span>
+      <h1>Registration <span>Desk</span></h1>
+      <p>Transfer has frozen the investment route. Registration now receives those exact purchase legs and prepares them for real broker confirmation without changing the Finance budget, chosen securities or broker destinations.</p>
+      <div class="registration-actions"><a href="transfer.html">← Locked Transfer Route</a><a href="squad.html">Squad Hub →</a></div>
+    </div>
+    <article class="route-card">
+      <small>LOCKED TRANSFER ROUTE</small>
+      <div class="budget" id="registrationRouteBudget">£0.00</div>
+      <h3 id="registrationRouteStatus">CHECKING</h3>
+      <p id="registrationRouteMeta">Reading Transfer authority…</p>
+      <div class="route-lock" id="registrationRouteLock">Registration cannot create its own budget.</div>
+    </article>
+  </section>
+
+  <section class="reg-scoreboard">
+    <article class="reg-score"><small>Planned Route</small><strong id="regKpiPlanned">£0.00</strong><span>Frozen Transfer authority</span></article>
+    <article class="reg-score"><small>Confirmed Cost</small><strong id="regKpiConfirmed">£0.00</strong><span>Canonical receipts</span></article>
+    <article class="reg-score"><small>Remaining</small><strong id="regKpiRemaining">£0.00</strong><span>Still to register</span></article>
+    <article class="reg-score"><small>Confirmed Purchases</small><strong id="regKpiPurchases">0</strong><span>Backend-confirmed legs</span></article>
+  </section>
+
+  <section class="reg-grid">
+    <article class="reg-panel">
+      <div class="reg-panel-head"><div><span class="registration-kicker">Registration Command</span><h2>Deal Completion Flow</h2><p id="regDeskPriority">Checking the locked route and execution queue.</p></div><span class="command-chip" id="regDeskStatus">CHECKING</span></div>
+      <div class="reg-flow">
+        <article><i>01</i><small>TRANSFER AUTHORITY</small><strong>Locked Route</strong><span id="regFlowRouteMeta">Checking Transfer…</span><b>ACTIVE</b></article>
+        <article><i>02</i><small>BROKER REALITY</small><strong>Execute Trade</strong><span id="regFlowExecutionMeta">Waiting for route intake…</span><b>NEXT</b></article>
+        <article><i>03</i><small>CANONICAL WRITE</small><strong>AuroraData 2</strong><span>Write remains disconnected during this pass.</span><b>HELD</b></article>
+        <article><i>04</i><small>FIRST TEAM</small><strong>Squad Confirmed</strong><span>Only backend-confirmed trades can reach Squad.</span><b>HELD</b></article>
+      </div>
+    </article>
+    <aside class="reg-panel">
+      <span class="registration-kicker">Registration Control</span><h3>Authority Rules</h3>
+      <div class="reg-side-list">
+        <div><small>01 • Route</small><strong>Must already be locked</strong></div>
+        <div><small>02 • Broker</small><strong>Must match the frozen leg</strong></div>
+        <div><small>03 • Allocation</small><strong>Cannot exceed route authority</strong></div>
+        <div><small>04 • Squad</small><strong>Only after canonical confirmation</strong></div>
+      </div>
+      <div class="reg-note">This pass is display-only. No execution, draft, AuroraData or Squad write buttons are connected yet.</div>
+    </aside>
+  </section>
+
+  <section class="reg-panel reg-allocations">
+    <div class="reg-panel-head"><div><span class="registration-kicker">Approved Route</span><h2>Purchases Waiting for Registration</h2><p>These are immutable inputs from the locked Transfer route. Registration may confirm broker reality later, but it cannot choose different securities or redistribute the cash.</p></div><span class="command-chip">TRANSFER AUTHORITY</span></div>
+    <div id="registrationAllocationList" class="reg-allocation-list"><div class="reg-empty">Reading locked purchase legs…</div></div>
+  </section>
+
+  <div class="stage-note"><strong>Registration locked-route intake.</strong> The next controlled step will add broker execution fields for one frozen leg at a time. Canonical writes remain disabled until the read-only intake is confirmed stable.</div>
+</main>
+</body>
+</html>
