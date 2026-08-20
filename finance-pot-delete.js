@@ -1,13 +1,15 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-pot-delete-1';
+  const BUILD = '20260820-finance-pot-delete-2';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const BACKUP_META_KEY = 'aurora2:state:backup:meta';
 
   const norm = value => String(value ?? '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const isHolding = value => norm(value) === 'holding pot';
+  const isHouseFund = pot => ['house fund','house'].includes(norm(pot?.name)) || String(pot?.id || '').toLowerCase().includes('house');
+  const isProtectedPot = pot => isHolding(pot?.name) || isHouseFund(pot);
   const isoNow = () => new Date().toISOString();
 
   function readState() {
@@ -49,6 +51,10 @@
 
     if (isHolding(pot.name)) {
       alert('The Holding Pot is part of Aurora\'s Finance safety system and cannot be permanently deleted. You can edit its balance or protection settings instead.');
+      return;
+    }
+    if (isHouseFund(pot)) {
+      alert('The House Fund is linked to House Projects and cannot be permanently deleted. Edit its balance from House Projects instead.');
       return;
     }
 
@@ -107,7 +113,7 @@
 
       const state = readState();
       const pot = (state?.finance?.pots || []).find(item => String(item?.id || '') === String(id));
-      if (!pot || isHolding(pot.name)) return;
+      if (!pot || isProtectedPot(pot)) return;
 
       const button = document.createElement('button');
       button.type = 'button';
@@ -152,6 +158,7 @@
       ready: true,
       permanentDelete: true,
       holdingPotProtected: true,
+      houseFundProtected: true,
       backupBeforeDelete: true,
       linkedBillsReassignedTo: 'Current Account'
     });
