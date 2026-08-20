@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-stage4c-finance-main-probe-1';
+  const BUILD = '20260820-stage4c-finance-main-probe-2';
   const PRIORITY = 60;
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
   const isFinanceProbe = currentFile.startsWith('finance-stage4c');
@@ -29,6 +29,21 @@
     return true;
   }
 
+  function stampNavigation() {
+    document.querySelectorAll('.club-nav a[href], .direct-links a[href]').forEach((link) => {
+      const raw = String(link.getAttribute('href') || '');
+      if (!raw || raw.startsWith('#')) return;
+      const target = raw.split('#')[0].split('?')[0];
+      const file = target.split('/').pop() || '';
+      const allowed = /^(index|finance|scouting|transfer|registration|squad|income|match-report|club-control|system-health)\.html$/i.test(file)
+        || /^auroracityfc_nexusv2\.html$/i.test(file)
+        || /^finance-stage4c\.html$/i.test(file);
+      if (!allowed) return;
+      const nextTarget = /^finance\.html$/i.test(file) ? 'finance-stage4c.html' : target;
+      link.setAttribute('href', `${nextTarget}?auroraBuild=${encodeURIComponent(BUILD)}`);
+    });
+  }
+
   function setGlobalStatus() {
     if (ownerPriority() > PRIORITY) return;
     claimStage();
@@ -37,6 +52,7 @@
     document.querySelectorAll('.department-hero small, .hero small').forEach((node) => {
       node.textContent = String(node.textContent || '').replace(/STAGE 3[HI]|STAGE 4[A-C]/gi, 'STAGE 4C');
     });
+    stampNavigation();
   }
 
   function ensurePanel() {
@@ -131,7 +147,7 @@
     }
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = '/aurora-fc-2/finance-house.js?v=20260820-stage4c-finance-main-probe-1';
+      script.src = '/aurora-fc-2/finance-house.js?v=20260820-stage4c-finance-main-probe-2';
       script.async = false;
       script.addEventListener('load', () => {
         houseLoaded = Boolean(window.Aurora2?.house?.renderAll);
@@ -148,7 +164,7 @@
   }
 
   async function mountLegacyFinanceDom() {
-    const response = await fetch('/aurora-fc-2/finance.html?v=20260820-stage4c-finance-main-probe-1', { cache: 'no-store' });
+    const response = await fetch('/aurora-fc-2/finance.html?v=20260820-stage4c-finance-main-probe-2', { cache: 'no-store' });
     if (!response.ok) throw new Error(`FINANCE_HTML_${response.status}`);
     const html = await response.text();
     const parsed = new DOMParser().parseFromString(html, 'text/html');
@@ -195,7 +211,7 @@
 
       const restore = () => { document.addEventListener = originalAdd; };
       const script = document.createElement('script');
-      script.src = '/aurora-fc-2/finance.js?v=20260820-stage4c-finance-main-probe-1';
+      script.src = '/aurora-fc-2/finance.js?v=20260820-stage4c-finance-main-probe-2';
       script.async = false;
       script.addEventListener('load', () => {
         restore();
@@ -248,7 +264,10 @@
   setGlobalStatus();
   ensurePanel();
 
-  if (!isFinanceProbe) return;
+  if (!isFinanceProbe) {
+    window.AuroraStage4C = Object.freeze({ build: BUILD, financeLoaded: false, stateWritesEnabled: false, stageOwner: '4C' });
+    return;
+  }
 
   let tries = 0;
   const wait = () => {
