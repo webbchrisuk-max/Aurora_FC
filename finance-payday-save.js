@@ -1,11 +1,16 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-payday-save-2';
+  const BUILD = '20260820-finance-payday-save-3';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const BACKUP_META_KEY = 'aurora2:state:backup:meta';
   const FIELD_KEYS = ['paydayDate','openingCash','expectedWages','wagesReceived','extraCash','protectedCash','releaseAmount'];
+  const PAYDAY_BASELINE = Object.freeze({
+    expectedWages: 2100,
+    wagesReceived: 0,
+    protectedCash: 300
+  });
   let saving = false;
   let lastError = null;
 
@@ -41,6 +46,15 @@
       plan[key] = Number(raw.toFixed(2));
     });
     return plan;
+  }
+
+  function nextCycleBaseline(plan) {
+    return {
+      ...(plan || {}),
+      expectedWages: PAYDAY_BASELINE.expectedWages,
+      wagesReceived: PAYDAY_BASELINE.wagesReceived,
+      protectedCash: PAYDAY_BASELINE.protectedCash
+    };
   }
 
   function backupCurrentState(rawText) {
@@ -95,11 +109,11 @@
     if (mode === 'saved') {
       if (title) title.textContent = 'Payday plan saved';
       if (chip) chip.textContent = 'SAVED';
-      if (note) note.textContent = message || 'The seven Payday Planner fields were saved. No mission, pot or House action was triggered.';
+      if (note) note.textContent = message || 'Payday plan saved. Next-cycle baseline restored to £2,100 expected wages, £0 wages received and £300 protected spending.';
     } else if (mode === 'saving') {
       if (title) title.textContent = 'Saving Payday plan';
       if (chip) chip.textContent = 'SAVING';
-      if (note) note.textContent = 'Writing only finance.plan and creating a pre-save local backup.';
+      if (note) note.textContent = 'Saving the plan, then restoring the next-payday wage baseline.';
     } else if (mode === 'error') {
       if (title) title.textContent = 'Payday save blocked';
       if (chip) chip.textContent = 'ERROR';
@@ -107,7 +121,7 @@
     } else {
       if (title) title.textContent = 'Payday plan editor';
       if (chip) chip.textContent = 'READY TO SAVE';
-      if (note) note.textContent = 'Preview your changes first, then save only the seven Payday Planner fields.';
+      if (note) note.textContent = 'Preview the actual wage, then save. The next cycle resets to £2,100 expected / £0 received / £300 protected.';
     }
   }
 
@@ -149,8 +163,9 @@
         setPanelState('saving');
 
         try {
-          const plan = readPlanFromFields();
-          persistPlan(plan);
+          const enteredPlan = readPlanFromFields();
+          const savedPlan = nextCycleBaseline(enteredPlan);
+          persistPlan(savedPlan);
           setPanelState('saved');
           button.textContent = 'Saved ✓';
           setTimeout(() => {
@@ -187,6 +202,7 @@
           ready: true,
           scope: 'finance.plan only',
           fields: [...FIELD_KEYS],
+          paydayBaseline: { ...PAYDAY_BASELINE },
           lastError
         });
         return;
