@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-squad-final-polish-1';
+  const BUILD = '20260820-squad-final-polish-2';
+  const HISTORY_SCRIPT = 'squad-former-players-data.js?v=20260820-squad-former-history-1';
   const STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
   const CLOSED = new Set(['SOLD','ARCHIVED','CLOSED','EXITED']);
 
@@ -77,21 +78,92 @@
     }
     return null;
   }
+  function firstPositiveNumber(row, keys) {
+    for (const key of keys) {
+      const value = maybeNum(row?.[key]);
+      if (value !== null && value > 0) return value;
+    }
+    return null;
+  }
   function displayDate(value) {
     const raw = String(value || '').trim();
     if (!raw) return 'Date not recorded';
+    const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+    const dmy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (dmy) return `${String(dmy[1]).padStart(2,'0')}/${String(dmy[2]).padStart(2,'0')}/${dmy[3]}`;
     const time = Date.parse(raw);
     if (!Number.isFinite(time)) return raw;
     return new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(time));
   }
+  function optionalMoney(value) {
+    const parsed = maybeNum(value);
+    return parsed === null ? '—' : money(parsed);
+  }
+  function optionalShares(value) {
+    const parsed = maybeNum(value);
+    return parsed === null ? '—' : parsed.toLocaleString('en-GB',{maximumFractionDigits:8});
+  }
 
   function activeRows() { return arr(stateCache?.squad?.holdings).filter(activeHolding); }
-  function formerRows() { return arr(stateCache?.squad?.holdings).filter(formerHolding); }
+  function localFormerRows() { return arr(stateCache?.squad?.holdings).filter(formerHolding); }
   function lockedRows() { return activeRows().filter(row => !!row?.locked || upper(row?.status) === 'LOCKED'); }
+
+  function localFormerRecord(row) {
+    const m = holdingMetrics(row);
+    const priceValue = firstPositiveNumber(row,['executionPrice','salePrice','soldPrice','exitPrice','livePriceGbp','priceGbp']);
+    const unit = upper(firstText(row,['executionPriceUnit','priceUnit','salePriceUnit']));
+    const priceDisplay = firstText(row,['executionPriceDisplay','salePriceDisplay']) || (priceValue === null ? '' : unit === 'PENCE' ? `${priceValue}p` : money(priceValue));
+    return {
+      ticker:ticker(row?.ticker),
+      name:row?.name || ticker(row?.ticker),
+      account:accountLabel(row?.account),
+      status:upper(row?.status || 'SOLD'),
+      soldAt:firstText(row,['soldAt','executedAt','closedAt','archivedAt','updatedAt','date','tradeDate']),
+      sharesSold:firstPositiveNumber(row,['sharesSold','soldShares','lastShares','sharesBeforeSale','previousShares']) ?? (m.shares > 0 ? m.shares : null),
+      executionPriceDisplay:priceDisplay,
+      netProceedsGbp:firstPositiveNumber(row,['actualProceedsGbp','netProceedsGbp','saleProceedsGbp','proceedsGbp']),
+      bookCostGbp:firstPositiveNumber(row,['originalBookCostGbp','bookCostBeforeSaleGbp','bookCostGbp','book_cost_gbp','costBasisGbp']) ?? (m.book > 0 ? m.book : null),
+      realisedProfitGbp:firstNumber(row,['realisedProfitGbp','realizedProfitGbp','realisedPnlGbp','realizedPnlGbp']),
+      feesGbp:firstNumber(row,['feesGbp','fees','saleFeesGbp']),
+      sector:row?.sector || '',
+      ticketId:firstText(row,['ticketId','ticket_id']),
+      transactionId:firstText(row,['transactionId','transaction_id']),
+      source:firstText(row,['source'],'Canonical Squad history'),
+      note:firstText(row,['exitReason','saleReason','reason','managerNote','manager_note','note','notes'])
+    };
+  }
+  function meaningful(value) {
+    if (value === null || value === undefined || value === '') return false;
+    if (typeof value === 'number' && !Number.isFinite(value)) return false;
+    return true;
+  }
+  function mergeRecord(base, next) {
+    const out = {...(base || {})};
+    Object.entries(next || {}).forEach(([key,value]) => {
+      if (!meaningful(value)) return;
+      if (typeof value === 'number' && value === 0 && meaningful(out[key]) && out[key] !== 0) return;
+      out[key] = value;
+    });
+    return out;
+  }
+  function historyRows() {
+    const external = arr(window.AuroraSquadFormerPlayers?.rows?.());
+    const local = localFormerRows().map(localFormerRecord);
+    const map = new Map();
+    [...external,...local].forEach(row => {
+      const tk = ticker(row?.ticker);
+      if (!tk) return;
+      const acct = accountLabel(row?.account);
+      const key = `${tk}|${acct}`;
+      map.set(key,mergeRecord(map.get(key),{...row,ticker:tk,account:acct,status:upper(row?.status || 'SOLD')}));
+    });
+    return [...map.values()].sort((a,b) => String(b.soldAt || '').localeCompare(String(a.soldAt || '')) || a.ticker.localeCompare(b.ticker));
+  }
 
   function lockedTickerInfo(tk) {
     const rows = activeRows().filter(row => ticker(row?.ticker) === ticker(tk));
-    const locked = rows.some(row => !!row?.locked || upper(row?.status) === 'LOCKED');
+    const locked = rows.some(row => !!row?.locked || upper(row?.status)==='LOCKED');
     const reason = rows.map(row => firstText(row,['lockReason','lock_reason','restrictionNote','restriction_note'])).find(Boolean) || 'Protected from normal Transfer activity.';
     return {locked,reason};
   }
@@ -121,7 +193,7 @@
     rail.innerHTML = `
       <article class="squad-status-tile"><small>⚽ First Team</small><strong id="statusFirstTeam">0</strong><span id="statusFirstTeamMeta">canonical players</span></article>
       <article class="squad-status-tile protected"><small>🔒 Protected</small><strong id="statusProtected">0</strong><span>locked / protected players</span></article>
-      <article class="squad-status-tile former"><small>👋 Former Players</small><strong id="statusFormer">0</strong><span>archived account records</span></article>`;
+      <article class="squad-status-tile former"><small>👋 Former Players</small><strong id="statusFormer">0</strong><span>Aurora sale history</span></article>`;
     register.parentNode.insertBefore(rail,register);
     return rail;
   }
@@ -131,7 +203,7 @@
     const active = activeRows();
     const players = new Set(active.map(row=>ticker(row?.ticker)).filter(Boolean));
     const protectedPlayers = new Set(lockedRows().map(row=>ticker(row?.ticker)).filter(Boolean));
-    const former = formerRows();
+    const former = historyRows();
     const set = (id,value) => { const el=document.getElementById(id); if(el) el.textContent=value; };
     set('statusFirstTeam',String(players.size));
     set('statusFirstTeamMeta',`${active.length} account position${active.length===1?'':'s'}`);
@@ -149,12 +221,12 @@
     section.id = 'formerPlayers';
     section.innerHTML = `
       <div class="squad-head">
-        <div><span class="squad-kicker">Club History • Read Only</span><h2>Former Players</h2><p>Sold, exited, closed and archived Squad records stay visible here as club history. Nothing in this section can change a canonical holding.</p></div>
+        <div><span class="squad-kicker">Club History • AuroraData Read Only</span><h2>Former Players</h2><p>Executed and historical Squad exits stay visible here as club history. Sale history is kept separate from the active canonical first team and cannot change a holding.</p></div>
         <span class="authority-chip" id="formerPlayerCount">0 records</span>
       </div>
       <div class="filters"><input class="squad-history-search" id="formerPlayerSearch" placeholder="Search former ticker, company or broker"></div>
       <div class="squad-history-grid" id="formerPlayerGrid"></div>
-      <div class="squad-history-note">Historical figures are shown exactly from the stored Squad record. Aurora does not invent sale proceeds, exit prices or missing history values.</div>`;
+      <div class="squad-history-note" id="formerPlayerSource">Loading Aurora sale history…</div>`;
     register.insertAdjacentElement('afterend',section);
     section.querySelector('#formerPlayerSearch')?.addEventListener('input',renderFormerPlayers);
     return section;
@@ -164,34 +236,44 @@
     if (!ensureFormerSection()) return;
     const host = document.getElementById('formerPlayerGrid');
     const count = document.getElementById('formerPlayerCount');
+    const source = document.getElementById('formerPlayerSource');
     if (!host || !count) return;
     const q = String(document.getElementById('formerPlayerSearch')?.value || '').trim().toLowerCase();
-    const rows = formerRows()
-      .filter(row => !q || `${row?.ticker||''} ${row?.name||''} ${accountLabel(row?.account)} ${row?.sector||''}`.toLowerCase().includes(q))
-      .sort((a,b) => {
-        const ad=Date.parse(firstText(a,['soldAt','closedAt','archivedAt','updatedAt','date','tradeDate']))||0;
-        const bd=Date.parse(firstText(b,['soldAt','closedAt','archivedAt','updatedAt','date','tradeDate']))||0;
-        return bd-ad || ticker(a?.ticker).localeCompare(ticker(b?.ticker));
-      });
+    const rows = historyRows()
+      .filter(row => !q || `${row?.ticker||''} ${row?.name||''} ${row?.account||''} ${row?.sector||''}`.toLowerCase().includes(q));
     count.textContent = `${rows.length} record${rows.length===1?'':'s'}`;
+    const historyStatus = window.AuroraSquadFormerPlayers?.status?.();
+    if (source) {
+      source.textContent = historyStatus?.source
+        ? `Source: ${historyStatus.source}. Read-only history only — active Squad holdings are untouched.`
+        : 'Source: canonical archived Squad rows. Read-only history only — active Squad holdings are untouched.';
+    }
     if (!rows.length) {
-      host.innerHTML = `<div class="squad-empty">${q?'No former players match this search.':'No archived Squad records are stored yet.'}</div>`;
+      host.innerHTML = `<div class="squad-empty">${q?'No former players match this search.':'No sold or archived history is available yet.'}</div>`;
       return;
     }
     host.innerHTML = rows.map(row => {
-      const m=holdingMetrics(row);
-      const status=upper(row?.status || 'ARCHIVED');
-      const when=displayDate(firstText(row,['soldAt','closedAt','archivedAt','updatedAt','date','tradeDate']));
-      const historicalShares=firstNumber(row,['lastShares','sharesBeforeSale','previousShares','shares']);
-      const note=firstText(row,['exitReason','saleReason','reason','note','notes']);
+      const status=upper(row?.status || 'SOLD');
+      const when=displayDate(row?.soldAt);
+      const profit=maybeNum(row?.realisedProfitGbp);
+      const details=[];
+      if (maybeNum(row?.bookCostGbp) !== null) details.push(`Original book ${optionalMoney(row.bookCostGbp)}`);
+      if (maybeNum(row?.feesGbp) !== null) details.push(`Fees ${optionalMoney(row.feesGbp)}`);
+      if (row?.ticketId) details.push(`Ticket ${row.ticketId}`);
+      if (row?.transactionId) details.push(`Transaction ${row.transactionId}`);
+      if (row?.orderId) details.push(`Order ${row.orderId}`);
+      if (row?.source) details.push(row.source);
+      const note = String(row?.note || '').trim();
       return `<article class="squad-former-card">
-        <div class="squad-former-head"><div><strong>${esc(ticker(row?.ticker))} — ${esc(row?.name || ticker(row?.ticker))}</strong><span>${esc(accountLabel(row?.account))} • ${esc(when)}</span></div><b class="squad-former-status">${esc(status)}</b></div>
+        <div class="squad-former-head"><div><strong>${esc(ticker(row?.ticker))} — ${esc(row?.name || ticker(row?.ticker))}</strong><span>${esc(row?.account || 'Account Review')} • Sold ${esc(when)}</span></div><b class="squad-former-status">${esc(status)}</b></div>
         <div class="squad-former-metrics">
-          <div><small>Last shares</small><b>${historicalShares===null?'—':historicalShares.toLocaleString('en-GB',{maximumFractionDigits:8})}</b></div>
-          <div><small>Book cost</small><b>${money(m.book)}</b></div>
-          <div><small>Last value</small><b>${money(m.value)}</b></div>
-          <div><small>Annual income</small><b>${money(m.income)}</b></div>
-        </div>${note?`<div class="squad-history-note">${esc(note)}</div>`:''}
+          <div><small>Shares sold</small><b>${optionalShares(row?.sharesSold)}</b></div>
+          <div><small>Sale price</small><b>${esc(row?.executionPriceDisplay || '—')}</b></div>
+          <div><small>Net proceeds</small><b>${optionalMoney(row?.netProceedsGbp)}</b></div>
+          <div><small>Realised P/L</small><b class="${profit===null?'':profit>=0?'good':'bad'}">${profit===null?'—':`${profit>=0?'+':''}${money(profit)}`}</b></div>
+        </div>
+        ${details.length?`<div class="squad-history-note">${esc(details.join(' • '))}</div>`:''}
+        ${note?`<div class="squad-history-note">${esc(note)}</div>`:''}
       </article>`;
     }).join('');
   }
@@ -329,6 +411,31 @@
     } else if (protectedBox) protectedBox.remove();
   }
 
+  function loadHistoryModule() {
+    if (window.AuroraSquadFormerPlayers) return Promise.resolve(window.AuroraSquadFormerPlayers);
+    const existing=[...document.scripts].find(script => String(script.src || '').includes('squad-former-players-data.js'));
+    if (existing) {
+      return new Promise(resolve => {
+        let tries=0;
+        const wait=()=>{
+          if (window.AuroraSquadFormerPlayers) return resolve(window.AuroraSquadFormerPlayers);
+          tries+=1;
+          if (tries>120) return resolve(null);
+          setTimeout(wait,25);
+        };
+        wait();
+      });
+    }
+    return new Promise(resolve => {
+      const script=document.createElement('script');
+      script.src=HISTORY_SCRIPT;
+      script.async=true;
+      script.addEventListener('load',()=>resolve(window.AuroraSquadFormerPlayers || null),{once:true});
+      script.addEventListener('error',()=>resolve(null),{once:true});
+      document.head.appendChild(script);
+    });
+  }
+
   function render() {
     stateCache=readState();
     renderStatusRail();
@@ -351,6 +458,7 @@
     });
     window.addEventListener('pageshow',()=>scheduleRender(20));
     window.addEventListener('aurora2:state',()=>scheduleRender(0));
+    window.addEventListener('aurora:squad-former-history',()=>scheduleRender(0));
     window.addEventListener('storage',event=>{if(STATE_KEYS.includes(event.key))scheduleRender(20)});
 
     const pitch=document.getElementById('squadPitchPlayers');
@@ -364,7 +472,15 @@
     if (waiting) observer.observe(waiting,{childList:true,subtree:true,characterData:true});
   }
 
-  function boot(){bind();render();setTimeout(render,120);setTimeout(render,500);}
+  function boot(){
+    bind();
+    render();
+    loadHistoryModule().then(module => {
+      render();
+      module?.refresh?.().catch(()=>{});
+    });
+    setTimeout(render,120);setTimeout(render,500);
+  }
   window.AuroraSquadFinalPolish={build:BUILD,render,readOnly:true};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
