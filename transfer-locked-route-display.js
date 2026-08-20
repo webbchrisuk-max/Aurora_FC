@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-transfer-locked-route-display-1';
+  const BUILD = '20260820-transfer-locked-route-display-2';
   const STATE_KEY = 'aurora2:state:v1';
 
   const arr = value => Array.isArray(value) ? value : [];
@@ -55,6 +55,16 @@
     if (!locked || !host) return false;
 
     const targetCount = new Set(locked.allocations.map(row => String(row?.securityId || row?.ticker || row?.name || ''))).size;
+
+    const headerStatus = document.querySelector('.topbar .status');
+    if (headerStatus) {
+      const label = headerStatus.querySelector('span');
+      const value = headerStatus.querySelector('b');
+      if (label) label.textContent = 'TRANSFER';
+      if (value) value.textContent = 'ROUTE LOCKED';
+    }
+    const safeChip = document.querySelector('.transfer-status .safe');
+    if (safeChip) safeChip.textContent = 'ROUTE LOCKED • REGISTRATION READY';
 
     host.innerHTML = `
       <div class="allocation-preview-head">
