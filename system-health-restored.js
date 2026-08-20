@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-system-health-restored-1';
+  const BUILD = '20260820-system-health-restored-2';
   const $ = id => document.getElementById(id);
   const arr = value => Array.isArray(value) ? value : [];
   const set = (id,value) => { const el=$(id); if(el) el.textContent=value ?? '—'; };
@@ -30,8 +30,21 @@
     el.textContent=text; el.className=`health-badge ${tone}`.trim();
   }
   function healthRow(tone,title,note,meta='') {
-    const icon=tone==='block'?'!':tone==='warn'?'•':'✓';
+    const icon=tone==='block'?'!':tone==='warn'?'•':tone==='protected'?'🛡':'✓';
     return `<div class="health-row ${tone}"><i>${icon}</i><div><strong>${title}</strong><span>${note}</span></div><b>${meta}</b></div>`;
+  }
+  function ensureProtectedStyle() {
+    if (document.getElementById('auroraSystemHealthProtectedStyle')) return;
+    const style=document.createElement('style');
+    style.id='auroraSystemHealthProtectedStyle';
+    style.textContent=`
+      .health-row.protected{border-color:rgba(56,189,248,.18);background:rgba(8,47,73,.16)}
+      .health-row.protected i{color:#bff5ff;background:rgba(8,47,73,.46);font-size:12px}
+      .health-row.protected strong{color:#dff8ff}
+      .health-row.protected span{color:#79a7b8}
+      .health-row.protected b{color:#67e8f9}
+    `;
+    document.head.appendChild(style);
   }
   function safeCloudStatus() {
     try { return window.AuroraCloudSync?.status?.() || null; } catch (_) { return null; }
@@ -110,6 +123,34 @@
     return {info,stage,label};
   }
 
+  function syncDisplay(name,item) {
+    const key=String(name || '').trim().toLowerCase().replaceAll('-',' ');
+    const status=String(item?.status || 'CHECK').toUpperCase();
+    const error=String(item?.lastError || '');
+    if (key==='holdings' && status==='ERROR' && /aurora-holdings-sync\.js|110-managed/i.test(error)) {
+      return {
+        tone:'protected',
+        title:'HOLDINGS',
+        note:'Legacy holdings sync is retired. Canonical Squad holdings are the active holdings authority.',
+        meta:'CANONICAL'
+      };
+    }
+    if (key==='cloud state' && status==='ERROR' && /AURORA_STAGE3G_FIRESTORE_PATCH_BLOCKED/i.test(error) && window.AuroraStage3GShield?.active) {
+      return {
+        tone:'protected',
+        title:'CLOUD STATE',
+        note:'Firestore write was deliberately blocked by the rebuild safety shield. Cloud data remains readable while overwrite/apply stays protected.',
+        meta:'PROTECTED'
+      };
+    }
+    return {
+      tone:status==='ERROR'?'block':status==='CONNECTED'?'good':'warn',
+      title:String(name || '').replaceAll('-',' ').toUpperCase(),
+      note:error || `Last success ${since(item?.lastSuccessAt)}`,
+      meta:status
+    };
+  }
+
   async function run() {
     if (running) return;
     running=true;
@@ -156,9 +197,8 @@
       const syncRows=[];
       if (sync) {
         Object.entries(sync.detail || {}).filter(([key])=>key!=='updatedAt').forEach(([name,item])=>{
-          const status=String(item?.status || 'CHECK').toUpperCase();
-          const tone=status==='ERROR'?'block':status==='CONNECTED'?'good':'warn';
-          syncRows.push(healthRow(tone,name.replaceAll('-',' ').toUpperCase(),item?.lastError || `Last success ${since(item?.lastSuccessAt)}`,status));
+          const view=syncDisplay(name,item);
+          syncRows.push(healthRow(view.tone,view.title,view.note,view.meta));
         });
       }
       if (!syncRows.length) syncRows.push(healthRow('warn','Sync Manager is loading','Run the check again in a moment.','WAIT'));
@@ -245,6 +285,7 @@
   }
 
   async function start() {
+    ensureProtectedStyle();
     bind();
     let tries=0;
     while (!window.Aurora2?.core?.read && tries<160) { await new Promise(resolve=>setTimeout(resolve,50)); tries+=1; }
