@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD = '20260820-stage4e-live-finance-16';
+  const BUILD = '20260820-stage4e-live-finance-17';
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
 
   function fixFinanceLinks() {
@@ -12,6 +12,40 @@
       if (!/^finance(?:-stage4c(?:-4d)?)?\.html$/i.test(file)) return;
       link.setAttribute('href', `/Aurora_FC/finance.html?auroraBuild=${encodeURIComponent(BUILD)}`);
     });
+  }
+
+  function loadMissionRelease() {
+    if (currentFile !== 'finance.html' || window.AuroraFinanceMissionReleaseLoadStarted) return;
+    const start = () => {
+      if (window.AuroraFinanceMissionReleaseLoadStarted) return;
+      window.AuroraFinanceMissionReleaseLoadStarted = true;
+      const script = document.createElement('script');
+      script.src = `finance-mission-release.js?v=${encodeURIComponent(BUILD)}`;
+      script.async = false;
+      document.head.appendChild(script);
+    };
+    if (window.AuroraFinanceReleaseCandidate?.ready) { start(); return; }
+    const wait = () => window.AuroraFinanceReleaseCandidate?.ready ? start() : setTimeout(wait, 25);
+    wait();
+  }
+
+  function loadReleaseCandidate() {
+    if (currentFile !== 'finance.html') return;
+    if (window.AuroraFinanceReleaseCandidate?.ready) { loadMissionRelease(); return; }
+    if (window.AuroraFinanceReleaseCandidateLoadStarted) {
+      const wait = () => window.AuroraFinanceReleaseCandidate?.ready ? loadMissionRelease() : setTimeout(wait, 25);
+      wait();
+      return;
+    }
+    window.AuroraFinanceReleaseCandidateLoadStarted = true;
+    const script = document.createElement('script');
+    script.src = `finance-release-candidate.js?v=${encodeURIComponent(BUILD)}`;
+    script.async = false;
+    script.addEventListener('load', () => {
+      const wait = () => window.AuroraFinanceReleaseCandidate?.ready ? loadMissionRelease() : setTimeout(wait, 25);
+      wait();
+    }, { once: true });
+    document.head.appendChild(script);
   }
 
   function loadHouseProjects() {
@@ -91,6 +125,7 @@
     loadHardPaydayReset();
     loadProtectedBills();
     loadPotsBillsReadonly();
+    loadReleaseCandidate();
   }
 
   function loadPaydaySave() {
@@ -180,6 +215,8 @@
     paydayPreview: currentFile === 'finance.html',
     customDateDisplay: currentFile === 'finance.html',
     paydaySave: currentFile === 'finance.html',
+    releaseCandidate: currentFile === 'finance.html',
+    missionRelease: currentFile === 'finance.html',
     hardPaydayReset: currentFile === 'finance.html',
     protectedBills: currentFile === 'finance.html',
     potsBillsReadonly: currentFile === 'finance.html',
