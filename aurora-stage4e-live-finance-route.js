@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD = '20260820-stage4e-live-finance-9';
+  const BUILD = '20260820-stage4e-live-finance-10';
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
 
   function fixFinanceLinks() {
@@ -23,11 +23,25 @@
     document.head.appendChild(script);
   }
 
+  function loadHardPaydayReset() {
+    if (currentFile !== 'finance.html' || window.AuroraFinancePaydayHardResetLoadStarted) return;
+    window.AuroraFinancePaydayHardResetLoadStarted = true;
+    const script = document.createElement('script');
+    script.src = `finance-payday-reset-hard.js?v=${encodeURIComponent(BUILD)}`;
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
+  function continueAfterPaydaySave() {
+    loadHardPaydayReset();
+    loadPotsBillsReadonly();
+  }
+
   function loadPaydaySave() {
     if (currentFile !== 'finance.html') return;
-    if (window.AuroraFinancePaydaySave?.ready) { loadPotsBillsReadonly(); return; }
+    if (window.AuroraFinancePaydaySave?.ready) { continueAfterPaydaySave(); return; }
     if (window.AuroraFinancePaydaySaveLoadStarted) {
-      const wait = () => window.AuroraFinancePaydaySave?.ready ? loadPotsBillsReadonly() : setTimeout(wait, 25);
+      const wait = () => window.AuroraFinancePaydaySave?.ready ? continueAfterPaydaySave() : setTimeout(wait, 25);
       wait();
       return;
     }
@@ -36,7 +50,7 @@
     script.src = `finance-payday-save.js?v=${encodeURIComponent(BUILD)}`;
     script.async = false;
     script.addEventListener('load', () => {
-      const wait = () => window.AuroraFinancePaydaySave?.ready ? loadPotsBillsReadonly() : setTimeout(wait, 25);
+      const wait = () => window.AuroraFinancePaydaySave?.ready ? continueAfterPaydaySave() : setTimeout(wait, 25);
       wait();
     }, { once: true });
     document.head.appendChild(script);
@@ -110,6 +124,7 @@
     paydayPreview: currentFile === 'finance.html',
     customDateDisplay: currentFile === 'finance.html',
     paydaySave: currentFile === 'finance.html',
+    hardPaydayReset: currentFile === 'finance.html',
     potsBillsReadonly: currentFile === 'finance.html'
   });
 })();
