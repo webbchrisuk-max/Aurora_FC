@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-payday-save-3';
+  const BUILD = '20260820-finance-payday-save-4';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const BACKUP_META_KEY = 'aurora2:state:backup:meta';
@@ -46,6 +46,30 @@
       plan[key] = Number(raw.toFixed(2));
     });
     return plan;
+  }
+
+  function actualPaydayRelease(plan, state) {
+    const control = window.Aurora2?.financePaydayControl;
+    if (!state?.finance || typeof control?.paydayFundingPreview !== 'function') {
+      throw new Error('PAYDAY_PREVIEW_API_NOT_READY');
+    }
+
+    const preview = control.paydayFundingPreview(state, plan);
+    const safeSurplus = Math.max(0, Number(preview?.c?.safeSurplus) || 0);
+    const manuallyEdited = Boolean(window.AuroraFinancePaydayPreview?.releaseManuallyEdited);
+    const requested = Math.max(0, Number(plan.releaseAmount) || 0);
+    const capturedRelease = manuallyEdited
+      ? Math.min(requested, safeSurplus)
+      : safeSurplus;
+
+    return {
+      plan: {
+        ...plan,
+        releaseAmount: Number(capturedRelease.toFixed(2))
+      },
+      safeSurplus: Number(safeSurplus.toFixed(2)),
+      manuallyEdited
+    };
   }
 
   function nextCycleBaseline(plan) {
@@ -109,11 +133,11 @@
     if (mode === 'saved') {
       if (title) title.textContent = 'Payday plan saved';
       if (chip) chip.textContent = 'SAVED';
-      if (note) note.textContent = message || 'Payday plan saved. Next-cycle baseline restored to £2,100 expected wages, £0 wages received and £300 protected spending.';
+      if (note) note.textContent = message || 'Payday release captured from the actual wage. Next-cycle baseline restored to £2,100 expected wages, £0 wages received and £300 protected spending.';
     } else if (mode === 'saving') {
       if (title) title.textContent = 'Saving Payday plan';
       if (chip) chip.textContent = 'SAVING';
-      if (note) note.textContent = 'Saving the plan, then restoring the next-payday wage baseline.';
+      if (note) note.textContent = 'Calculating the safe release from the actual wage first, then restoring the next-payday wage baseline.';
     } else if (mode === 'error') {
       if (title) title.textContent = 'Payday save blocked';
       if (chip) chip.textContent = 'ERROR';
@@ -121,7 +145,7 @@
     } else {
       if (title) title.textContent = 'Payday plan editor';
       if (chip) chip.textContent = 'READY TO SAVE';
-      if (note) note.textContent = 'Preview the actual wage, then save. The next cycle resets to £2,100 expected / £0 received / £300 protected.';
+      if (note) note.textContent = 'Enter the actual wage. Aurora recalculates the release before Save, then resets the next cycle to £2,100 expected / £0 received / £300 protected.';
     }
   }
 
@@ -164,9 +188,17 @@
 
         try {
           const enteredPlan = readPlanFromFields();
-          const savedPlan = nextCycleBaseline(enteredPlan);
+          const current = readPrimaryState();
+          if (!current) throw new Error('AURORA_PRIMARY_STATE_NOT_FOUND');
+
+          const actual = actualPaydayRelease(enteredPlan, current);
+          const savedPlan = nextCycleBaseline(actual.plan);
           persistPlan(savedPlan);
-          setPanelState('saved');
+
+          const releaseText = new Intl.NumberFormat('en-GB', {
+            style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2
+          }).format(actual.plan.releaseAmount);
+          setPanelState('saved', `Captured ${releaseText} investment release from the actual payday calculation. Wages received is now reset to £0 for the next cycle.`);
           button.textContent = 'Saved ✓';
           setTimeout(() => {
             window.location.reload();
@@ -203,6 +235,7 @@
           scope: 'finance.plan only',
           fields: [...FIELD_KEYS],
           paydayBaseline: { ...PAYDAY_BASELINE },
+          captureOrder: 'actual wage -> safe release -> next-cycle baseline',
           lastError
         });
         return;
