@@ -1,8 +1,16 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-registration-route-intake-1';
+  const BUILD = '20260822-registration-route-intake-auto-sync-1';
   const STATE_KEY = 'aurora2:state:v1';
+
+  function loadBrowserAutoSync() {
+    if (window.__AuroraBrowserAutoSync || [...document.scripts].some(script => String(script.src || '').includes('aurora-browser-sync-auto.js'))) return;
+    const script = document.createElement('script');
+    script.src = 'aurora-browser-sync-auto.js?v=20260822-browser-auto-sync-1';
+    script.async = false;
+    document.head.appendChild(script);
+  }
 
   const arr = value => Array.isArray(value) ? value : [];
   const num = value => {
@@ -124,6 +132,7 @@
   }
 
   const refresh = () => setTimeout(render, 0);
+  loadBrowserAutoSync();
   window.addEventListener('aurora2:state', refresh);
   window.addEventListener('storage', refresh);
   window.addEventListener('pageshow', refresh);
