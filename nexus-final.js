@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260822-nexus-final-1';
+  const BUILD = '20260822-nexus-final-2';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const INCOME_SUMMARY_KEY = 'aurora2:income:summary:v1';
@@ -215,6 +215,16 @@
     if (value > 0) el.classList.add('good'); else if (value < 0) el.classList.add('bad');
   }
 
+  function restoreNexusChrome() {
+    const status = document.querySelector('.topbar .status');
+    if (status) {
+      const stage = status.querySelector('span');
+      const label = status.querySelector('b');
+      if (stage) stage.textContent = 'NEXUS';
+      if (label) label.textContent = 'LIVE COMMAND';
+    }
+  }
+
   function renderPortfolio(state, p) {
     text('nxPortfolioValue', money(p.value));
     text('nxPortfolioMeta', `${p.players.length} players • ${p.rows.length} account positions`);
@@ -313,6 +323,7 @@
   }
 
   function render() {
+    restoreNexusChrome();
     const state = readState();
     const p = portfolio(state);
     const f = financeSummary(state);
