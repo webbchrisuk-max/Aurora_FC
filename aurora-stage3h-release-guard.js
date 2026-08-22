@@ -1,12 +1,20 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-stage3h-release-guard-probe-2';
+  const BUILD = '20260822-stage3h-release-guard-auto-sync-1';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
   const CHILDREN = Object.freeze({
     scouting: currentFile === 'scouting.html',
     matchReport: currentFile === 'match-report.html'
   });
+
+  function loadBrowserAutoSync() {
+    if (window.__AuroraBrowserAutoSync || [...document.scripts].some(script => String(script.src || '').includes('aurora-browser-sync-auto.js'))) return;
+    const script = document.createElement('script');
+    script.src = 'aurora-browser-sync-auto.js?v=20260822-browser-auto-sync-1';
+    script.async = false;
+    document.head.appendChild(script);
+  }
 
   function ownsGlobalStage() {
     const owner = String(document.documentElement.dataset.auroraStageOwner || '');
@@ -86,6 +94,7 @@
     document.head.appendChild(release);
   }
 
+  loadBrowserAutoSync();
   setStatus('WAITING…', 'Waiting for Aurora Core before loading Release.');
   stampNavigation();
 
