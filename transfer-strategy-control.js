@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260822-transfer-strategy-control-3';
+  const BUILD = '20260822-transfer-strategy-control-stable-1';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
 
@@ -20,19 +20,15 @@
     return normalize(value) === 'maximum' ? 'Maximum Income' : 'Sustainable Income';
   }
 
-  function statusOf(state) {
-    return String(state?.mission?.status || '').toUpperCase();
-  }
-
   function canChange(state) {
     const mission = state?.mission;
-    const status = statusOf(state);
+    const status = String(mission?.status || '').toUpperCase();
     const route = state?.transfer?.route;
     return Boolean(mission && status === 'DRAFT' && !(route?.locked === true && String(route?.missionId || '') === String(mission?.id || '')));
   }
 
   function currentStrategy(state) {
-    return normalize(state?.scouting?.strategy || state?.mission?.strategy || state?.transfer?.selectedStrategy || 'sustainable');
+    return normalize(state?.scouting?.strategy || state?.mission?.strategy || 'sustainable');
   }
 
   function writeStrategy(strategy) {
@@ -100,27 +96,16 @@
     const state = readState();
     if (!host) return;
 
-    const strategy = currentStrategy(state || {});
-    const status = statusOf(state);
-
-    if (!state?.mission || status === 'CANCELLED') {
-      const cancelled = status === 'CANCELLED';
+    if (!state?.mission) {
       host.innerHTML = `
-        <div class="transfer-strategy-copy">
-          <small>Transfer Strategy</small>
-          <strong>${label(strategy)}</strong>
-          <span>${cancelled ? 'The previous Finance mission was cancelled. Your strategy is preserved. Finance must release a new DRAFT mission before allocations can be built.' : 'Release a payday mission before choosing an allocation strategy.'}</span>
-        </div>
-        <div class="transfer-strategy-buttons">
-          <button class="${strategy === 'sustainable' ? 'active' : ''}" disabled>Sustainable Income</button>
-          <button class="${strategy === 'maximum' ? 'active' : ''}" disabled>Maximum Income</button>
-        </div>
-        <div class="transfer-strategy-lock"><strong>WAITING FOR FINANCE:</strong> release a new verified mission to continue.</div>`;
-      window.AuroraTransferStrategyControl = Object.freeze({build:BUILD,ready:true,strategy,label:label(strategy),editable:false,status:cancelled ? 'CANCELLED_WAIT' : 'NO_MISSION'});
+        <div class="transfer-strategy-copy"><small>Transfer Strategy</small><strong>Waiting for Finance mission</strong><span>Release a payday mission before choosing an allocation strategy.</span></div>
+        <div class="transfer-strategy-buttons"><button disabled>Sustainable Income</button><button disabled>Maximum Income</button></div>`;
       return;
     }
 
+    const strategy = currentStrategy(state);
     const editable = canChange(state);
+    const status = String(state.mission.status || 'DRAFT').toUpperCase();
     host.innerHTML = `
       <div class="transfer-strategy-copy">
         <small>Transfer Strategy</small>
@@ -150,8 +135,7 @@
       ready: true,
       strategy,
       label: label(strategy),
-      editable,
-      status
+      editable
     });
   }
 
