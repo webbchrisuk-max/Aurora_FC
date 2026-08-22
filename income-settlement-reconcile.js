@@ -279,7 +279,7 @@
   if (window.__auroraIncomeReinvestmentLoader) return;
   window.__auroraIncomeReinvestmentLoader = true;
   const script = document.createElement('script');
-  script.src = 'income-reinvestment-capture.js?v=20260822-income-reinvestment-capture-1';
+  script.src = 'income-reinvestment-capture.js?v=20260822-income-reinvestment-capture-2';
   script.defer = true;
   document.head.appendChild(script);
 })();
