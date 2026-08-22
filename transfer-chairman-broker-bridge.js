@@ -1,11 +1,15 @@
 (function () {
   'use strict';
 
-  var BUILD = '20260822-transfer-chairman-broker-bridge-1';
+  var BUILD = '20260822-transfer-chairman-candidate-bridge-2';
   var STATE_KEY = 'aurora2:state:v1';
   var BACKUP_KEY = 'aurora2:state:backup:lastgood';
 
   function arr(value) { return Array.isArray(value) ? value : []; }
+  function num(value) {
+    var parsed = Number(String(value == null ? '' : value).replace(/[^0-9.-]/g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
   function ticker(value) {
     return String(value || '').replace(/^LON:/i, '').replace(/\.L$/i, '').replace(/\.GB$/i, '').replace(/\..*$/, '').toUpperCase().trim();
   }
@@ -22,20 +26,19 @@
     return upper === 'IG' || upper === 'T212' ? upper : 'CHECK';
   }
   function identity(record) {
-    var explicit = String(record && (record.securityId || record.security_id) || '').trim();
+    record = record || {};
+    var explicit = String(record.securityId || record.security_id || '').trim();
     var parts = explicit.indexOf(':') >= 0 ? explicit.split(':') : [];
-    var rawTicker = record && (record.ticker || record.symbol || record.marketSymbol) || parts.slice(1).join(':');
     return {
       securityId: explicit,
-      exchange: exchange(record && (record.exchange || record.exchangeCode) || parts[0]),
-      ticker: ticker(rawTicker),
-      account: accountCode(record && (record.account || record.broker || record.preferredAccount))
+      exchange: exchange(record.exchange || record.exchangeCode || parts[0]),
+      ticker: ticker(record.ticker || record.symbol || record.marketSymbol || parts.slice(1).join(':')),
+      account: accountCode(record.account || record.broker || record.preferredAccount)
     };
   }
   function securityId(record) {
     var id = identity(record);
-    if (id.securityId) return id.securityId;
-    return (id.exchange || 'UNKNOWN') + ':' + id.ticker;
+    return id.securityId || ((id.exchange || 'UNKNOWN') + ':' + id.ticker);
   }
   function sameSecurity(a, b) {
     var left = identity(a), right = identity(b);
@@ -46,6 +49,15 @@
     if (!left.ticker || left.ticker !== right.ticker) return false;
     if (left.exchange && right.exchange) return left.exchange === right.exchange;
     return true;
+  }
+  function targetGate(target) {
+    var text = (String(target && target.status || '') + ' ' + String(target && target.recommendation || '')).toLowerCase();
+    var eligibility = String(target && target.eligibilityStatus || '').toUpperCase();
+    if (text.indexOf('block') >= 0 || ['INELIGIBLE','BLOCKED','NOT_ELIGIBLE'].indexOf(eligibility) >= 0) return 'block';
+    if (text.indexOf('pending') >= 0) return 'pending';
+    if (text.indexOf('pass') >= 0 || text.indexOf('strong buy') >= 0 || /(^|\s)buy($|\s)/.test(text)) return 'pass';
+    if (text.indexOf('caution') >= 0) return 'caution';
+    return 'unknown';
   }
   function eligibilityAccounts(value) {
     if (Array.isArray(value)) return value.map(accountCode).filter(function (code) { return code !== 'CHECK'; });
@@ -62,23 +74,62 @@
     return [];
   }
   function evidenceRows(state, target) {
-    return [
+    var groups = [
       arr(state && state.scouting && state.scouting.targets),
       arr(state && state.scouting && state.scouting.universe),
       arr(state && state.squad && state.squad.holdings),
       arr(state && state.market && state.market.evidence),
       arr(state && state.marketEvidence),
       arr(state && state.marketData && state.marketData.evidence),
+      arr(state && state.marketData && state.marketData.quotes),
+      arr(state && state.marketData && state.marketData.prices),
       arr(state && state.transfer && state.transfer.marketEvidence),
       arr(state && state.transfer && state.transfer.quotes)
-    ].reduce(function (all, rows) {
+    ];
+    return groups.reduce(function (all, rows) {
       return all.concat(rows.filter(function (row) { return sameSecurity(target, row); }));
     }, []);
+  }
+  function normalizePrice(row) {
+    row = row || {};
+    var direct = num(row.livePriceGbp || row.priceGbp || row.live_price_gbp || row.price_gbp || row.legacyPriceGbp);
+    if (direct > 0) return direct;
+    var raw = num(row.livePrice || row.price || row.currentPrice || row.live_price || row.legacyPriceNative);
+    if (!(raw > 0)) return 0;
+    var currency = String(row.currency || row.quoteCurrency || 'GBP').toUpperCase();
+    var unit = String(row.priceUnit || row.unit || '').toUpperCase();
+    if (currency === 'GBX') return raw / 100;
+    if (currency === 'GBP') return unit === 'GBX' || unit === 'PENCE' ? raw / 100 : raw;
+    var fx = num(row.fxRateToGbp || row.fxToGbp);
+    return fx > 0 ? raw * fx : 0;
+  }
+  function resolvePrice(state, target) {
+    var rows = [target].concat(evidenceRows(state, target));
+    for (var i = 0; i < rows.length; i += 1) {
+      var price = normalizePrice(rows[i]);
+      if (price > 0) return price;
+    }
+    return 0;
+  }
+  function yieldFrom(row) {
+    row = row || {};
+    var source = row.yieldPct != null ? row.yieldPct : row.dividendYieldPct != null ? row.dividendYieldPct : row.dividendYield != null ? row.dividendYield : row.annualYieldPct != null ? row.annualYieldPct : row.legacyYieldPct;
+    var value = num(source);
+    if (value > 0 && value <= 1 && String(source || '').indexOf('%') < 0) value *= 100;
+    return Math.max(0, value);
+  }
+  function resolveYield(state, target) {
+    var rows = [target].concat(evidenceRows(state, target));
+    for (var i = 0; i < rows.length; i += 1) {
+      var value = yieldFrom(rows[i]);
+      if (value > 0) return value;
+    }
+    return 0;
   }
   function activeHoldings(state) {
     return arr(state && state.squad && state.squad.holdings).filter(function (row) {
       var status = String(row && row.status || '').toUpperCase();
-      return ['SOLD','ARCHIVED','CLOSED','EXITED'].indexOf(status) < 0 && Number(row && row.shares || 0) > 0;
+      return ['SOLD','ARCHIVED','CLOSED','EXITED'].indexOf(status) < 0 && num(row && row.shares) > 0;
     });
   }
   function brokerPreference(state, target) {
@@ -89,8 +140,7 @@
     return accountCode(value);
   }
   function resolveBroker(state, target) {
-    state = state || {};
-    target = target || {};
+    state = state || {}; target = target || {};
     var matched = [target].concat(evidenceRows(state, target));
     var eligibilityDeclared = matched.some(function (row) {
       return row && (row.brokerEligibility != null || row.IG != null || row.ig != null || row.T212 != null || row.t212 != null ||
@@ -103,7 +153,6 @@
       if (row && (row.T212 === true || row.t212 === true || row.trading212IsaSupported === true || row.trading212ISASupported === true || row.supportsTrading212Isa === true)) accounts.push('T212');
       return all.concat(accounts);
     }, []);
-
     var platformRule = arr(state && state.transfer && state.transfer.platformRules).find(function (row) {
       return String(row && row.active != null ? row.active : 'true').toLowerCase() !== 'false' && sameSecurity(target, row);
     });
@@ -126,7 +175,6 @@
     var preferred = accountCode(target && target.preferredAccount);
     var owned = activeHoldings(state).filter(function (row) { return sameSecurity(target, row); })
       .map(function (row) { return identity(row).account; }).filter(function (code) { return code !== 'CHECK'; });
-
     var tiers = [
       { source:'PLATFORM_RULES', accounts:platformAccounts },
       { source:'EXPLICIT_SECURITY_ELIGIBILITY', accounts:explicit },
@@ -142,19 +190,12 @@
     var account = canonical || ownedAccount || (eligible.indexOf('IG') >= 0 ? 'IG' : eligible.indexOf('T212') >= 0 ? 'T212' : 'CHECK');
     var blockedByExplicit = eligibilityDeclared && !explicit.length && !platformAccounts.length;
     if (blockedByExplicit) account = 'CHECK';
-    return {
-      supported: account !== 'CHECK',
-      account: account,
-      eligible: blockedByExplicit ? [] : eligible,
-      source: blockedByExplicit ? 'EXPLICIT_SECURITY_INELIGIBILITY' : (chosen && chosen.source || null)
-    };
+    return { supported:account !== 'CHECK', account:account, eligible:blockedByExplicit ? [] : eligible, source:blockedByExplicit ? 'EXPLICIT_SECURITY_INELIGIBILITY' : (chosen && chosen.source || null) };
   }
-
   function readStoredState() {
-    var keys = [STATE_KEY, BACKUP_KEY];
-    for (var i = 0; i < keys.length; i += 1) {
+    for (var i = 0; i < [STATE_KEY, BACKUP_KEY].length; i += 1) {
       try {
-        var parsed = JSON.parse(localStorage.getItem(keys[i]) || 'null');
+        var parsed = JSON.parse(localStorage.getItem([STATE_KEY, BACKUP_KEY][i]) || 'null');
         if (parsed && typeof parsed === 'object') return parsed;
       } catch (_) {}
     }
@@ -163,40 +204,52 @@
 
   var existingCore = window.Aurora2 && window.Aurora2.core;
   var sourceRead = existingCore && typeof existingCore.read === 'function' ? existingCore.read.bind(existingCore) : readStoredState;
-  if (!window.__auroraChairmanBrokerSourceRead) window.__auroraChairmanBrokerSourceRead = sourceRead;
-  sourceRead = window.__auroraChairmanBrokerSourceRead;
+  if (!window.__auroraChairmanCandidateSourceRead) window.__auroraChairmanCandidateSourceRead = sourceRead;
+  sourceRead = window.__auroraChairmanCandidateSourceRead;
 
   function enrichState(state) {
     if (!state || typeof state !== 'object') return state;
     var scouting = state.scouting || {};
+    var batch = String(scouting.approvedBatchId || '');
     var targets = arr(scouting.targets).map(function (target) {
+      var gate = targetGate(target);
       var route = resolveBroker(state, target);
-      if (!route.supported) return Object.assign({}, target, { chairmanBrokerSource:route.source || null });
-      return Object.assign({}, target, {
-        preferredAccount: route.account,
+      var price = resolvePrice(state, target);
+      var incomeYield = resolveYield(state, target);
+      var simulationEligible = (gate === 'pass' || gate === 'caution') && target.transferPermitted !== false && route.supported && price > 0 && incomeYield > 0;
+      var copy = Object.assign({}, target, {
+        livePriceGbp: price > 0 ? price : target.livePriceGbp,
+        yieldPct: incomeYield > 0 ? incomeYield : target.yieldPct,
         chairmanResolvedAccount: route.account,
-        chairmanBrokerSource: route.source || null
+        chairmanBrokerSource: route.source || null,
+        chairmanSimulationCandidate: simulationEligible
       });
+      if (route.supported) copy.preferredAccount = route.account;
+      if (simulationEligible) {
+        copy.approvedForTransfer = true;
+        if (batch) copy.approvalBatchId = batch;
+      }
+      return copy;
     });
     return Object.assign({}, state, { scouting:Object.assign({}, scouting, { targets:targets }) });
   }
 
   window.Aurora2 = window.Aurora2 || {};
   window.Aurora2.core = window.Aurora2.core || {};
-  window.Aurora2.core.read = function () {
-    return enrichState(sourceRead());
-  };
+  window.Aurora2.core.read = function () { return enrichState(sourceRead()); };
 
   var sample = enrichState(sourceRead());
-  var resolved = sample && sample.scouting ? arr(sample.scouting.targets).filter(function (target) {
-    return target && target.approvedForTransfer === true && accountCode(target.preferredAccount) !== 'CHECK';
-  }).length : 0;
+  var active = sample && sample.scouting ? arr(sample.scouting.targets).filter(function (target) { return target && target.chairmanSimulationCandidate === true; }) : [];
   window.AuroraTransferChairmanBrokerBridge = Object.freeze({
-    build: BUILD,
-    ready: true,
-    readOnly: true,
-    resolvedApprovedTargets: resolved,
-    resolveBroker: resolveBroker,
-    enrichState: enrichState
+    build:BUILD,
+    ready:true,
+    readOnly:true,
+    mode:'ACTIVE_SCOUTING_PASS_CAUTION',
+    simulationCandidates:active.length,
+    candidateTickers:active.map(function (target) { return ticker(target.ticker); }),
+    resolveBroker:resolveBroker,
+    resolvePrice:resolvePrice,
+    resolveYield:resolveYield,
+    enrichState:enrichState
   });
 })();
