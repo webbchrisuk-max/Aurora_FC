@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260822-browser-auto-sync-1';
+  const BUILD = '20260822-browser-auto-sync-2';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const META_KEY = 'aurora2:browser-auto-sync:meta:v1';
@@ -151,21 +151,22 @@
   }
 
   async function determineRole(api) {
+    const cloud = await api.inspect();
     const status = api.status?.() || {};
-    if (!status.signedIn) return 'SIGNED_OUT';
-    if (!status.cloudExists) return 'NO_MASTER';
-    if (status.cloudDeviceId && status.deviceId && status.cloudDeviceId === status.deviceId) return 'MASTER';
-    return 'FOLLOWER';
+    if (!status.signedIn) return { role: 'SIGNED_OUT', cloud: null, status };
+    if (!cloud || !status.cloudExists) return { role: 'NO_MASTER', cloud: null, status };
+    const isMaster = Boolean(cloud.deviceId && status.deviceId && cloud.deviceId === status.deviceId);
+    return { role: isMaster ? 'MASTER' : 'FOLLOWER', cloud, status };
   }
 
-  async function masterPass(api, reason) {
+  async function masterPass(api, reason, cloud = null) {
     const state = rawState();
     if (!state) return;
     const statusBefore = api.status?.() || {};
     const localHash = await api.stateHash(state);
-    const cloudHash = String(statusBefore.cloudHash || '');
+    const cloudHash = String(statusBefore.cloudHash || cloud?.hash || '');
     if (cloudHash && localHash === cloudHash) {
-      saveMeta({ role: 'MASTER', lastSeenRevision: Number(statusBefore.cloudRevision) || 0 });
+      saveMeta({ role: 'MASTER', lastSeenRevision: Number(statusBefore.cloudRevision || cloud?.revision) || 0 });
       return;
     }
 
@@ -181,8 +182,7 @@
     });
   }
 
-  async function followerPass(api, reason) {
-    const cloud = await api.inspect();
+  async function followerPass(api, reason, cloud = null) {
     const status = api.status?.() || {};
     if (!cloud || !status.cloudExists) return;
 
@@ -225,23 +225,12 @@
         try { await Promise.race([api.ready, new Promise(resolve => setTimeout(resolve, 5000))]); } catch (_) {}
       }
 
-      let status = api.status?.() || {};
-      if (!status.signedIn) {
-        role = 'SIGNED_OUT';
-        saveMeta({ role });
-        return;
-      }
-
-      if (!status.cloudExists) {
-        try { await api.inspect(); } catch (_) {}
-        status = api.status?.() || {};
-      }
-
-      role = await determineRole(api);
+      const decision = await determineRole(api);
+      role = decision.role;
       saveMeta({ role });
 
-      if (role === 'MASTER') await masterPass(api, reason);
-      else if (role === 'FOLLOWER') await followerPass(api, reason);
+      if (role === 'MASTER') await masterPass(api, reason, decision.cloud);
+      else if (role === 'FOLLOWER') await followerPass(api, reason, decision.cloud);
     } catch (error) {
       lastError = String(error?.message || error || 'Automatic Browser Sync failed.');
       emit({ reason });
