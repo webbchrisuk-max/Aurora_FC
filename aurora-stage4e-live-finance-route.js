@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD = '20260822-stage4e-live-finance-auto-sync-2';
+  const BUILD = '20260822-stage4e-live-finance-payday-persist-1';
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
 
   function loadBrowserAutoSync() {
