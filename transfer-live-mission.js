@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-transfer-mission-intake-1';
+  const BUILD = '20260822-transfer-mission-intake-2';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const TERMINAL = new Set(['COMPLETE','COMPLETED','CANCELLED','ARCHIVED']);
@@ -40,6 +40,18 @@
     return 'neutral';
   }
 
+  function resetPosition(status = 'WAITING FOR FINANCE', note = 'Finance must release a verified payday budget first.') {
+    text('transferKpiBudget', '£0.00');
+    text('transferKpiAllocated', '£0.00');
+    text('transferKpiRemaining', '£0.00');
+    text('transferKpiLegs', '0');
+    const gate = document.getElementById('transferAllocationGate');
+    if (gate) {
+      gate.className = 'transfer-gate hold';
+      gate.innerHTML = `<strong>${status}</strong><span>${note}</span>`;
+    }
+  }
+
   function render() {
     const state = readState();
     const mission = activeMission(state);
@@ -54,18 +66,26 @@
       text('transferMissionPayday', '—');
       text('transferMissionStrategy', '—');
       text('transferMissionRemaining', '£0.00');
+      text('transferMissionSource', 'Aurora state is not available in this browser.');
+      resetPosition('STATE NOT FOUND', 'Transfer cannot build a route until Aurora state is available.');
+      window.AuroraTransferMissionIntake = Object.freeze({build:BUILD,ready:true,active:false,status:'STATE_NOT_FOUND',approvedBudget:0,amountAllocated:0,amountRemaining:0,readOnly:true});
       return;
     }
 
     if (!mission) {
+      const previousStatus = String(state?.mission?.status || '').toUpperCase();
+      const cancelled = previousStatus === 'CANCELLED';
+      const strategy = String(state?.scouting?.strategy || state?.transfer?.selectedStrategy || 'Not selected');
       shell.dataset.state = 'empty';
       text('transferMissionStatus', 'WAITING FOR FINANCE');
       text('transferBudget', '£0.00');
-      text('transferMissionId', 'No active Finance mission has been released.');
+      text('transferMissionId', cancelled ? 'Previous Finance mission was cancelled.' : 'No active Finance mission has been released.');
       text('transferMissionPayday', '—');
-      text('transferMissionStrategy', String(state?.scouting?.strategy || 'Not selected'));
+      text('transferMissionStrategy', strategy);
       text('transferMissionRemaining', '£0.00');
-      text('transferMissionSource', 'Finance must release a verified payday budget first.');
+      text('transferMissionSource', cancelled ? 'Cancelled missions cannot supply Transfer cash. Finance must release a new verified payday budget.' : 'Finance must release a verified payday budget first.');
+      resetPosition('WAITING FOR FINANCE', cancelled ? 'The previous mission was cancelled. Release a new Finance mission to continue.' : 'Finance must release a verified payday budget first.');
+      window.AuroraTransferMissionIntake = Object.freeze({build:BUILD,ready:true,active:false,status:cancelled?'CANCELLED_WAIT':'NO_MISSION',approvedBudget:0,amountAllocated:0,amountRemaining:0,readOnly:true});
       return;
     }
 
@@ -103,6 +123,7 @@
     window.AuroraTransferMissionIntake = Object.freeze({
       build: BUILD,
       ready: true,
+      active: true,
       missionId: mission.id || mission.mission_id || '',
       status,
       approvedBudget: budget,
