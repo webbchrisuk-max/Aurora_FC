@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260822-income-reinvestment-bridge-6';
+  const BUILD = '20260822-income-reinvestment-bridge-7';
+  const AUTO_REPAIR_KEY = 'aurora:income:reinvestment-registration-repair:v3';
   if (window.__auroraIncomeReinvestmentBridge) return;
   window.__auroraIncomeReinvestmentBridge = BUILD;
 
@@ -22,5 +23,8 @@
     .then(() => load('income-reinvestment-ledger-ui.js?v=20260822-income-reinvestment-ledger-ui-1', () => !!window.AuroraIncomeReinvestmentLedgerUi))
     .then(() => load('income-reinvestment-replay.js?v=20260822-income-reinvestment-replay-2', () => !!window.AuroraIncomeReinvestmentReplay))
     .then(() => load('income-reinvestment-registration-diagnostics.js?v=20260822-income-reinvestment-registration-diagnostics-3', () => !!window.AuroraIncomeReinvestmentRegistrationDiagnostics))
+    .then(() => {
+      try { sessionStorage.setItem(AUTO_REPAIR_KEY, '1'); } catch (_) {}
+    })
     .catch(error => console.warn('[Aurora Income reinvestment bridge]', error));
 })();
