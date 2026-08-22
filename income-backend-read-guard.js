@@ -1,11 +1,13 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260822-income-backend-read-guard-3';
+  const BUILD = '20260822-income-backend-read-guard-4-instant-hydration';
   const LOCAL_CALENDAR_KEY = 'aurora2:income:calendar-local:v1';
   const CACHE_PREFIX = 'aurora2:income:backend-read-cache:v1:';
+  const HYDRATION_SOURCE = 'INSTANT_HYDRATION_CACHE';
   const READ_ACTIONS = new Set(['incomeSnapshot', 'brokerCashSnapshot', 'dividendEngineStatus']);
   const MAX_ATTEMPTS = 4;
+  const RECENT_LIVE_MS = 8000;
 
   const client = window.AuroraData2Client;
   if (!client || window.__auroraIncomeBackendReadGuard) return;
@@ -16,6 +18,8 @@
 
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
   const arr = value => Array.isArray(value) ? value : [];
+  const inflight = new Map();
+  const recent = new Map();
 
   function accountCode(value) {
     const text = String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -79,6 +83,33 @@
     return true;
   }
 
+  function hydrationId(row, index) {
+    const direct = String(row?.id || row?.dividendId || row?.dividend_id || '').trim();
+    if (direct) return direct;
+    const key = dividendKey(row);
+    return key ? `HYDRATE-${key.replaceAll('|', '-')}` : `HYDRATE-${index}`;
+  }
+
+  function syncHydrationMirror(snapshot) {
+    const backendRows = arr(snapshot?.dividends);
+    if (!backendRows.length) return 0;
+    try {
+      const localRows = arr(JSON.parse(localStorage.getItem(LOCAL_CALENDAR_KEY) || '[]'));
+      const localOwned = localRows.filter(row => String(row?.source || '') !== HYDRATION_SOURCE);
+      const mirrored = backendRows.map((row, index) => ({
+        ...row,
+        id: hydrationId(row, index),
+        source: HYDRATION_SOURCE,
+        _auroraHydration: true,
+        _auroraHydratedAt: new Date().toISOString()
+      }));
+      localStorage.setItem(LOCAL_CALENDAR_KEY, JSON.stringify([...mirrored, ...localOwned].slice(0, 400)));
+      return mirrored.length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   function pruneStaleLocalCalendar(snapshot) {
     const backendRows = arr(snapshot?.dividends);
     if (!backendRows.length) return;
@@ -87,6 +118,7 @@
     try {
       const localRows = arr(JSON.parse(localStorage.getItem(LOCAL_CALENDAR_KEY) || '[]'));
       const kept = localRows.filter(row => {
+        if (String(row?.source || '') === HYDRATION_SOURCE) return true;
         const id = String(row?.id || row?.dividendId || row?.dividend_id || '');
         const key = dividendKey(row);
         return !((id && backendIds.has(id)) || (key && backendKeys.has(key)));
@@ -98,6 +130,54 @@
         }));
       }
     } catch (_) {}
+  }
+
+  function money(value) {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2
+    }).format(Number(value) || 0);
+  }
+
+  function setText(id, value) {
+    const node = document.getElementById(id);
+    if (node) node.textContent = value;
+  }
+
+  function engineTime(value) {
+    if (!value) return 'Never';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Never' : date.toLocaleString('en-GB', {
+      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  function paintCash(snapshot, source) {
+    if (!snapshot?.balances) return;
+    setText('cashBalanceIG', money(snapshot.balances.IG));
+    setText('cashBalanceT212', money(snapshot.balances.T212));
+    setText('cashBackendStatus', source === 'LIVE' ? 'CONNECTED' : 'VERIFYING');
+    if (source !== 'LIVE') {
+      setText('cashNote', 'Showing the last verified broker cash position while AuroraData 2 confirms the live snapshot.');
+    }
+  }
+
+  function paintEngine(snapshot, source) {
+    if (!snapshot || snapshot.ok === false) return;
+    const installed = Boolean(snapshot.installed);
+    const last = snapshot.lastSummary || {};
+    const alpha = snapshot.alphaVantage || {};
+    setText('engineBadge', source === 'LIVE' ? (installed ? 'AUTO ON' : 'AUTO OFF') : 'VERIFYING');
+    setText('engineAuto', installed ? 'Nightly' : 'Off');
+    setText('engineAlpha', alpha.configured ? 'CONNECTED' : 'NOT SET');
+    setText('engineReview', String(Number(snapshot.openReviewCount) || 0));
+    setText('engineLast', engineTime(last.finishedAt || last.completedAt || snapshot.lastRunAt));
+  }
+
+  function paintCachedUi() {
+    const cash = readCache('brokerCashSnapshot');
+    if (cash?.data) paintCash(cash.data, 'CACHE');
+    const engine = readCache('dividendEngineStatus');
+    if (engine?.data) paintEngine(engine.data, 'CACHE');
   }
 
   function markCachedInUi(action, savedAt) {
@@ -124,12 +204,25 @@
     }, 30);
   }
 
+  function dispatchRead(action, result, source, attempt = 0, error = '') {
+    window.dispatchEvent(new CustomEvent('aurora:income-backend-read', {
+      detail: { build: BUILD, action, source, transport: 'POST', attempt, at: new Date().toISOString(), error }
+    }));
+    window.dispatchEvent(new CustomEvent('aurora:income-instant-hydration', {
+      detail: { build: BUILD, action, result, source, at: new Date().toISOString() }
+    }));
+  }
+
   function acceptLive(action, result, attempt) {
     writeCache(action, result);
-    if (action === 'incomeSnapshot') pruneStaleLocalCalendar(result);
-    window.dispatchEvent(new CustomEvent('aurora:income-backend-read', {
-      detail: { build: BUILD, action, source: 'LIVE', transport: 'POST', attempt, at: new Date().toISOString() }
-    }));
+    if (action === 'incomeSnapshot') {
+      pruneStaleLocalCalendar(result);
+      syncHydrationMirror(result);
+    }
+    if (action === 'brokerCashSnapshot') paintCash(result, 'LIVE');
+    if (action === 'dividendEngineStatus') paintEngine(result, 'LIVE');
+    recent.set(action, { at: Date.now(), result });
+    dispatchRead(action, result, 'LIVE', attempt);
     return result;
   }
 
@@ -149,11 +242,15 @@
     const cached = readCache(action);
     if (cached) {
       const result = { ...cached.data, _auroraCached: true, _auroraCachedAt: cached.savedAt };
-      if (action === 'incomeSnapshot') pruneStaleLocalCalendar(result);
+      if (action === 'incomeSnapshot') {
+        pruneStaleLocalCalendar(result);
+        syncHydrationMirror(result);
+      }
+      if (action === 'brokerCashSnapshot') paintCash(result, 'CACHE');
+      if (action === 'dividendEngineStatus') paintEngine(result, 'CACHE');
+      recent.set(action, { at: Date.now(), result });
       markCachedInUi(action, cached.savedAt);
-      window.dispatchEvent(new CustomEvent('aurora:income-backend-read', {
-        detail: { build: BUILD, action, source: 'CACHE', at: new Date().toISOString(), error: String(lastError?.message || lastError || '') }
-      }));
+      dispatchRead(action, result, 'CACHE', 0, String(lastError?.message || lastError || ''));
       return result;
     }
 
@@ -161,16 +258,51 @@
     throw lastError || new Error(`${action} could not be read from AuroraData 2.`);
   }
 
+  function acceleratedRead(action, payload = {}) {
+    const last = recent.get(action);
+    if (last && Date.now() - last.at < RECENT_LIVE_MS) return Promise.resolve(last.result);
+    if (inflight.has(action)) return inflight.get(action);
+    const request = safeRead(action, payload || {}).finally(() => inflight.delete(action));
+    inflight.set(action, request);
+    return request;
+  }
+
   client.post = function guardedPost(action, payload) {
     const name = String(action || '').trim();
-    if (READ_ACTIONS.has(name)) return safeRead(name, payload || {});
+    if (READ_ACTIONS.has(name)) return acceleratedRead(name, payload || {});
     return originalPost(name, payload || {});
   };
 
+  function prewarm() {
+    if (document.visibilityState === 'hidden') return;
+    READ_ACTIONS.forEach(action => acceleratedRead(action, {}).catch(() => {}));
+  }
+
+  const cachedIncome = readCache('incomeSnapshot');
+  if (cachedIncome?.data) syncHydrationMirror(cachedIncome.data);
+
   window.AuroraIncomeBackendReadGuard = Object.freeze({
     build: BUILD,
-    read: safeRead,
+    read: acceleratedRead,
     cache: action => readCache(action),
-    pruneLocalCalendar: pruneStaleLocalCalendar
+    prewarm,
+    inflight: action => inflight.has(action),
+    recent: action => recent.get(action)?.result || null,
+    pruneLocalCalendar: pruneStaleLocalCalendar,
+    hydrateCalendar: syncHydrationMirror
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      paintCachedUi();
+      prewarm();
+    }, { once: true });
+  } else {
+    paintCachedUi();
+    prewarm();
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) prewarm();
   });
 })();
