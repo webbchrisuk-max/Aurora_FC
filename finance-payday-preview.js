@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-payday-preview-5';
+  const BUILD = '20260822-finance-payday-preview-persist-1';
   const STATE_KEY = 'aurora2:state:v1';
   const FIELD_KEYS = ['paydayDate','openingCash','expectedWages','wagesReceived','extraCash','protectedCash','releaseAmount'];
   const PAYDAY_BASELINE = Object.freeze({
@@ -37,19 +37,19 @@
     }
   }
 
-  function nextCycleBaseline(plan) {
-    return {
-      ...(plan || {}),
-      expectedWages: PAYDAY_BASELINE.expectedWages,
-      wagesReceived: PAYDAY_BASELINE.wagesReceived,
-      protectedCash: PAYDAY_BASELINE.protectedCash
-    };
-  }
-
   function savedBaselinePlan() {
     const persisted = savedPlanFromStorage();
     const fallback = financeState()?.finance?.plan || {};
-    return nextCycleBaseline(persisted || fallback);
+    const plan = { ...(persisted || fallback || {}) };
+    const expectedWages = Number(plan.expectedWages);
+    const wagesReceived = Number(plan.wagesReceived);
+    const protectedCash = Number(plan.protectedCash);
+    return {
+      ...plan,
+      expectedWages: Number.isFinite(expectedWages) ? expectedWages : PAYDAY_BASELINE.expectedWages,
+      wagesReceived: Number.isFinite(wagesReceived) ? wagesReceived : PAYDAY_BASELINE.wagesReceived,
+      protectedCash: Number.isFinite(protectedCash) ? protectedCash : PAYDAY_BASELINE.protectedCash
+    };
   }
 
   function inputs() {
@@ -210,7 +210,7 @@
         ? `Preview encountered ${runtimeErrors.length} runtime error${runtimeErrors.length === 1 ? '' : 's'}. Aurora state has not been changed.`
         : dirty
           ? `Unsaved preview only. Safe release is ${money(c.safeSurplus)}. ${releaseManuallyEdited ? 'Your chosen release is preserved unless it exceeds the safe amount.' : 'Investment release is following the safe amount automatically.'}`
-          : 'Next payday baseline: £2,100 expected wages, £0 received and £300 protected spending.';
+          : 'Saved payday values are loaded. Edit them and press Save Payday Plan to update Finance.';
     }
 
     window.AuroraFinancePaydayPreview = Object.freeze({
