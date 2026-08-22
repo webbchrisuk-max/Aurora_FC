@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var BUILD = '20260822-transfer-chairman-v3-launcher-1';
+  var BUILD = '20260822-transfer-chairman-v3-launcher-2-simulation-pool';
   var host = document.getElementById('transferChairmanOffers');
 
   function safeHold(message) {
@@ -18,6 +18,17 @@
     document.head.appendChild(style);
   }
 
+  function loadSimulationPool() {
+    var old = document.getElementById('auroraChairmanSimulationPoolScript');
+    if (old) old.remove();
+    var extra = document.createElement('script');
+    extra.id = 'auroraChairmanSimulationPoolScript';
+    extra.src = 'transfer-chairman-simulation-pool.js?v=20260822-chairman-simulation-pool-1';
+    extra.async = false;
+    extra.onerror = function () { console.warn('[Aurora Chairman] simulation pool could not be loaded; core V3 remains available.'); };
+    document.head.appendChild(extra);
+  }
+
   function launch() {
     styles();
     try { delete window.__auroraTransferChairmanOffers; } catch (_) { window.__auroraTransferChairmanOffers = null; }
@@ -29,6 +40,7 @@
     script.async = false;
     script.onload = function () {
       window.__auroraTransferChairmanV3Launcher = BUILD;
+      loadSimulationPool();
       setTimeout(function () {
         var api = window.AuroraTransferChairmanOffers;
         if (!api || api.build !== '20260822-transfer-chairman-v3-engine-1') safeHold('V3 loaded but did not publish its ready API.');
