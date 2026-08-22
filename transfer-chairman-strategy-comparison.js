@@ -1,6 +1,8 @@
 (function () {
   'use strict';
-  var BUILD = '20260822-transfer-chairman-v3-launcher-1';
+  var BUILD = '20260822-transfer-chairman-v3-launcher-2';
+  var HANDOFF_BUILD = '20260822-transfer-chairman-live-handoff-1';
+  var ENGINE_BUILD = '20260822-transfer-chairman-v3-engine-1';
   var host = document.getElementById('transferChairmanOffers');
 
   function safeHold(message) {
@@ -18,26 +20,44 @@
     document.head.appendChild(style);
   }
 
-  function launch() {
+  function launchEngine() {
     styles();
     try { delete window.__auroraTransferChairmanOffers; } catch (_) { window.__auroraTransferChairmanOffers = null; }
     var previous = document.getElementById('auroraTransferChairmanV3Script');
     if (previous) previous.remove();
     var script = document.createElement('script');
     script.id = 'auroraTransferChairmanV3Script';
-    script.src = 'transfer-chairman-v3.js?v=20260822-transfer-chairman-v3-engine-1';
+    script.src = 'transfer-chairman-v3.js?v=' + ENGINE_BUILD;
     script.async = false;
     script.onload = function () {
       window.__auroraTransferChairmanV3Launcher = BUILD;
       setTimeout(function () {
         var api = window.AuroraTransferChairmanOffers;
-        if (!api || api.build !== '20260822-transfer-chairman-v3-engine-1') safeHold('V3 loaded but did not publish its ready API.');
+        if (!api || api.build !== ENGINE_BUILD) safeHold('V3 loaded but did not publish its ready API.');
       }, 250);
     };
     script.onerror = function () { safeHold('Browser could not fetch transfer-chairman-v3.js.'); };
     document.head.appendChild(script);
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', launch, { once:true });
-  else launch();
+  function loadHandoffThenLaunch() {
+    var ready = window.AuroraTransferChairmanLiveHandoff;
+    if (ready && ready.build === HANDOFF_BUILD) { launchEngine(); return; }
+    var previous = document.getElementById('auroraTransferChairmanLiveHandoffScript');
+    if (previous) previous.remove();
+    var script = document.createElement('script');
+    script.id = 'auroraTransferChairmanLiveHandoffScript';
+    script.src = 'transfer-chairman-live-handoff.js?v=' + HANDOFF_BUILD;
+    script.async = false;
+    script.onload = function () {
+      var handoff = window.AuroraTransferChairmanLiveHandoff;
+      if (!handoff || handoff.build !== HANDOFF_BUILD) { safeHold('Transfer broker handoff did not initialise.'); return; }
+      launchEngine();
+    };
+    script.onerror = function () { safeHold('Browser could not fetch the Transfer broker handoff.'); };
+    document.head.appendChild(script);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadHandoffThenLaunch, { once:true });
+  else loadHandoffThenLaunch();
 })();
