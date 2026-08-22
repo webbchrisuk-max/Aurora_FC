@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260822-transfer-mission-intake-auto-sync-1';
+  const BUILD = '20260822-transfer-mission-intake-auto-sync-2';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const TERMINAL = new Set(['COMPLETE','COMPLETED','CANCELLED','ARCHIVED']);
@@ -9,7 +9,7 @@
   function loadBrowserAutoSync() {
     if (window.__AuroraBrowserAutoSync || [...document.scripts].some(script => String(script.src || '').includes('aurora-browser-sync-auto.js'))) return;
     const script = document.createElement('script');
-    script.src = 'aurora-browser-sync-auto.js?v=20260822-browser-auto-sync-1';
+    script.src = 'aurora-browser-sync-auto.js?v=20260822-browser-auto-sync-2';
     script.async = false;
     document.head.appendChild(script);
   }
