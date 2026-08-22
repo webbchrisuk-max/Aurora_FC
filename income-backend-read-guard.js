@@ -1,19 +1,18 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260822-income-backend-read-guard-2';
+  const BUILD = '20260822-income-backend-read-guard-3';
   const LOCAL_CALENDAR_KEY = 'aurora2:income:calendar-local:v1';
   const CACHE_PREFIX = 'aurora2:income:backend-read-cache:v1:';
   const READ_ACTIONS = new Set(['incomeSnapshot', 'brokerCashSnapshot', 'dividendEngineStatus']);
-  const MAX_ATTEMPTS = 3;
+  const MAX_ATTEMPTS = 4;
 
   const client = window.AuroraData2Client;
   if (!client || window.__auroraIncomeBackendReadGuard) return;
   window.__auroraIncomeBackendReadGuard = BUILD;
 
   const originalPost = typeof client.post === 'function' ? client.post.bind(client) : null;
-  const originalGet = typeof client.get === 'function' ? client.get.bind(client) : null;
-  if (!originalPost || !originalGet) return;
+  if (!originalPost) return;
 
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
   const arr = value => Array.isArray(value) ? value : [];
@@ -39,17 +38,14 @@
     if (gb) return `${gb[3]}-${String(gb[2]).padStart(2, '0')}-${String(gb[1]).padStart(2, '0')}`;
     const parsed = new Date(raw);
     if (Number.isNaN(parsed.getTime())) return raw;
-    const y = parsed.getFullYear();
-    const m = String(parsed.getMonth() + 1).padStart(2, '0');
-    const d = String(parsed.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
   }
 
   function dividendKey(row) {
-    const account = accountCode(row?.account);
-    const ticker = tickerCode(row?.ticker);
-    const payDate = dateKey(row?.payDate || row?.pay_date);
-    return account && ticker && payDate ? `${account}|${ticker}|${payDate}` : '';
+    const ac = accountCode(row?.account);
+    const tk = tickerCode(row?.ticker);
+    const pay = dateKey(row?.payDate || row?.pay_date);
+    return ac && tk && pay ? `${ac}|${tk}|${pay}` : '';
   }
 
   function readCache(action) {
@@ -73,31 +69,27 @@
   function isValid(action, result) {
     if (!result || result.ok === false || result.queued === true) return false;
     if (action === 'brokerCashSnapshot') {
-      if (!result.balances || typeof result.balances !== 'object') return false;
+      if (!result.balances || typeof result.balances !== 'object' || !Array.isArray(result.ledger)) return false;
       const ig = Number(result.balances.IG);
       const t212 = Number(result.balances.T212);
-      return Number.isFinite(ig) && Number.isFinite(t212) && Array.isArray(result.ledger);
+      return Number.isFinite(ig) && Number.isFinite(t212);
     }
     if (action === 'incomeSnapshot') return Array.isArray(result.dividends);
-    if (action === 'dividendEngineStatus') return typeof result === 'object';
+    if (action === 'dividendEngineStatus') return typeof result === 'object' && !result.queued;
     return true;
   }
 
-  function pruneStaleLocalCalendar(incomeSnapshot) {
-    const backendRows = arr(incomeSnapshot?.dividends);
+  function pruneStaleLocalCalendar(snapshot) {
+    const backendRows = arr(snapshot?.dividends);
     if (!backendRows.length) return;
-
     const backendIds = new Set(backendRows.map(row => String(row?.id || row?.dividendId || row?.dividend_id || '')).filter(Boolean));
     const backendKeys = new Set(backendRows.map(dividendKey).filter(Boolean));
-
     try {
       const localRows = arr(JSON.parse(localStorage.getItem(LOCAL_CALENDAR_KEY) || '[]'));
       const kept = localRows.filter(row => {
         const id = String(row?.id || row?.dividendId || row?.dividend_id || '');
         const key = dividendKey(row);
-        if (id && backendIds.has(id)) return false;
-        if (key && backendKeys.has(key)) return false;
-        return true;
+        return !((id && backendIds.has(id)) || (key && backendKeys.has(key)));
       });
       if (kept.length !== localRows.length) {
         localStorage.setItem(LOCAL_CALENDAR_KEY, JSON.stringify(kept));
@@ -115,14 +107,28 @@
       const note = document.getElementById('cashNote');
       if (badge) badge.textContent = 'CACHED';
       if (note) note.textContent = `Showing last verified broker cash snapshot${savedAt ? ` from ${new Date(savedAt).toLocaleString('en-GB')}` : ''}. Live refresh will retry automatically.`;
-    }, 0);
+    }, 30);
   }
 
-  function acceptLive(action, result, attempt, transport) {
+  function markUnavailableInUi(action, error) {
+    if (action !== 'brokerCashSnapshot') return;
+    setTimeout(() => {
+      const ig = document.getElementById('cashBalanceIG');
+      const t212 = document.getElementById('cashBalanceT212');
+      const badge = document.getElementById('cashBackendStatus');
+      const note = document.getElementById('cashNote');
+      if (ig) ig.textContent = '—';
+      if (t212) t212.textContent = '—';
+      if (badge) badge.textContent = 'CHECK';
+      if (note) note.textContent = `Live broker cash snapshot unavailable; Aurora has not inferred a £0 balance. ${String(error?.message || error || '')}`.trim();
+    }, 30);
+  }
+
+  function acceptLive(action, result, attempt) {
     writeCache(action, result);
     if (action === 'incomeSnapshot') pruneStaleLocalCalendar(result);
     window.dispatchEvent(new CustomEvent('aurora:income-backend-read', {
-      detail: { build: BUILD, action, source: 'LIVE', transport, attempt, at: new Date().toISOString() }
+      detail: { build: BUILD, action, source: 'LIVE', transport: 'POST', attempt, at: new Date().toISOString() }
     }));
     return result;
   }
@@ -131,22 +137,13 @@
     let lastError = null;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       try {
-        const getResult = await originalGet(action, payload || {});
-        if (isValid(action, getResult)) return acceptLive(action, getResult, attempt, 'GET_JSONP');
-        throw new Error(`${action} GET returned an incomplete snapshot.`);
+        const result = await originalPost(action, payload || {});
+        if (isValid(action, result)) return acceptLive(action, result, attempt);
+        throw new Error(`${action} returned a queued or incomplete snapshot.`);
       } catch (error) {
         lastError = error;
+        if (attempt < MAX_ATTEMPTS) await sleep(350 * attempt);
       }
-
-      try {
-        const postResult = await originalPost(action, payload || {});
-        if (isValid(action, postResult)) return acceptLive(action, postResult, attempt, 'POST');
-        throw new Error(`${action} POST returned an incomplete snapshot.`);
-      } catch (error) {
-        lastError = error;
-      }
-
-      if (attempt < MAX_ATTEMPTS) await sleep(220 * attempt);
     }
 
     const cached = readCache(action);
@@ -160,6 +157,7 @@
       return result;
     }
 
+    markUnavailableInUi(action, lastError);
     throw lastError || new Error(`${action} could not be read from AuroraData 2.`);
   }
 
@@ -167,12 +165,6 @@
     const name = String(action || '').trim();
     if (READ_ACTIONS.has(name)) return safeRead(name, payload || {});
     return originalPost(name, payload || {});
-  };
-
-  client.get = function guardedGet(action, payload) {
-    const name = String(action || '').trim();
-    if (READ_ACTIONS.has(name)) return safeRead(name, payload || {});
-    return originalGet(name, payload || {});
   };
 
   window.AuroraIncomeBackendReadGuard = Object.freeze({
