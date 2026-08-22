@@ -70,6 +70,13 @@
     window.__incomeReplayToastTimer = setTimeout(() => el.classList.remove('show'), 5200);
   }
 
+  function restoreRecordButton() {
+    const button = document.getElementById('recordDividendCash');
+    if (!button) return;
+    button.disabled = false;
+    button.textContent = 'Record Dividend';
+  }
+
   async function replay() {
     const promotion = window.AuroraIncomeReinvestmentPromotion;
     const client = window.AuroraData2Client;
@@ -130,6 +137,8 @@
       window.dispatchEvent(new CustomEvent('aurora:income-reinvestment-replay', { detail }));
       toast(`Reinvestment Registration replay failed: ${detail.error}`);
       return detail;
+    } finally {
+      restoreRecordButton();
     }
   }
 
