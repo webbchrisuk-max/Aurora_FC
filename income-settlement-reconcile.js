@@ -4,7 +4,7 @@
   const base = window.AuroraIncomeTruth;
   if (!base) return;
 
-  const BUILD = '20260821-income-settlement-reconcile-2';
+  const BUILD = '20260822-income-settlement-reconcile-3';
   const AMOUNT_TOLERANCE_GBP = 0.03;
   const MAX_DAYS_AFTER_PAY_DATE = 45;
   const MAX_DAYS_BEFORE_PAY_DATE = 3;
@@ -30,13 +30,23 @@
     return ac && tk && pay ? `${ac}|${tk}|${pay}` : String(row?.id || '');
   }
 
+  function referenceDividendAmount(row) {
+    const reference = String(row?.reference || '').trim();
+    const match = reference.match(/^DIV:[^:]+:[^:]+:\d{4}-\d{2}-\d{2}:([0-9]+(?:\.[0-9]+)?)(?::|$)/i);
+    return match ? Math.abs(num(match[1])) : 0;
+  }
+
+  function explicitDividendReference(row) {
+    return /^DIV:[^:]+:[^:]+:\d{4}-\d{2}-\d{2}:/i.test(String(row?.reference || '').trim());
+  }
+
   function settlementAmount(row) {
     const fields = [row?.amountGbp, row?.dividendAmountGbp, row?.settlementAmountGbp, row?.grossAmountGbp, row?.cashChangeGbp, row?.amount];
     for (const value of fields) {
       const amount = Math.abs(num(value));
       if (amount > 0) return amount;
     }
-    return 0;
+    return referenceDividendAmount(row);
   }
 
   function settlementDate(row) {
@@ -69,6 +79,12 @@
     return 0;
   }
 
+  function paidEventActualAmount(row) {
+    const status = String(`${row?.status || ''} ${row?.payment_stage || ''} ${row?.paymentStage || ''}`).toUpperCase();
+    if (!/\bPAID\b/.test(status)) return 0;
+    return backendReceivedAmount(row);
+  }
+
   function isBackendPaid(row) {
     const status = String(`${row?.status || ''} ${row?.payment_stage || ''} ${row?.paymentStage || ''}`).toUpperCase();
     return backendReceivedAmount(row) > 0 || /\bPAID\b/.test(status);
@@ -83,20 +99,24 @@
   }
 
   function eventAmount(state, event) {
+    const paidActual = paidEventActualAmount(event);
+    if (paidActual > 0) return paidActual;
     const match = matches.get(matchKey(event));
     return match ? match.amountGbp : base.eventAmount(state, event);
   }
 
   function reconciledEvent(event) {
+    const paidActual = paidEventActualAmount(event);
     const match = matches.get(matchKey(event));
-    if (!match) return event;
+    if (!match && !(paidActual > 0)) return event;
+    const amountGbp = paidActual > 0 ? paidActual : match.amountGbp;
     return {
       ...event,
       status: 'PAID',
-      actualAmountGbp: match.amountGbp,
-      paidAt: match.recordedAt || event?.paidAt || '',
-      paymentEvidence: match.evidence,
-      paymentEvidenceRef: match.reference || '',
+      actualAmountGbp: amountGbp,
+      paidAt: match?.recordedAt || event?.paidAt || '',
+      paymentEvidence: match?.evidence || event?.paymentEvidence || 'AURORADATA_DIVIDENDS',
+      paymentEvidenceRef: match?.reference || event?.paymentEvidenceRef || '',
       reconciledBy: BUILD
     };
   }
@@ -138,9 +158,10 @@
         amountGbp: settlementAmount(row),
         date: settlementDate(row),
         recordedAt: row?.recordedAt || row?.settledAt || row?.paidAt || row?.receivedAt || row?.createdAt || '',
-        reference: String(row?.reference || '')
+        reference: String(row?.reference || ''),
+        explicit: explicitDividendReference(row)
       }))
-      .filter(row => row.date);
+      .filter(row => row.date && row.amountGbp > 0);
 
     const candidates = arr(events)
       .filter(event => !['PAID', 'CANCELLED', 'ARCHIVED'].includes(String(event?.status || '').toUpperCase()))
@@ -163,9 +184,9 @@
           const dayDiff = Math.round((settlement.date.getTime() - candidate.payDate.getTime()) / 86400000);
           return { settlement, amountDiff, dayDiff };
         })
-        .filter(item => item.amountDiff <= AMOUNT_TOLERANCE_GBP)
+        .filter(item => item.settlement.explicit || item.amountDiff <= AMOUNT_TOLERANCE_GBP)
         .filter(item => item.dayDiff >= -MAX_DAYS_BEFORE_PAY_DATE && item.dayDiff <= MAX_DAYS_AFTER_PAY_DATE)
-        .sort((a, b) => a.amountDiff - b.amountDiff || Math.abs(a.dayDiff) - Math.abs(b.dayDiff));
+        .sort((a, b) => Number(b.settlement.explicit) - Number(a.settlement.explicit) || Math.abs(a.dayDiff) - Math.abs(b.dayDiff) || a.amountDiff - b.amountDiff);
 
       const best = scored[0];
       if (!best) return;
@@ -175,7 +196,7 @@
         recordedAt: best.settlement.recordedAt,
         reference: best.settlement.reference,
         dayDiff: best.dayDiff,
-        evidence: 'BROKER_CASH_LEDGER'
+        evidence: best.settlement.explicit ? 'BROKER_DIVIDEND_REFERENCE' : 'BROKER_CASH_LEDGER'
       });
     });
   }
@@ -189,7 +210,7 @@
   }
 
   function calendarState(event) {
-    return matches.has(matchKey(event)) ? 'paid' : base.calendarState(event);
+    return paidEventActualAmount(event) > 0 || matches.has(matchKey(event)) ? 'paid' : base.calendarState(event);
   }
 
   function upcoming(state, events) {
