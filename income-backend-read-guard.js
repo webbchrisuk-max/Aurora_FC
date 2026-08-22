@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260822-income-backend-read-guard-1';
+  const BUILD = '20260822-income-backend-read-guard-2';
   const LOCAL_CALENDAR_KEY = 'aurora2:income:calendar-local:v1';
   const CACHE_PREFIX = 'aurora2:income:backend-read-cache:v1:';
   const READ_ACTIONS = new Set(['incomeSnapshot', 'brokerCashSnapshot', 'dividendEngineStatus']);
@@ -118,22 +118,35 @@
     }, 0);
   }
 
+  function acceptLive(action, result, attempt, transport) {
+    writeCache(action, result);
+    if (action === 'incomeSnapshot') pruneStaleLocalCalendar(result);
+    window.dispatchEvent(new CustomEvent('aurora:income-backend-read', {
+      detail: { build: BUILD, action, source: 'LIVE', transport, attempt, at: new Date().toISOString() }
+    }));
+    return result;
+  }
+
   async function safeRead(action, payload = {}) {
     let lastError = null;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       try {
-        const result = await originalGet(action, payload || {});
-        if (!isValid(action, result)) throw new Error(`${action} returned an incomplete snapshot.`);
-        writeCache(action, result);
-        if (action === 'incomeSnapshot') pruneStaleLocalCalendar(result);
-        window.dispatchEvent(new CustomEvent('aurora:income-backend-read', {
-          detail: { build: BUILD, action, source: 'LIVE', attempt, at: new Date().toISOString() }
-        }));
-        return result;
+        const getResult = await originalGet(action, payload || {});
+        if (isValid(action, getResult)) return acceptLive(action, getResult, attempt, 'GET_JSONP');
+        throw new Error(`${action} GET returned an incomplete snapshot.`);
       } catch (error) {
         lastError = error;
-        if (attempt < MAX_ATTEMPTS) await sleep(220 * attempt);
       }
+
+      try {
+        const postResult = await originalPost(action, payload || {});
+        if (isValid(action, postResult)) return acceptLive(action, postResult, attempt, 'POST');
+        throw new Error(`${action} POST returned an incomplete snapshot.`);
+      } catch (error) {
+        lastError = error;
+      }
+
+      if (attempt < MAX_ATTEMPTS) await sleep(220 * attempt);
     }
 
     const cached = readCache(action);
