@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260822-transfer-strategy-control-2';
+  const BUILD = '20260822-transfer-strategy-control-3';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
 
@@ -20,19 +20,19 @@
     return normalize(value) === 'maximum' ? 'Maximum Income' : 'Sustainable Income';
   }
 
+  function statusOf(state) {
+    return String(state?.mission?.status || '').toUpperCase();
+  }
+
   function canChange(state) {
     const mission = state?.mission;
-    const status = String(mission?.status || '').toUpperCase();
+    const status = statusOf(state);
     const route = state?.transfer?.route;
     return Boolean(mission && status === 'DRAFT' && !(route?.locked === true && String(route?.missionId || '') === String(mission?.id || '')));
   }
 
   function currentStrategy(state) {
-    return normalize(state?.scouting?.strategy || state?.mission?.strategy || 'sustainable');
-  }
-
-  function missionCancelled(state) {
-    return String(state?.mission?.status || '').toUpperCase() === 'CANCELLED';
+    return normalize(state?.scouting?.strategy || state?.mission?.strategy || state?.transfer?.selectedStrategy || 'sustainable');
   }
 
   function writeStrategy(strategy) {
@@ -94,56 +94,33 @@
     return host;
   }
 
-  function guardCancelledMissionDisplay() {
-    const state = readState();
-    if (!missionCancelled(state)) return;
-
-    const preview = document.getElementById('transferAllocationPreview');
-    if (preview) {
-      const kpis = preview.querySelectorAll('.allocation-kpis strong');
-      if (kpis[0]) kpis[0].textContent = '£0.00';
-      if (kpis[3]) kpis[3].textContent = '0';
-      if (kpis[4]) kpis[4].textContent = '£0.00';
-      if (kpis[5]) kpis[5].textContent = '£0.00';
-      const empty = preview.querySelector('.allocation-empty');
-      if (empty) empty.textContent = 'The previous Finance mission was cancelled. Return to Finance and release a new verified payday mission before building allocations.';
-      const gate = preview.querySelector('.allocation-gate');
-      if (gate) {
-        gate.className = 'allocation-gate hold';
-        gate.innerHTML = '<strong>ROUTE NOT READY</strong>Cancelled Finance missions cannot supply allocation cash. Release a new Finance mission to continue.';
-      }
-    }
-
-    const save = document.getElementById('transferRouteSave');
-    if (save) {
-      const values = save.querySelectorAll('.route-save-grid strong');
-      if (values[0]) values[0].textContent = '£0.00';
-      if (values[1]) values[1].textContent = '£0.00';
-      if (values[2]) values[2].textContent = '0';
-      const hold = save.querySelector('.route-save-hold');
-      if (hold) hold.innerHTML = '<strong>ROUTE SAVE HELD</strong><br>The previous Finance mission was cancelled. Release a new verified Finance mission before Save + Lock.';
-    }
-  }
-
   function render() {
     ensureStyles();
     const host = ensureSection();
     const state = readState();
     if (!host) return;
 
-    if (!state?.mission || missionCancelled(state)) {
-      const strategy = currentStrategy(state || {});
+    const strategy = currentStrategy(state || {});
+    const status = statusOf(state);
+
+    if (!state?.mission || status === 'CANCELLED') {
+      const cancelled = status === 'CANCELLED';
       host.innerHTML = `
-        <div class="transfer-strategy-copy"><small>Transfer Strategy</small><strong>${label(strategy)}</strong><span>${missionCancelled(state) ? 'The previous Finance mission was cancelled. Your strategy is preserved, but a new Finance release is required before allocations can be built.' : 'Release a payday mission before choosing an allocation strategy.'}</span></div>
-        <div class="transfer-strategy-buttons"><button class="${strategy === 'sustainable' ? 'active' : ''}" disabled>Sustainable Income</button><button class="${strategy === 'maximum' ? 'active' : ''}" disabled>Maximum Income</button></div>
-        <div class="transfer-strategy-lock"><strong>WAITING FOR FINANCE:</strong> no cancelled mission can feed Allocation Preview or Save + Lock.</div>`;
-      setTimeout(guardCancelledMissionDisplay, 0);
+        <div class="transfer-strategy-copy">
+          <small>Transfer Strategy</small>
+          <strong>${label(strategy)}</strong>
+          <span>${cancelled ? 'The previous Finance mission was cancelled. Your strategy is preserved. Finance must release a new DRAFT mission before allocations can be built.' : 'Release a payday mission before choosing an allocation strategy.'}</span>
+        </div>
+        <div class="transfer-strategy-buttons">
+          <button class="${strategy === 'sustainable' ? 'active' : ''}" disabled>Sustainable Income</button>
+          <button class="${strategy === 'maximum' ? 'active' : ''}" disabled>Maximum Income</button>
+        </div>
+        <div class="transfer-strategy-lock"><strong>WAITING FOR FINANCE:</strong> release a new verified mission to continue.</div>`;
+      window.AuroraTransferStrategyControl = Object.freeze({build:BUILD,ready:true,strategy,label:label(strategy),editable:false,status:cancelled ? 'CANCELLED_WAIT' : 'NO_MISSION'});
       return;
     }
 
-    const strategy = currentStrategy(state);
     const editable = canChange(state);
-    const status = String(state.mission.status || 'DRAFT').toUpperCase();
     host.innerHTML = `
       <div class="transfer-strategy-copy">
         <small>Transfer Strategy</small>
@@ -173,28 +150,21 @@
       ready: true,
       strategy,
       label: label(strategy),
-      editable
+      editable,
+      status
     });
   }
 
   function boot() {
     render();
-    const observer = new MutationObserver(() => guardCancelledMissionDisplay());
-    observer.observe(document.body, {childList:true, subtree:true});
-    window.addEventListener('aurora2:state', () => { render(); setTimeout(guardCancelledMissionDisplay, 0); });
-    window.addEventListener('pageshow', () => { render(); setTimeout(guardCancelledMissionDisplay, 0); });
-    window.addEventListener('focus', () => { render(); setTimeout(guardCancelledMissionDisplay, 0); });
+    window.addEventListener('aurora2:state', render);
+    window.addEventListener('pageshow', render);
+    window.addEventListener('focus', render);
     window.addEventListener('storage', event => {
-      if (event.key === STATE_KEY || event.key === BACKUP_KEY) {
-        render();
-        setTimeout(guardCancelledMissionDisplay, 0);
-      }
+      if (event.key === STATE_KEY || event.key === BACKUP_KEY) render();
     });
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        render();
-        setTimeout(guardCancelledMissionDisplay, 0);
-      }
+      if (document.visibilityState === 'visible') render();
     });
   }
 
