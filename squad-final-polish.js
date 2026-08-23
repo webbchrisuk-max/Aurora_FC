@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-squad-former-player-history-1';
+  const BUILD = '20260823-squad-former-player-reentry-1';
   const STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
   const CLOSED = new Set(['SOLD','ARCHIVED','CLOSED','EXITED']);
   const VERIFIED_EXIT_HISTORY = Object.freeze({
@@ -25,7 +25,7 @@
   };
   const upper = value => String(value || '').trim().toUpperCase();
   const ticker = value => upper(value).replace(/^LON:/,'').replace(/\.L$/,'').replace(/\.GB$/,'');
-  const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch]));
   const money = value => new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(value));
 
   let stateCache = {};
@@ -98,6 +98,44 @@
     return fallbackValue ?? stored;
   }
 
+  function scoutingRows() {
+    const s=stateCache?.scouting || {};
+    return [
+      ...arr(s.targets),
+      ...arr(s.shortlist),
+      ...arr(s.activeBench),
+      ...arr(s.players),
+      ...arr(s.watchlist),
+      ...arr(s.returnedWatchlist)
+    ];
+  }
+  function currentScout(tk) {
+    const target=ticker(tk);
+    return scoutingRows().find(row=>ticker(row?.ticker || row?.symbol || row?.securityId)===target) || null;
+  }
+  function reentrySignal(row) {
+    const tk=ticker(row?.ticker);
+    const scout=currentScout(tk);
+    if (!scout) return {label:'NO CURRENT SCOUT',tone:'',note:'No fresh Scouting evidence is currently attached to this former holding.',price:null,fair:null,gap:null};
+
+    const price=firstNumber(scout,['livePriceGbp','livePrice','live_price_gbp','live_price','priceGbp','price']);
+    const fair=firstNumber(scout,['fairValueGbp','fairValue','fair_value_gbp','fair_value']);
+    const score=firstNumber(scout,['buyStrength','buy_strength','sustainableScore','score','confidence','scoutRating']);
+    const status=upper(firstText(scout,['status','scoutStatus','scout_status','watchlistStatus','watchlist_status','eligibility','recommendation']));
+    const valuation=upper(firstText(scout,['valuationStatus','valuation_status']));
+    const notes=upper(firstText(scout,['managerNote','manager_note','notes','note']));
+    const blocked=/BLOCK|REJECT|KEEP OUT|TOO WEAK|NO BUY/.test(`${status} ${notes}`);
+    const eligible=scout?.eligibleForTransfer===true || /PASS|APPROVED|READY|ACCUMULATE|BUY/.test(status);
+    const gap=price!==null && fair!==null && fair>0 ? (price/fair-1)*100 : null;
+
+    if (blocked) return {label:'WATCH / NOT YET',tone:'bad',note:'Current Scouting evidence is still too weak for re-entry.',price,fair,gap};
+    if (eligible && (gap===null || gap<=5) && (score===null || score>=60)) return {label:'GOOD RE-ENTRY',tone:'good',note:'Current Scouting evidence supports a fresh re-entry review.',price,fair,gap};
+    if (gap!==null && Math.abs(gap)<=5) return {label:'CLOSE TO FAIR VALUE',tone:'good',note:'Current price is within roughly 5% of Scouting fair value.',price,fair,gap};
+    if (gap!==null && gap>5) return {label:'ABOVE FAIR VALUE',tone:'bad',note:'Current price remains above Scouting fair value.',price,fair,gap};
+    if (/OVERVALUED/.test(valuation)) return {label:'WATCH / NOT YET',tone:'bad',note:'Scouting still considers the current valuation expensive.',price,fair,gap};
+    return {label:'WATCH',tone:'',note:'Scouting is monitoring the former holding, but there is no strong re-entry signal yet.',price,fair,gap};
+  }
+
   function activeRows() { return arr(stateCache?.squad?.holdings).filter(activeHolding); }
   function formerRows() { return arr(stateCache?.squad?.holdings).filter(formerHolding); }
   function lockedRows() { return activeRows().filter(row => !!row?.locked || upper(row?.status) === 'LOCKED'); }
@@ -162,12 +200,12 @@
     section.id = 'formerPlayers';
     section.innerHTML = `
       <div class="squad-head">
-        <div><span class="squad-kicker">Club History • Read Only</span><h2>Former Players</h2><p>Sold, exited, closed and archived Squad records stay visible here as club history. Nothing in this section can change a canonical holding.</p></div>
+        <div><span class="squad-kicker">Club History • Read Only</span><h2>Former Players</h2><p>Sold, exited, closed and archived Squad records stay visible here as club history. Current Scouting evidence is also shown so former players can be reconsidered without changing the canonical Squad.</p></div>
         <span class="authority-chip" id="formerPlayerCount">0 records</span>
       </div>
       <div class="filters"><input class="squad-history-search" id="formerPlayerSearch" placeholder="Search former ticker, company or broker"></div>
       <div class="squad-history-grid" id="formerPlayerGrid"></div>
-      <div class="squad-history-note">Historical figures use stored Squad exit fields first. Verified AuroraData recovery records fill gaps for legacy exits only; missing values are never invented.</div>`;
+      <div class="squad-history-note">Historical figures use stored Squad exit fields first. Re-entry status is read from current Scouting evidence only; no missing valuation or recommendation is invented.</div>`;
     register.insertAdjacentElement('afterend',section);
     section.querySelector('#formerPlayerSearch')?.addEventListener('input',renderFormerPlayers);
     return section;
@@ -207,6 +245,10 @@
       const account=accountCode(row?.account)==='CHECK' && history?.account ? history.account : accountLabel(row?.account);
       const note=firstText(row,['exitReason','saleReason','reason','note','notes']) || history?.reason || '';
       const pnlClass=realised===null?'':(realised>=0?'good':'bad');
+      const reentry=reentrySignal(row);
+      const priceMeta=reentry.price!==null ? `Current ${money(reentry.price)}` : 'Current price unavailable';
+      const fairMeta=reentry.fair!==null ? `Fair value ${money(reentry.fair)}` : 'Fair value not supplied';
+      const gapMeta=reentry.gap!==null ? ` • ${reentry.gap>=0?'+':''}${reentry.gap.toFixed(1)}% vs fair value` : '';
       return `<article class="squad-former-card">
         <div class="squad-former-head"><div><strong>${esc(ticker(row?.ticker))} — ${esc(row?.name || ticker(row?.ticker))}</strong><span>${esc(account)} • ${esc(when)}</span></div><b class="squad-former-status">${esc(status)}</b></div>
         <div class="squad-former-metrics">
@@ -216,7 +258,9 @@
           <div><small>Realised P/L</small><b class="${pnlClass}">${realised===null?'—':`${realised>=0?'+':''}${money(realised)}`}</b></div>
           <div><small>Exit price</small><b>${exitPrice===null?'—':money(exitPrice)}</b></div>
           <div><small>Annual income at exit</small><b>${annualIncome===null?'—':money(annualIncome)}</b></div>
-        </div>${note?`<div class="squad-history-note">${esc(note)}</div>`:''}
+        </div>
+        <div class="squad-history-note"><b class="${reentry.tone}">RE-ENTRY • ${esc(reentry.label)}</b><br>${esc(reentry.note)}<br><span>${esc(priceMeta)} • ${esc(fairMeta)}${esc(gapMeta)}</span></div>
+        ${note?`<div class="squad-history-note">${esc(note)}</div>`:''}
       </article>`;
     }).join('');
   }
