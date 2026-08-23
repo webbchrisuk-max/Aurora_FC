@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-finance-command-workspaces-1';
+  const BUILD = '20260823-finance-command-workspaces-payday-dashboard-2';
   const WORKSPACES = ['overviewPanel','paydayPanel','potsPanel','housePanel'];
   const DEFAULT = 'overviewPanel';
 
@@ -10,6 +10,15 @@
 
   const $ = selector => document.querySelector(selector);
   const $$ = selector => [...document.querySelectorAll(selector)];
+
+  function loadPaydayDashboard() {
+    if (window.AuroraFinancePaydayCommandDashboard || document.querySelector('script[data-finance-payday-command-dashboard]')) return;
+    const script = document.createElement('script');
+    script.src = 'finance-payday-command-dashboard.js?v=20260823-finance-payday-command-dashboard-1';
+    script.defer = true;
+    script.dataset.financePaydayCommandDashboard = '1';
+    document.head.appendChild(script);
+  }
 
   function validWorkspace(value) {
     return WORKSPACES.includes(String(value || '').replace(/^#/, ''))
@@ -93,6 +102,7 @@
   }
 
   function start() {
+    loadPaydayDashboard();
     const nav = $('.finance-section-nav');
     if (nav) nav.setAttribute('role', 'tablist');
     $$('.finance-section-nav .tab').forEach(tab => {
