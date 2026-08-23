@@ -7,8 +7,6 @@
 <title>Aurora City FC — Nexus Headquarters</title>
 <link rel="stylesheet" href="aurora-shell.css?v=foundation-1">
 <link rel="stylesheet" href="nexus-final.css?v=20260822-nexus-final-1">
-<link rel="stylesheet" href="nexus-pitch-interaction.css?v=20260822-nexus-pitch-interaction-2">
-<link rel="stylesheet" href="nexus-team-sheet.css?v=20260822-nexus-team-sheet-1">
 <script src="aurora-page-shell.js?v=20260819-stage3g-cloud-lifecycle-dryrun-1" defer></script>
 <script src="aurora-browser-sync-auto.js?v=20260822-browser-auto-sync-2" defer></script>
 <script src="aurora-stage3i-notifications-readonly.js?v=20260820-stage3i-notifications-stable-1" defer></script>
@@ -17,8 +15,16 @@
 <script src="aurora-stage4d-finance-ui.js?v=20260820-stage4d-global-1" defer></script>
 <script src="aurora-stage4e-motion-core.js?v=20260820-stage4e-global-1" defer></script>
 <script src="nexus-final.js?v=20260822-nexus-final-2" defer></script>
-<script src="nexus-pitch-interaction.js?v=20260822-nexus-pitch-interaction-1" defer></script>
-<script src="nexus-team-sheet.js?v=20260822-nexus-team-sheet-1" defer></script>
+<script src="nexus-headquarters-intelligence.js?v=20260823-nexus-headquarters-intelligence-1" defer></script>
+<style>
+.nx-attention-card[data-tone="bad"]{border-color:rgba(255,88,105,.34)}
+.nx-attention-card[data-tone="warn"]{border-color:rgba(255,196,82,.28)}
+.nx-attention-card[data-tone="info"]{border-color:rgba(110,231,255,.28)}
+.nx-coming-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.nx-coming-grid .nx-metric{min-height:92px}
+@media(max-width:1000px){.nx-coming-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.nx-coming-grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <header class="topbar">
@@ -41,7 +47,7 @@
         <div class="nx-statusline"><span class="nx-chip live">● MASTER CLUB COMMAND</span><span class="nx-chip sync">AUTO SYNC LIVE</span></div>
         <span class="nx-eyebrow">Aurora City FC • One Club View • Canonical State</span>
         <h1>Nexus <span>Headquarters</span></h1>
-        <p>The final manager dashboard: Finance, Scouting, Transfer, Registration, Squad, Income, Matchday and system state brought together without creating a rival source of truth.</p>
+        <p>Your club command centre: what is happening now, what needs attention next, and which department owns the action.</p>
       </div>
       <aside class="nx-manager-order">
         <small>MANAGER INSTRUCTION</small>
@@ -61,7 +67,7 @@
   </section>
 
   <section class="nx-section">
-    <div class="nx-section-head"><div><span class="nx-kicker">TODAY AT THE CLUB</span><h2>Department Command Board</h2></div><p>Each card reads the department that owns the data. Nexus summarises; it does not overwrite.</p></div>
+    <div class="nx-section-head"><div><span class="nx-kicker">TODAY AT THE CLUB</span><h2>Department Command Board</h2></div><p>Nexus summarises each department. Open the department when you need the detail or an action.</p></div>
     <div class="nx-command-grid">
       <a class="nx-command-card" href="finance.html"><div class="icon">💷</div><small>Finance Command</small><strong id="nxFinanceStatus">Checking</strong><span id="nxFinanceMeta">Payday and protected cash</span><b>OPEN FINANCE →</b></a>
       <a class="nx-command-card" href="scouting.html"><div class="icon">🔎</div><small>Scouting Centre</small><strong id="nxScoutingStatus">Checking</strong><span id="nxScoutingMeta">Evidence and opportunity</span><b>OPEN SCOUTING →</b></a>
@@ -75,27 +81,28 @@
   </section>
 
   <section class="nx-section">
-    <div class="nx-section-head"><div><span class="nx-kicker">SQUAD COMMAND</span><h2>Portfolio Leadership & Starting XI</h2></div><p>The old Nexus football identity returns, now driven by the rebuilt canonical Squad.</p></div>
-    <div class="nx-grid-2">
-      <article class="nx-panel">
-        <div class="nx-leader-grid">
-          <div class="nx-leader"><small>Value Captain</small><strong id="nxValueCaptainTicker">—</strong><span id="nxValueCaptainValue">—</span></div>
-          <div class="nx-leader"><small>Income Captain</small><strong id="nxIncomeCaptainTicker">—</strong><span id="nxIncomeCaptainValue">—</span></div>
-          <div class="nx-leader"><small>P/L Leader</small><strong id="nxProfitLeaderTicker">—</strong><span id="nxProfitLeaderValue">—</span></div>
-          <div class="nx-leader"><small>Biggest Drag</small><strong id="nxBiggestDragTicker">—</strong><span id="nxBiggestDragValue">—</span></div>
-        </div>
-        <div class="nx-broker-bars" id="nxBrokerBars"></div>
-      </article>
-      <article class="nx-panel">
-        <span class="nx-kicker">VALUE XI</span>
-        <div class="nx-pitch" style="margin-top:15px"><span class="nx-pitch-box top"></span><span class="nx-pitch-box bottom"></span><div id="nxPitchPlayers"></div></div>
-        <p class="nx-pitch-note" id="nxPitchNote">Building the Starting XI…</p>
-      </article>
+    <div class="nx-section-head"><div><span class="nx-kicker">MANAGER ATTENTION</span><h2>Club Intelligence</h2></div><p>The things across Aurora that currently need attention. Nexus reports them; the owning department handles them.</p></div>
+    <div class="nx-command-grid" id="nxAttentionGrid">
+      <a class="nx-command-card" href="finance.html"><div class="icon">⏳</div><small>MANAGER ATTENTION</small><strong>Reading Finance…</strong><span>Checking bills and commitments.</span><b>OPEN FINANCE →</b></a>
+      <a class="nx-command-card" href="registration.html"><div class="icon">⏳</div><small>MANAGER ATTENTION</small><strong>Reading Registration…</strong><span>Checking execution queue.</span><b>OPEN REGISTRATION →</b></a>
+      <a class="nx-command-card" href="transfer.html"><div class="icon">⏳</div><small>MANAGER ATTENTION</small><strong>Reading Transfer…</strong><span>Checking current mission.</span><b>OPEN TRANSFER →</b></a>
+      <a class="nx-command-card" href="income.html"><div class="icon">⏳</div><small>MANAGER ATTENTION</small><strong>Reading Income…</strong><span>Checking dividend intelligence.</span><b>OPEN INCOME →</b></a>
     </div>
   </section>
 
   <section class="nx-section">
-    <div class="nx-section-head"><div><span class="nx-kicker">MONEY → MISSION</span><h2>Finance & Transfer Control</h2></div><p>The payday forecast stays separate from any already-released mission, exactly as Finance intended.</p></div>
+    <div class="nx-section-head"><div><span class="nx-kicker">COMING UP</span><h2>Next on the Club Calendar</h2></div><p>The next things likely to need your attention across Finance, Income, Transfer and Match Report.</p></div>
+    <div class="nx-coming-grid">
+      <a class="nx-metric" href="finance.html#potsPanel"><small>Next Bill</small><strong id="nxComingBill">Checking…</strong><span id="nxComingBillMeta">Finance</span></a>
+      <a class="nx-metric" href="income.html"><small>Next Dividend</small><strong id="nxComingDividend">Checking…</strong><span id="nxComingDividendMeta">Income</span></a>
+      <a class="nx-metric" href="finance.html#paydayPanel"><small>Next Payday</small><strong id="nxComingPayday">Checking…</strong><span id="nxComingPaydayMeta">Finance payday</span></a>
+      <a class="nx-metric" href="transfer.html"><small>Transfer Action</small><strong id="nxComingTransfer">Checking…</strong><span id="nxComingTransferMeta">Transfer</span></a>
+      <a class="nx-metric" href="match-report.html"><small>5PM Report</small><strong id="nxComingReport">Checking…</strong><span id="nxComingReportMeta">Match Report</span></a>
+    </div>
+  </section>
+
+  <section class="nx-section">
+    <div class="nx-section-head"><div><span class="nx-kicker">MONEY → MISSION</span><h2>Finance & Transfer Control</h2></div><p>A compact view of the money pipeline. Full control remains inside Finance and Transfer.</p></div>
     <div class="nx-grid-even">
       <article class="nx-panel">
         <span class="nx-kicker">FINANCE POSITION</span>
@@ -122,7 +129,7 @@
   </section>
 
   <section class="nx-section">
-    <div class="nx-section-head"><div><span class="nx-kicker">SEASON PROGRESSION</span><h2>Income Race & Matchday</h2></div><p>The two manager views that answer: where is the income going, and how did the squad perform today?</p></div>
+    <div class="nx-section-head"><div><span class="nx-kicker">SEASON PROGRESSION</span><h2>Income & Matchday</h2></div><p>A manager-level view of income progress and today’s portfolio result.</p></div>
     <div class="nx-grid-even">
       <article class="nx-panel">
         <span class="nx-kicker">INCOME PROMOTION RACE</span>
@@ -144,22 +151,6 @@
   </section>
 
   <section class="nx-section">
-    <div class="nx-section-head"><div><span class="nx-kicker">CLUB OPERATIONS</span><h2>Department Launch Area</h2></div><p>One clean route into every rebuilt department.</p></div>
-    <div class="nx-departments">
-      <a class="nx-dept" href="finance.html"><i>💷</i><strong>Finance Command</strong><span>Cash, payday, pots and House projects</span></a>
-      <a class="nx-dept" href="scouting.html"><i>🔎</i><strong>Scouting Centre</strong><span>Evidence, recruitment and opportunity</span></a>
-      <a class="nx-dept" href="transfer.html"><i>🔄</i><strong>Transfer Centre</strong><span>Mission allocation and broker route</span></a>
-      <a class="nx-dept" href="registration.html"><i>📝</i><strong>Registration Desk</strong><span>Real broker execution records</span></a>
-      <a class="nx-dept" href="squad.html"><i>⚽</i><strong>Squad Hub</strong><span>Canonical account-scoped holdings</span></a>
-      <a class="nx-dept" href="income.html"><i>💰</i><strong>Income Centre</strong><span>Dividend truth and progression</span></a>
-      <a class="nx-dept" href="match-report.html"><i>🏆</i><strong>Match Report</strong><span>Daily portfolio full-time review</span></a>
-      <a class="nx-dept" href="club-control.html"><i>⚙️</i><strong>Club Control</strong><span>Preferences and operating controls</span></a>
-      <a class="nx-dept" href="system-health.html"><i>🛡️</i><strong>System Health</strong><span>Integrity, backup and Browser Sync</span></a>
-      <a class="nx-dept" href="index.html"><i>🏟</i><strong>Nexus Headquarters</strong><span>Master club command centre</span></a>
-    </div>
-  </section>
-
-  <section class="nx-section">
     <div class="nx-panel nx-health-strip">
       <div><small>Core State</small><strong id="nxHealthState">Checking…</strong></div>
       <div><small>Squad Authority</small><strong id="nxHealthSquad">Checking…</strong></div>
@@ -168,7 +159,7 @@
     </div>
   </section>
 
-  <div class="nx-footer">Aurora Nexus Headquarters • Final Manager Dashboard • Canonical Read • Automatic Browser Sync</div>
+  <div class="nx-footer">Aurora Nexus Headquarters • Club Intelligence • Canonical Read • Automatic Browser Sync</div>
 </main>
 </body>
 </html>
