@@ -1,14 +1,11 @@
 (() => {
   'use strict';
-  const BUILD = '20260822-stage4e-live-finance-payday-persist-1';
+  const BUILD = '20260823-stage4e-finance-local-write-protect-1';
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
 
   function loadBrowserAutoSync() {
-    if (window.__AuroraBrowserAutoSync || [...document.scripts].some(script => String(script.src || '').includes('aurora-browser-sync-auto.js'))) return;
-    const script = document.createElement('script');
-    script.src = 'aurora-browser-sync-auto.js?v=20260822-browser-auto-sync-2';
-    script.async = false;
-    document.head.appendChild(script);
+    try { window.AuroraBrowserAutoSync?.stop?.(); } catch (_) {}
+    window.AuroraFinanceAutoSyncSuppressed = true;
   }
 
   function fixFinanceLinks() {
@@ -243,6 +240,7 @@
     potDelete: currentFile === 'finance.html',
     houseProjects: currentFile === 'finance.html',
     liveFinalize: currentFile === 'finance.html',
-    browserAutoSync: true
+    browserAutoSync: false,
+    financeWriteProtection: true
   });
 })();
