@@ -1,12 +1,13 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260819-stage3g-cloud-lifecycle-dryrun-1';
+  const BUILD = '20260823-stage3g-cloud-lifecycle-autosync-hold-2';
   const CLOUD_META_KEY = 'aurora2:cloud:meta:v1';
   const SIGNAL_WATCH_KEY = 'aurora2:scouting:signal-watch:v2';
   let firestoreWriteBlocks = 0;
   let coreWriteBlocks = 0;
   let localMetaBlocks = 0;
+  let autoSyncDisableWrites = 0;
 
   function cloudStatus() {
     try { return window.AuroraCloudSync?.status?.() || null; } catch (_) { return null; }
@@ -22,8 +23,10 @@
       firestoreWritesBlocked: firestoreWriteBlocks,
       coreWritesBlocked: coreWriteBlocks,
       localMetaWritesBlocked: localMetaBlocks,
+      autoSyncDisableWrites,
       cloudWritesEnabled: false,
       localApplyEnabled: false,
+      backgroundAutoSyncEnabled: false,
       ...detail
     };
     document.documentElement.dataset.auroraCloudLifecycle = String(status || 'unknown').toLowerCase();
@@ -37,7 +40,7 @@
     }
     if (note) {
       const phase = payload.phase ? `Phase: ${payload.phase}. ` : '';
-      note.textContent = `${phase}Real Cloud Sync lifecycle is running with Firestore writes and local state application shielded.`;
+      note.textContent = `${phase}Cloud sign-in/read is available. Background auto-sync is paused on this dry-run shell to prevent repeated state refreshes.`;
     }
     window.dispatchEvent(new CustomEvent('aurora:stage3g-cloud-lifecycle', { detail: payload }));
   }
@@ -47,8 +50,6 @@
     return;
   }
 
-  // Shield local canonical state from remote apply while still allowing the
-  // exact old Cloud Sync decision engine to execute.
   const originalCoreWrite = window.Aurora2.core.write;
   window.Aurora2.core.write = function auroraStage3gDryRunCoreWrite() {
     coreWriteBlocks += 1;
@@ -56,11 +57,24 @@
     return window.Aurora2.core.read();
   };
 
-  // Keep the probe from changing Cloud Sync base metadata or signal-watch
-  // state. Session refreshes and device identity writes remain allowed.
   const nativeSetItem = Storage.prototype.setItem;
   Storage.prototype.setItem = function auroraStage3gSetItem(key, value) {
-    if (this === window.localStorage && (String(key) === CLOUD_META_KEY || String(key) === SIGNAL_WATCH_KEY)) {
+    const storageKey = String(key);
+    if (this === window.localStorage && storageKey === CLOUD_META_KEY) {
+      let allowAutoSyncDisable = false;
+      try {
+        const parsed = JSON.parse(String(value || '{}'));
+        allowAutoSyncDisable = parsed && parsed.autoSync === false;
+      } catch (_) {}
+      if (allowAutoSyncDisable) {
+        autoSyncDisableWrites += 1;
+        return nativeSetItem.call(this, key, value);
+      }
+      localMetaBlocks += 1;
+      report('ACTIVE', { phase: 'LOCAL_META_WRITE_BLOCKED' });
+      return;
+    }
+    if (this === window.localStorage && storageKey === SIGNAL_WATCH_KEY) {
       localMetaBlocks += 1;
       report('ACTIVE', { phase: 'LOCAL_META_WRITE_BLOCKED' });
       return;
@@ -68,8 +82,6 @@
     return nativeSetItem.call(this, key, value);
   };
 
-  // Allow Firebase auth + Firestore reads. Block only Firestore document
-  // PATCH requests so this probe cannot alter the cloud master.
   const nativeFetch = window.fetch.bind(window);
   window.fetch = function auroraStage3gFetch(input, init = {}) {
     let url = '';
@@ -89,12 +101,18 @@
   report('LOADING', { phase: 'LOADING_CLOUD_MODULE' });
 
   const cloud = document.createElement('script');
-  cloud.src = '/aurora-fc-2/aurora-cloud-sync.js?v=20260819-stage3g-cloud-lifecycle-dryrun-1';
+  cloud.src = '/aurora-fc-2/aurora-cloud-sync.js?v=20260823-stage3g-cloud-autosync-hold-2';
   cloud.async = false;
   cloud.dataset.auroraStage3 = 'cloud-lifecycle-dry-run';
   cloud.addEventListener('load', () => {
     document.documentElement.dataset.auroraCloudSync = 'loaded';
-    report('ACTIVE', { phase: 'MODULE_LOADED' });
+
+    // Critical stability rule: this shell is a dry-run/read shell. Keep cloud
+    // authentication and reads available, but do not let every aurora2:state
+    // event wake a background sync cycle after sign-in.
+    try { window.AuroraCloudSync?.setAutoSync?.(false); } catch (_) {}
+
+    report('ACTIVE', { phase: 'MODULE_LOADED_AUTOSYNC_PAUSED' });
 
     try {
       window.AuroraCloudSync?.subscribe?.((state) => {
@@ -105,6 +123,7 @@
     const ready = window.AuroraCloudSync?.ready;
     if (ready && typeof ready.then === 'function') {
       ready.then((state) => {
+        try { window.AuroraCloudSync?.setAutoSync?.(false); } catch (_) {}
         report('ACTIVE', { phase: state?.phase || 'READY', cloudReady: true, cloudState: state || null });
       }).catch((error) => {
         report('ACTIVE', { phase: 'READY_ERROR_SHIELDED', error: String(error?.message || error || '') });
@@ -117,8 +136,6 @@
   }, { once: true });
   document.head.appendChild(cloud);
 
-  // Expose originals for diagnostics only; this test page intentionally keeps
-  // the shields installed for its entire lifetime.
   window.AuroraStage3GShield = Object.freeze({
     build: BUILD,
     active: true,
@@ -129,6 +146,8 @@
       firestoreWriteBlocks,
       coreWriteBlocks,
       localMetaBlocks,
+      autoSyncDisableWrites,
+      backgroundAutoSyncEnabled: false,
       cloud: cloudStatus()
     })
   });
