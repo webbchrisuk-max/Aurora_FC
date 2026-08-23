@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD = '20260823-system-health-browser-sync-authority-1';
+  const BUILD = '20260823-system-health-browser-sync-authority-2';
 
   const makeStatus = () => {
     const s = window.AuroraBrowserSync?.status?.();
@@ -40,6 +40,39 @@
     return true;
   }
 
+  function installSyncManagerReadAdapter() {
+    const manager = window.AuroraSyncManager;
+    if (!manager || typeof manager.status !== 'function') return false;
+    if (window.__AuroraSystemHealthSyncStatusSource) return true;
+
+    const sourceStatus = manager.status.bind(manager);
+    window.__AuroraSystemHealthSyncStatusSource = sourceStatus;
+
+    const wrappedStatus = () => {
+      const base = sourceStatus() || {};
+      const browser = window.AuroraBrowserSync?.status?.() || {};
+      const browserItem = {
+        status: browser.lastError ? 'ERROR' : (browser.signedIn && browser.cloudExists ? 'CONNECTED' : 'CHECK'),
+        lastError: browser.lastError || '',
+        lastSuccessAt: browser.lastSyncAt || browser.cloudSavedAt || browser.lastUploadAt || browser.lastDownloadAt || null
+      };
+      return {
+        ...base,
+        detail: {
+          ...(base.detail || {}),
+          browserSync: browserItem
+        }
+      };
+    };
+
+    try {
+      manager.status = wrappedStatus;
+      return manager.status === wrappedStatus;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function relabel() {
     const panel = document.querySelector('.cloud-panel');
     if (!panel) return;
@@ -65,7 +98,9 @@
     let tries = 0;
     const timer = setInterval(() => {
       tries += 1;
-      if (installAdapter() || tries > 80) {
+      const cloudReady = installAdapter();
+      const syncReady = installSyncManagerReadAdapter();
+      if ((cloudReady && syncReady) || tries > 80) {
         clearInterval(timer);
         relabel();
         setTimeout(() => window.AuroraSystemHealthRestored?.run?.(), 50);
