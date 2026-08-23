@@ -1,10 +1,9 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-transfer-allocation-preview-1';
+  const BUILD = '20260823-transfer-max-income-optimizer-2';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
-  const TERMINAL = new Set(['COMPLETE','COMPLETED','CANCELLED','ARCHIVED']);
   const DEFAULT_MIN = 250;
   const DEFAULT_INCREMENT = 25;
   const DEFAULT_MAX_TARGETS = 8;
@@ -73,7 +72,9 @@
 
   function sameSecurity(a, b) {
     const left = identity(a), right = identity(b);
-    if (left.securityId && right.securityId) return left.securityId === right.securityId || (left.ticker === right.ticker && left.exchange === right.exchange);
+    if (left.securityId && right.securityId) {
+      return left.securityId === right.securityId || (left.ticker === right.ticker && left.exchange === right.exchange);
+    }
     if (!left.ticker || left.ticker !== right.ticker) return false;
     if (left.exchange && right.exchange) return left.exchange === right.exchange;
     return true;
@@ -85,8 +86,7 @@
 
   function holdingValue(row) {
     const direct = Math.max(0, num(row?.marketValueGbp));
-    if (direct > 0) return direct;
-    return Math.max(0, num(row?.shares)) * Math.max(0, num(row?.livePriceGbp));
+    return direct > 0 ? direct : Math.max(0, num(row?.shares)) * Math.max(0, num(row?.livePriceGbp));
   }
 
   function evidenceRows(state, target) {
@@ -164,11 +164,8 @@
 
   function brokerPreference(state, target) {
     const prefs = state?.transfer?.brokerPreferences || {};
-    const byId = prefs[securityId(target)];
-    const byTicker = prefs[ticker(target?.ticker)];
-    const raw = byId ?? byTicker;
-    const value = raw && typeof raw === 'object' ? raw.account : raw;
-    return accountCode(value);
+    const raw = prefs[securityId(target)] ?? prefs[ticker(target?.ticker)];
+    return accountCode(raw && typeof raw === 'object' ? raw.account : raw);
   }
 
   function resolveBroker(state, target) {
@@ -223,16 +220,7 @@
     if (!broker.supported) reasons.push('MISSING_BROKER_ROUTE');
     if (target?.transferPermitted === false) reasons.push('TRANSFER_NOT_PERMITTED');
     if (['INELIGIBLE','BLOCKED','NOT_ELIGIBLE'].includes(String(target?.eligibilityStatus || '').toUpperCase())) reasons.push('SECURITY_INELIGIBLE');
-    return {
-      ...target,
-      securityId:securityId(target),
-      ticker:ticker(target?.ticker),
-      brokerRoute:broker,
-      priceEvidence:price,
-      yieldPct:income.yieldPct,
-      simulationEligible:reasons.length === 0,
-      blockingReasons:reasons
-    };
+    return {...target, securityId:securityId(target), ticker:ticker(target?.ticker), brokerRoute:broker, priceEvidence:price, yieldPct:income.yieldPct, simulationEligible:reasons.length === 0, blockingReasons:reasons};
   }
 
   function strategyScore(target, strategy) {
@@ -312,6 +300,116 @@
     return Math.max(increment, roundDown(budget * pct, increment));
   }
 
+  function maximumIncomeCap(budget, candidateCount, status, increment) {
+    if (candidateCount <= 1) return budget;
+    let pct = candidateCount === 2 ? 0.65 : budget < 1500 ? 0.55 : budget < 2500 ? 0.45 : 0.38;
+    if (String(status || '').toLowerCase() === 'caution') pct = Math.min(pct, 0.35);
+    return Math.max(increment, roundDown(budget * pct, increment));
+  }
+
+  function makeAllocation(target) {
+    return {
+      securityId:target.securityId,
+      ticker:target.ticker,
+      name:target?.name || target.ticker,
+      account:target.brokerRoute.account,
+      brokerSource:target.brokerRoute.source,
+      amount:0,
+      yieldPct:Math.max(0, num(target.yieldPct)),
+      expectedAnnualIncome:0,
+      estimatedPriceGbp:Math.max(0, num(target.priceEvidence?.priceGbp)),
+      scoutingScore:target._scoutScore,
+      routeScore:target._routeScore,
+      scoutingStatus:String(target?.status || 'caution').toLowerCase(),
+      recommendation:String(target?.recommendation || target?.status || ''),
+      blockingReasons:target.blockingReasons || []
+    };
+  }
+
+  function allocateMaximumIncome(budget, candidates, increment, maxTargets) {
+    const hardMax = Math.max(1, Math.floor(num(maxTargets) || DEFAULT_MAX_TARGETS));
+    const ranked = [...candidates]
+      .sort((a,b) => num(b.yieldPct) - num(a.yieldPct) || canonicalScore(b,'maximum') - canonicalScore(a,'maximum') || canonicalRank(a,'maximum') - canonicalRank(b,'maximum'))
+      .slice(0, hardMax);
+    const allocations = ranked.map(makeAllocation);
+    let remaining = budget;
+    let guard = 0;
+
+    while (remaining >= increment - 0.001 && guard < 10000) {
+      guard += 1;
+      const eligible = allocations.map((allocation,index) => ({
+        index,
+        yieldPct:allocation.yieldPct,
+        score:allocation.scoutingScore,
+        cap:maximumIncomeCap(budget, allocations.length, allocation.scoutingStatus, increment)
+      })).filter(row => allocations[row.index].amount + increment <= row.cap + 0.001)
+        .sort((a,b) => b.yieldPct - a.yieldPct || b.score - a.score || a.index - b.index);
+      if (!eligible.length) break;
+      allocations[eligible[0].index].amount += increment;
+      remaining -= increment;
+    }
+
+    if (remaining > 0.005) {
+      const eligible = allocations.map((allocation,index) => ({
+        index,
+        yieldPct:allocation.yieldPct,
+        score:allocation.scoutingScore,
+        cap:maximumIncomeCap(budget, allocations.length, allocation.scoutingStatus, increment)
+      })).filter(row => allocations[row.index].amount + remaining <= row.cap + 0.005)
+        .sort((a,b) => b.yieldPct - a.yieldPct || b.score - a.score || a.index - b.index);
+      if (eligible.length) {
+        allocations[eligible[0].index].amount += remaining;
+        remaining = 0;
+      }
+    }
+
+    return {allocations:allocations.filter(row => row.amount > 0.005), remaining};
+  }
+
+  function allocateSustainable(budget, candidates, increment, settings) {
+    const count = desiredTargetCount(budget, candidates, settings.maxTargets, settings.minAllocation, increment);
+    const selected = candidates.slice(0, count);
+    const minimum = effectiveMinimum(budget, count, increment, settings.minAllocation);
+    const scores = selected.map(target => Math.max(0.0001, target._routeScore));
+    const allocations = selected.map(makeAllocation);
+    let remaining = budget;
+
+    allocations.forEach(allocation => {
+      const cap = positionCap(budget, count, 'sustainable', allocation.scoutingStatus, increment);
+      const seed = Math.min(minimum, remaining, cap);
+      allocation.amount = seed;
+      remaining -= seed;
+    });
+
+    let guard = 0;
+    while (remaining >= increment - 0.001 && guard < 10000) {
+      guard += 1;
+      const average = Math.max(increment, budget / Math.max(1, count));
+      const ranked = allocations.map((allocation, index) => {
+        const cap = positionCap(budget, count, 'sustainable', allocation.scoutingStatus, increment);
+        if (allocation.amount + increment > cap + 0.001) return {index, priority:-Infinity};
+        const diminishing = 1 + (allocation.amount / average) * 0.65;
+        return {index, priority:scores[index] / diminishing};
+      }).sort((a,b) => b.priority - a.priority);
+      if (!ranked.length || !Number.isFinite(ranked[0].priority) || ranked[0].priority < 0) break;
+      allocations[ranked[0].index].amount += increment;
+      remaining -= increment;
+    }
+
+    if (remaining > 0.005) {
+      const ranked = allocations.map((allocation, index) => ({
+        index,
+        score:scores[index],
+        cap:positionCap(budget, count, 'sustainable', allocation.scoutingStatus, increment)
+      })).filter(row => allocations[row.index].amount + remaining <= row.cap + 0.005).sort((a,b) => b.score - a.score);
+      if (ranked.length) {
+        allocations[ranked[0].index].amount += remaining;
+        remaining = 0;
+      }
+    }
+    return {allocations, remaining, minimum};
+  }
+
   function simulate(state) {
     const mission = state?.mission;
     const budget = Math.max(0, num(mission?.approvedBudget));
@@ -332,74 +430,30 @@
 
     const gateReady = budget > 0 && ['DRAFT','READY'].includes(missionStatus) && String(state?.scouting?.status || '').toUpperCase() === 'SCOUTING_READY';
     if (!gateReady || candidates.length === 0) {
-      return {budget, strategy, missionStatus, approved, evaluated, candidates, allocations:[], allocated:0, remaining:budget, income:0, targetCount:0, exact:false, reason:!gateReady ? 'MISSION_OR_SCOUTING_NOT_READY' : 'NO_EXECUTABLE_TARGETS'};
+      return {budget, strategy, missionStatus, approved, evaluated, candidates, allocations:[], allocated:0, remaining:budget, income:0, targetCount:0, exact:false, optimizationMode:strategy === 'maximum' ? 'MAXIMUM_INCOME_OPTIMIZED' : 'QUALITY_WEIGHTED', reason:!gateReady ? 'MISSION_OR_SCOUTING_NOT_READY' : 'NO_EXECUTABLE_TARGETS'};
     }
 
-    const count = desiredTargetCount(budget, candidates, settings.maxTargets, settings.minAllocation, increment);
-    candidates = candidates.slice(0, count);
-    const minimum = effectiveMinimum(budget, count, increment, settings.minAllocation);
-    const scores = candidates.map(target => Math.max(0.0001, target._routeScore));
-    const allocations = candidates.map((target, index) => ({
-      securityId:target.securityId,
-      ticker:target.ticker,
-      name:target?.name || target.ticker,
-      account:target.brokerRoute.account,
-      brokerSource:target.brokerRoute.source,
-      amount:0,
-      yieldPct:Math.max(0, num(target.yieldPct)),
-      expectedAnnualIncome:0,
-      estimatedPriceGbp:Math.max(0, num(target.priceEvidence?.priceGbp)),
-      scoutingScore:target._scoutScore,
-      routeScore:scores[index],
-      scoutingStatus:String(target?.status || 'caution').toLowerCase(),
-      recommendation:String(target?.recommendation || target?.status || ''),
-      blockingReasons:target.blockingReasons || []
-    }));
-
-    let remaining = budget;
-    allocations.forEach(allocation => {
-      const cap = positionCap(budget, count, strategy, allocation.scoutingStatus, increment);
-      const seed = Math.min(minimum, remaining, cap);
-      allocation.amount = seed;
-      remaining -= seed;
-    });
-
-    let guard = 0;
-    while (remaining >= increment - 0.001 && guard < 10000) {
-      guard += 1;
-      const average = Math.max(increment, budget / Math.max(1, count));
-      const ranked = allocations.map((allocation, index) => {
-        const cap = positionCap(budget, count, strategy, allocation.scoutingStatus, increment);
-        if (allocation.amount + increment > cap + 0.001) return {index, priority:-Infinity};
-        const diminishing = 1 + (allocation.amount / average) * 0.65;
-        return {index, priority:scores[index] / diminishing};
-      }).sort((a,b) => b.priority - a.priority);
-      if (!ranked.length || !Number.isFinite(ranked[0].priority) || ranked[0].priority < 0) break;
-      allocations[ranked[0].index].amount += increment;
-      remaining -= increment;
-    }
-
-    if (remaining > 0.005) {
-      const ranked = allocations.map((allocation, index) => ({
-        index,
-        score:scores[index],
-        cap:positionCap(budget, count, strategy, allocation.scoutingStatus, increment)
-      })).filter(row => allocations[row.index].amount + remaining <= row.cap + 0.005).sort((a,b) => b.score - a.score);
-      if (ranked.length) {
-        allocations[ranked[0].index].amount += remaining;
-        remaining = 0;
-      }
-    }
+    const result = strategy === 'maximum'
+      ? allocateMaximumIncome(budget, candidates, increment, settings.maxTargets)
+      : allocateSustainable(budget, candidates, increment, settings);
+    const allocations = result.allocations;
 
     allocations.forEach(allocation => {
       allocation.amount = Number(Math.max(0, allocation.amount).toFixed(2));
       allocation.expectedAnnualIncome = Number((allocation.amount * (allocation.yieldPct / 100)).toFixed(6));
       allocation.expectedShares = allocation.estimatedPriceGbp > 0 ? Math.floor(allocation.amount / allocation.estimatedPriceGbp) : 0;
     });
+
     const allocated = Number(allocations.reduce((sum, row) => sum + row.amount, 0).toFixed(2));
     const income = Number(allocations.reduce((sum, row) => sum + row.expectedAnnualIncome, 0).toFixed(6));
-    remaining = Number(Math.max(0, budget - allocated).toFixed(2));
-    return {budget, strategy, missionStatus, approved, evaluated, candidates, allocations, allocated, remaining, income, targetCount:count, exact:Math.abs(budget - allocated) <= 0.005, minimum, increment, reason:null};
+    const remaining = Number(Math.max(0, budget - allocated).toFixed(2));
+    return {
+      budget, strategy, missionStatus, approved, evaluated, candidates, allocations, allocated, remaining, income,
+      targetCount:allocations.length, exact:Math.abs(budget - allocated) <= 0.005,
+      minimum:result.minimum || 0, increment,
+      optimizationMode:strategy === 'maximum' ? 'MAXIMUM_INCOME_OPTIMIZED' : 'QUALITY_WEIGHTED',
+      reason:null
+    };
   }
 
   function ensureStyles() {
@@ -435,13 +489,14 @@
     if (!host || !state) return;
     const preview = simulate(state);
     const strategyLabel = preview.strategy === 'maximum' ? 'Maximum Income' : 'Sustainable Income';
+    const modeLabel = preview.strategy === 'maximum' ? 'INCOME OPTIMIZED' : 'QUALITY WEIGHTED';
     const approvedBlocked = preview.approved.filter(target => !target.simulationEligible);
     const gateReady = preview.allocations.length > 0 && preview.exact && approvedBlocked.length === 0;
 
     host.innerHTML = `
       <div class="allocation-preview-head">
-        <div><span class="transfer-kicker">Stage T3 • Allocation Preview</span><h2>Mission deployment preview</h2><p>The original Transfer allocation rules are running again, but this layer is still read-only. It resolves broker, price and dividend evidence before assigning any preview cash.</p></div>
-        <span class="allocation-preview-chip">${esc(strategyLabel)} • PREVIEW ONLY</span>
+        <div><span class="transfer-kicker">Stage T3 • Allocation Preview</span><h2>Mission deployment preview</h2><p>${preview.strategy === 'maximum' ? 'Maximum Income now allocates the frozen Finance budget to the highest supported income opportunities first, while keeping every Scouting, broker and position-safety gate intact.' : 'Sustainable Income keeps the quality-weighted diversification route, resolving broker, price and dividend evidence before assigning preview cash.'}</p></div>
+        <span class="allocation-preview-chip">${esc(strategyLabel)} • ${esc(modeLabel)}</span>
       </div>
       <div class="allocation-kpis">
         <div><small>Finance budget</small><strong>${money(preview.budget)}</strong></div>
@@ -449,7 +504,7 @@
         <div><small>Executable</small><strong>${preview.approved.filter(target => target.simulationEligible).length}</strong></div>
         <div><small>Preview legs</small><strong>${preview.allocations.length}</strong></div>
         <div><small>Allocated</small><strong>${money(preview.allocated)}</strong></div>
-        <div><small>Unallocated</small><strong>${money(preview.remaining)}</strong></div>
+        <div><small>Est. annual income</small><strong>+${money(preview.income)}</strong></div>
       </div>
       ${preview.allocations.length ? `<div class="allocation-list">${preview.allocations.map((row, index) => `
         <div class="allocation-row">
@@ -463,7 +518,7 @@
       ${approvedBlocked.length ? `<div class="allocation-diagnostics">${approvedBlocked.map(target => `<div class="allocation-diag"><b>${esc(target.ticker || target.name || 'Target')}</b> stays at £0 — ${esc((target.blockingReasons || []).join(' • ') || 'execution evidence unresolved')}.</div>`).join('')}</div>` : ''}
       <div class="allocation-gate ${gateReady ? 'ready' : 'hold'}">
         <strong>${gateReady ? 'PREVIEW RECONCILES — READY FOR ROUTE SAVE' : preview.exact && preview.allocations.length ? 'PREVIEW RECONCILES — EVIDENCE ACTION REQUIRED' : 'ROUTE NOT READY'}</strong>
-        ${gateReady ? `${money(preview.allocated)} exactly matches the frozen ${money(preview.budget)} Finance mission. Estimated annual income uplift: +${money(preview.income)}. The next stage can save this route with backup protection.` : approvedBlocked.length ? `${approvedBlocked.length} approved target${approvedBlocked.length === 1 ? '' : 's'} still lack executable broker/price/dividend evidence. Transfer will not guess.` : `Allocated ${money(preview.allocated)} of ${money(preview.budget)}; ${money(preview.remaining)} remains intentionally unallocated.`}
+        ${gateReady ? `${money(preview.allocated)} exactly matches the frozen ${money(preview.budget)} Finance mission. Estimated annual income uplift: +${money(preview.income)}. ${preview.strategy === 'maximum' ? 'The allocation has been income-optimized across the eligible safe route.' : 'The allocation follows the Sustainable quality-weighted route.'}` : approvedBlocked.length ? `${approvedBlocked.length} approved target${approvedBlocked.length === 1 ? '' : 's'} still lack executable broker/price/dividend evidence. Transfer will not guess.` : `Allocated ${money(preview.allocated)} of ${money(preview.budget)}; ${money(preview.remaining)} remains intentionally unallocated because the safe position caps were reached.`}
       </div>`;
 
     document.documentElement.dataset.transferAllocationPreview = gateReady ? 'ready' : 'hold';
@@ -472,6 +527,7 @@
       ready: true,
       readOnly: true,
       strategy: preview.strategy,
+      optimizationMode: preview.optimizationMode,
       budget: preview.budget,
       approvedTargets: preview.approved.length,
       executableTargets: preview.approved.filter(target => target.simulationEligible).length,
