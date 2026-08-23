@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-finance-managed-bills-date-order-2';
+  const BUILD = '20260823-finance-managed-bills-month-groups-1';
   const STATE_KEY = 'aurora2:state:v1';
   let applying = false;
   let observer = null;
@@ -32,6 +32,22 @@
     const month = String(bill?.occurrenceMonth || '');
     if (/^\d{4}-\d{2}$/.test(month)) return `${month}-01`;
     return '9999-12-31';
+  }
+
+  function monthKeyForBill(bill) {
+    const due = String(bill?.due || '').slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(due)) return due.slice(0, 7);
+    const month = String(bill?.occurrenceMonth || '');
+    if (/^\d{4}-\d{2}$/.test(month)) return month;
+    return 'NO_DATE';
+  }
+
+  function formatMonth(key) {
+    if (!/^\d{4}-\d{2}$/.test(String(key || ''))) return 'No Date';
+    const [y, m] = key.split('-').map(Number);
+    return new Date(y, m - 1, 1, 12, 0, 0).toLocaleDateString('en-GB', {
+      month: 'long', year: 'numeric'
+    });
   }
 
   function formatDate(value) {
@@ -66,27 +82,19 @@
     const style = document.createElement('style');
     style.id = 'financeManagedBillsDateOrderStyle';
     style.textContent = `
-      #financeBillActionList .finance-managed-bill-date{
-        display:inline-flex;align-items:center;gap:6px;margin:0 3px;padding:3px 7px;
-        border-radius:7px;border:1px solid rgba(110,231,255,.13);
-        background:rgba(110,231,255,.045);color:#a9bcc8;font-weight:800;
-        pointer-events:none;
-      }
+      #financeBillActionList{display:block!important}
+      #financeBillActionList .finance-managed-month{margin:18px 0 8px;padding:11px 13px;border:1px solid rgba(110,231,255,.16);border-radius:12px;background:linear-gradient(90deg,rgba(10,37,56,.82),rgba(5,18,31,.48));display:flex;align-items:center;justify-content:space-between;gap:12px}
+      #financeBillActionList .finance-managed-month:first-child{margin-top:4px}
+      #financeBillActionList .finance-managed-month strong{display:block;color:#e9f8ff;font-size:13px;letter-spacing:.01em}
+      #financeBillActionList .finance-managed-month span{display:block;color:#7fa8ba;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
+      #financeBillActionList .finance-action-row{margin-bottom:8px}
+      #financeBillActionList .finance-managed-bill-date{display:inline-flex;align-items:center;gap:6px;margin:0 3px;padding:3px 7px;border-radius:7px;border:1px solid rgba(110,231,255,.13);background:rgba(110,231,255,.045);color:#a9bcc8;font-weight:800;pointer-events:none}
       #financeBillActionList .finance-managed-bill-date.due-today,
-      #financeBillActionList .finance-managed-bill-date.overdue{
-        color:#ff6573;border-color:rgba(255,78,95,.48);background:rgba(255,58,78,.10);
-        box-shadow:0 0 14px rgba(255,58,78,.08);
-      }
-      #financeBillActionList .finance-managed-bill-date .due-tag{
-        font-size:8px;letter-spacing:.09em;font-weight:900;color:#ff6573;
-      }
-      #financeBillActionList .finance-action-row.due-today{
-        border-color:rgba(255,78,95,.24);
-      }
-      #financeBillActionList .finance-row-actions,
-      #financeBillActionList .finance-row-actions button{
-        position:relative;z-index:3;pointer-events:auto;
-      }
+      #financeBillActionList .finance-managed-bill-date.overdue{color:#ff6573;border-color:rgba(255,78,95,.48);background:rgba(255,58,78,.10);box-shadow:0 0 14px rgba(255,58,78,.08)}
+      #financeBillActionList .finance-managed-bill-date .due-tag{font-size:8px;letter-spacing:.09em;font-weight:900;color:#ff6573}
+      #financeBillActionList .finance-action-row.due-today{border-color:rgba(255,78,95,.24)}
+      #financeBillActionList .finance-row-actions,#financeBillActionList .finance-row-actions button{position:relative;z-index:3;pointer-events:auto}
+      @media(max-width:760px){#financeBillActionList .finance-managed-month{align-items:flex-start;flex-direction:column;gap:4px}}
     `;
     document.head.appendChild(style);
   }
@@ -104,7 +112,7 @@
     const actualDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDue) ? rawDue : '';
     const isToday = Boolean(actualDate && actualDate === today && isActiveOutstanding(bill));
     const isOverdue = Boolean(actualDate && actualDate < today && isActiveOutstanding(bill));
-    const dateText = actualDate ? formatDate(actualDate) : (/^\d{4}-\d{2}$/.test(rawMonth) ? rawMonth : 'No date');
+    const dateText = actualDate ? formatDate(actualDate) : (/^\d{4}-\d{2}$/.test(rawMonth) ? formatMonth(rawMonth) : 'No date');
     const dateClass = isToday ? ' due-today' : isOverdue ? ' overdue' : '';
     const tag = isToday ? '<em class="due-tag">DUE TODAY</em>' : isOverdue ? '<em class="due-tag">OVERDUE</em>' : '';
 
@@ -113,6 +121,16 @@
 
     const desired = `${esc(status)} • £${amount.toFixed(2)} • <b class="finance-managed-bill-date${dateClass}">${esc(dateText)}${tag}</b> • ${esc(bill?.fundingSource || 'Current Account')}`;
     if (meta.innerHTML !== desired) meta.innerHTML = desired;
+  }
+
+  function createMonthHeader(key, entries) {
+    const active = entries.filter(item => isActiveOutstanding(item.bill));
+    const total = active.reduce((sum, item) => sum + Math.max(0, Number(item.bill?.amount || 0)), 0);
+    const header = document.createElement('div');
+    header.className = 'finance-managed-month';
+    header.dataset.financeBillMonth = key;
+    header.innerHTML = `<strong>${esc(formatMonth(key))}</strong><span>${active.length} active bill${active.length === 1 ? '' : 's'} • £${total.toFixed(2)}</span>`;
+    return header;
   }
 
   function observeHost(host) {
@@ -137,6 +155,8 @@
     if (observer) observer.disconnect();
     try {
       ensureStyle();
+      host.querySelectorAll(':scope > .finance-managed-month').forEach(node => node.remove());
+
       const byId = new Map(bills.map(b => [String(b?.id || ''), b]));
       const entries = rows.map((row, originalIndex) => {
         const bill = byId.get(String(rowBillId(row))) || null;
@@ -153,11 +173,29 @@
         return nameCmp || a.originalIndex - b.originalIndex;
       });
 
-      const currentRows = [...host.querySelectorAll(':scope > .finance-action-row')];
-      entries.forEach(({ row, bill }, index) => {
-        if (bill) decorateRow(row, bill);
-        if (currentRows[index] !== row) host.appendChild(row);
+      const groups = new Map();
+      entries.forEach(entry => {
+        const key = monthKeyForBill(entry.bill);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(entry);
       });
+
+      const orderedKeys = [...groups.keys()].sort((a, b) => {
+        if (a === 'NO_DATE') return 1;
+        if (b === 'NO_DATE') return -1;
+        return a.localeCompare(b);
+      });
+
+      const fragment = document.createDocumentFragment();
+      orderedKeys.forEach(key => {
+        const groupEntries = groups.get(key) || [];
+        fragment.appendChild(createMonthHeader(key, groupEntries));
+        groupEntries.forEach(({ row, bill }) => {
+          if (bill) decorateRow(row, bill);
+          fragment.appendChild(row);
+        });
+      });
+      host.appendChild(fragment);
     } finally {
       applying = false;
       observeHost(host);
@@ -189,6 +227,7 @@
   window.AuroraFinanceManagedBillsDateOrder = Object.freeze({
     build: BUILD,
     active: true,
+    groupedByMonth: true,
     stablePointerClicks: true,
     today: localTodayKey()
   });
