@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-system-health-stability-2';
+  const BUILD = '20260823-system-health-stability-holdings-authority-3';
   const NOISY = new Set([
     'aurora2:state',
     'aurora:stage3i-notifications',
@@ -51,6 +51,14 @@
     script.src = 'system-health-data2-connection.js?v=20260823-system-health-data2-connection-1';
     script.defer = true;
     script.dataset.auroraData2ConnectionPanel = '1';
+    document.head.appendChild(script);
+  }
+
+  if (!document.querySelector('script[data-aurora-holdings-authority]')) {
+    const script = document.createElement('script');
+    script.src = 'system-health-holdings-authority.js?v=20260823-system-health-holdings-authority-1';
+    script.defer = true;
+    script.dataset.auroraHoldingsAuthority = '1';
     document.head.appendChild(script);
   }
 })();
