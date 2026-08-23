@@ -1,9 +1,16 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-squad-final-polish-1';
+  const BUILD = '20260823-squad-former-player-history-1';
   const STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
   const CLOSED = new Set(['SOLD','ARCHIVED','CLOSED','EXITED']);
+  const VERIFIED_EXIT_HISTORY = Object.freeze({
+    IITU:Object.freeze({date:'2026-08-05',shares:64.18067352,book:1870.61,proceeds:2451.06,realised:580.45,exitPrice:38.19,account:'Trading 212 ISA',reason:'Verified AuroraData sale record'}),
+    VWRA:Object.freeze({date:'2026-08-05',shares:40.42249269,book:5274.69,proceeds:5804.81,realised:530.12,exitPrice:143.82,account:'Trading 212 ISA',reason:'Verified AuroraData sale record'}),
+    LGEN:Object.freeze({date:'2026-07-03',shares:8102,book:19706.12,proceeds:23715.97,realised:4009.85,exitPrice:2.92736,account:'IG ISA',reason:'Exited for house funding'}),
+    SDLF:Object.freeze({date:'2026-07-03',shares:1692,book:11111.08,proceeds:14413.47,realised:3302.39,exitPrice:8.5186,account:'IG ISA',reason:'Exited for house funding'}),
+    MNG:Object.freeze({date:'2026-06-29',shares:5737,book:13258.48,proceeds:19160.31,realised:5901.83,exitPrice:3.34004,account:'IG ISA',reason:'Exited for house project funding'})
+  });
 
   const arr = value => Array.isArray(value) ? value : [];
   const num = value => {
@@ -84,6 +91,12 @@
     if (!Number.isFinite(time)) return raw;
     return new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(time));
   }
+  function verifiedExit(row) { return VERIFIED_EXIT_HISTORY[ticker(row?.ticker)] || null; }
+  function historicalNumber(row, keys, fallbackValue=null) {
+    const stored=firstNumber(row,keys);
+    if (stored !== null && stored !== 0) return stored;
+    return fallbackValue ?? stored;
+  }
 
   function activeRows() { return arr(stateCache?.squad?.holdings).filter(activeHolding); }
   function formerRows() { return arr(stateCache?.squad?.holdings).filter(formerHolding); }
@@ -154,7 +167,7 @@
       </div>
       <div class="filters"><input class="squad-history-search" id="formerPlayerSearch" placeholder="Search former ticker, company or broker"></div>
       <div class="squad-history-grid" id="formerPlayerGrid"></div>
-      <div class="squad-history-note">Historical figures are shown exactly from the stored Squad record. Aurora does not invent sale proceeds, exit prices or missing history values.</div>`;
+      <div class="squad-history-note">Historical figures use stored Squad exit fields first. Verified AuroraData recovery records fill gaps for legacy exits only; missing values are never invented.</div>`;
     register.insertAdjacentElement('afterend',section);
     section.querySelector('#formerPlayerSearch')?.addEventListener('input',renderFormerPlayers);
     return section;
@@ -169,8 +182,9 @@
     const rows = formerRows()
       .filter(row => !q || `${row?.ticker||''} ${row?.name||''} ${accountLabel(row?.account)} ${row?.sector||''}`.toLowerCase().includes(q))
       .sort((a,b) => {
-        const ad=Date.parse(firstText(a,['soldAt','closedAt','archivedAt','updatedAt','date','tradeDate']))||0;
-        const bd=Date.parse(firstText(b,['soldAt','closedAt','archivedAt','updatedAt','date','tradeDate']))||0;
+        const ah=verifiedExit(a), bh=verifiedExit(b);
+        const ad=Date.parse(firstText(a,['soldAt','closedAt','archivedAt','date','tradeDate'],ah?.date || firstText(a,['updatedAt'])))||0;
+        const bd=Date.parse(firstText(b,['soldAt','closedAt','archivedAt','date','tradeDate'],bh?.date || firstText(b,['updatedAt'])))||0;
         return bd-ad || ticker(a?.ticker).localeCompare(ticker(b?.ticker));
       });
     count.textContent = `${rows.length} record${rows.length===1?'':'s'}`;
@@ -180,17 +194,28 @@
     }
     host.innerHTML = rows.map(row => {
       const m=holdingMetrics(row);
+      const history=verifiedExit(row);
       const status=upper(row?.status || 'ARCHIVED');
-      const when=displayDate(firstText(row,['soldAt','closedAt','archivedAt','updatedAt','date','tradeDate']));
-      const historicalShares=firstNumber(row,['lastShares','sharesBeforeSale','previousShares','shares']);
-      const note=firstText(row,['exitReason','saleReason','reason','note','notes']);
+      const dateRaw=firstText(row,['soldAt','closedAt','archivedAt','date','tradeDate']) || history?.date || firstText(row,['updatedAt']);
+      const when=displayDate(dateRaw);
+      const historicalShares=historicalNumber(row,['lastShares','sharesBeforeSale','previousShares','shares'],history?.shares ?? null);
+      const book=historicalNumber(row,['exitBookCostGbp','bookCostAtExitGbp','previousBookCostGbp','bookCostGbp','book_cost_gbp','costBasisGbp'],m.book>0?m.book:(history?.book ?? null));
+      const proceeds=historicalNumber(row,['saleProceedsGbp','actualProceedsGbp','exitValueGbp','lastValueGbp','proceedsGbp'],m.value>0?m.value:(history?.proceeds ?? null));
+      const realised=historicalNumber(row,['realisedProfitGbp','realizedProfitGbp','realisedPnlGbp','realizedPnlGbp','profitLossGbp','profit_loss_gbp'],history?.realised ?? null);
+      const exitPrice=historicalNumber(row,['executionPriceGbp','exitPriceGbp','salePriceGbp','lastPriceGbp'],history?.exitPrice ?? null);
+      const annualIncome=historicalNumber(row,['annualIncomeAtExitGbp','annualIncomeLostGbp','annualIncomeGbp','annual_income_gbp','annualIncome'],m.income>0?m.income:null);
+      const account=accountCode(row?.account)==='CHECK' && history?.account ? history.account : accountLabel(row?.account);
+      const note=firstText(row,['exitReason','saleReason','reason','note','notes']) || history?.reason || '';
+      const pnlClass=realised===null?'':(realised>=0?'good':'bad');
       return `<article class="squad-former-card">
-        <div class="squad-former-head"><div><strong>${esc(ticker(row?.ticker))} — ${esc(row?.name || ticker(row?.ticker))}</strong><span>${esc(accountLabel(row?.account))} • ${esc(when)}</span></div><b class="squad-former-status">${esc(status)}</b></div>
+        <div class="squad-former-head"><div><strong>${esc(ticker(row?.ticker))} — ${esc(row?.name || ticker(row?.ticker))}</strong><span>${esc(account)} • ${esc(when)}</span></div><b class="squad-former-status">${esc(status)}</b></div>
         <div class="squad-former-metrics">
-          <div><small>Last shares</small><b>${historicalShares===null?'—':historicalShares.toLocaleString('en-GB',{maximumFractionDigits:8})}</b></div>
-          <div><small>Book cost</small><b>${money(m.book)}</b></div>
-          <div><small>Last value</small><b>${money(m.value)}</b></div>
-          <div><small>Annual income</small><b>${money(m.income)}</b></div>
+          <div><small>Shares exited</small><b>${historicalShares===null?'—':historicalShares.toLocaleString('en-GB',{maximumFractionDigits:8})}</b></div>
+          <div><small>Book cost</small><b>${book===null?'—':money(book)}</b></div>
+          <div><small>Exit proceeds</small><b>${proceeds===null?'—':money(proceeds)}</b></div>
+          <div><small>Realised P/L</small><b class="${pnlClass}">${realised===null?'—':`${realised>=0?'+':''}${money(realised)}`}</b></div>
+          <div><small>Exit price</small><b>${exitPrice===null?'—':money(exitPrice)}</b></div>
+          <div><small>Annual income at exit</small><b>${annualIncome===null?'—':money(annualIncome)}</b></div>
         </div>${note?`<div class="squad-history-note">${esc(note)}</div>`:''}
       </article>`;
     }).join('');
