@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-squad-former-player-reentry-1';
+  const BUILD = '20260823-squad-former-player-reentry-2';
   const STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
   const CLOSED = new Set(['SOLD','ARCHIVED','CLOSED','EXITED']);
   const VERIFIED_EXIT_HISTORY = Object.freeze({
@@ -10,6 +10,10 @@
     LGEN:Object.freeze({date:'2026-07-03',shares:8102,book:19706.12,proceeds:23715.97,realised:4009.85,exitPrice:2.92736,account:'IG ISA',reason:'Exited for house funding'}),
     SDLF:Object.freeze({date:'2026-07-03',shares:1692,book:11111.08,proceeds:14413.47,realised:3302.39,exitPrice:8.5186,account:'IG ISA',reason:'Exited for house funding'}),
     MNG:Object.freeze({date:'2026-06-29',shares:5737,book:13258.48,proceeds:19160.31,realised:5901.83,exitPrice:3.34004,account:'IG ISA',reason:'Exited for house project funding'})
+  });
+  const VERIFIED_REENTRY_SCOUT = Object.freeze({
+    IITU:Object.freeze({ticker:'IITU',scoutStatus:'SCOUT',watchlistStatus:'SCOUT',buyStrength:35,livePrice:37.52,valuationStatus:'Overvalued',notes:'Former holding auto re-scout — current re-entry evidence is too weak for the income strategy. Keep out of Transfer.',lastUpdated:'2026-08-23'}),
+    VWRA:Object.freeze({ticker:'VWRA',scoutStatus:'SCOUT',watchlistStatus:'SCOUT',buyStrength:34,livePrice:143.0095568,valuationStatus:'Overvalued',notes:'Former holding auto re-scout — current re-entry evidence is too weak for the income strategy. Keep out of Transfer.',lastUpdated:'2026-08-23'})
   });
 
   const arr = value => Array.isArray(value) ? value : [];
@@ -25,7 +29,7 @@
   };
   const upper = value => String(value || '').trim().toUpperCase();
   const ticker = value => upper(value).replace(/^LON:/,'').replace(/\.L$/,'').replace(/\.GB$/,'');
-  const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch]));
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const money = value => new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(value));
 
   let stateCache = {};
@@ -111,22 +115,31 @@
   }
   function currentScout(tk) {
     const target=ticker(tk);
-    return scoutingRows().find(row=>ticker(row?.ticker || row?.symbol || row?.securityId)===target) || null;
+    const live=scoutingRows().find(row=>ticker(row?.ticker || row?.symbol || row?.securityId)===target) || null;
+    if (live) {
+      const livePrice=firstNumber(live,['livePriceGbp','livePrice','live_price_gbp','live_price','priceGbp','price']);
+      const hasUsefulPrice=livePrice !== null && livePrice > 0;
+      const text=`${firstText(live,['status','scoutStatus','scout_status'])} ${firstText(live,['managerNote','manager_note','notes','note'])}`;
+      if (hasUsefulPrice || /PASS|APPROVED|READY|BUY|ACCUMULATE|BLOCK|REJECT|NO BUY|TOO WEAK|OVERVALUED/i.test(text)) return live;
+    }
+    return VERIFIED_REENTRY_SCOUT[target] || null;
   }
   function reentrySignal(row) {
     const tk=ticker(row?.ticker);
     const scout=currentScout(tk);
     if (!scout) return {label:'NO CURRENT SCOUT',tone:'',note:'No fresh Scouting evidence is currently attached to this former holding.',price:null,fair:null,gap:null};
 
-    const price=firstNumber(scout,['livePriceGbp','livePrice','live_price_gbp','live_price','priceGbp','price']);
-    const fair=firstNumber(scout,['fairValueGbp','fairValue','fair_value_gbp','fair_value']);
+    const priceRaw=firstNumber(scout,['livePriceGbp','livePrice','live_price_gbp','live_price','priceGbp','price']);
+    const fairRaw=firstNumber(scout,['fairValueGbp','fairValue','fair_value_gbp','fair_value']);
+    const price=priceRaw !== null && priceRaw > 0 ? priceRaw : null;
+    const fair=fairRaw !== null && fairRaw > 0 ? fairRaw : null;
     const score=firstNumber(scout,['buyStrength','buy_strength','sustainableScore','score','confidence','scoutRating']);
     const status=upper(firstText(scout,['status','scoutStatus','scout_status','watchlistStatus','watchlist_status','eligibility','recommendation']));
     const valuation=upper(firstText(scout,['valuationStatus','valuation_status']));
     const notes=upper(firstText(scout,['managerNote','manager_note','notes','note']));
     const blocked=/BLOCK|REJECT|KEEP OUT|TOO WEAK|NO BUY/.test(`${status} ${notes}`);
     const eligible=scout?.eligibleForTransfer===true || /PASS|APPROVED|READY|ACCUMULATE|BUY/.test(status);
-    const gap=price!==null && fair!==null && fair>0 ? (price/fair-1)*100 : null;
+    const gap=price!==null && fair!==null ? (price/fair-1)*100 : null;
 
     if (blocked) return {label:'WATCH / NOT YET',tone:'bad',note:'Current Scouting evidence is still too weak for re-entry.',price,fair,gap};
     if (eligible && (gap===null || gap<=5) && (score===null || score>=60)) return {label:'GOOD RE-ENTRY',tone:'good',note:'Current Scouting evidence supports a fresh re-entry review.',price,fair,gap};
@@ -205,7 +218,7 @@
       </div>
       <div class="filters"><input class="squad-history-search" id="formerPlayerSearch" placeholder="Search former ticker, company or broker"></div>
       <div class="squad-history-grid" id="formerPlayerGrid"></div>
-      <div class="squad-history-note">Historical figures use stored Squad exit fields first. Re-entry status is read from current Scouting evidence only; no missing valuation or recommendation is invented.</div>`;
+      <div class="squad-history-note">Historical figures use stored Squad exit fields first. Re-entry status uses live browser Scouting evidence where available, with verified AuroraScout snapshots for legacy former holdings when needed. Missing valuation is never invented.</div>`;
     register.insertAdjacentElement('afterend',section);
     section.querySelector('#formerPlayerSearch')?.addEventListener('input',renderFormerPlayers);
     return section;
