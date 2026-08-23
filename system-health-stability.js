@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-system-health-stability-1';
+  const BUILD = '20260823-system-health-stability-2';
   const NOISY = new Set([
     'aurora2:state',
     'aurora:stage3i-notifications',
@@ -45,4 +45,12 @@
     debounceMs: 400,
     events: [...NOISY]
   });
+
+  if (!document.querySelector('script[data-aurora-data2-connection-panel]')) {
+    const script = document.createElement('script');
+    script.src = 'system-health-data2-connection.js?v=20260823-system-health-data2-connection-1';
+    script.defer = true;
+    script.dataset.auroraData2ConnectionPanel = '1';
+    document.head.appendChild(script);
+  }
 })();
