@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-finance-payday-reset-hard-bill-order-complete-3';
+  const BUILD = '20260823-finance-payday-reset-hard-bill-order-complete-4';
   let ready = false;
 
   function loadManagedBillOrder() {
@@ -17,7 +17,7 @@
     if (window.AuroraFinanceBillCompleteFix || window.AuroraFinanceBillCompleteFixLoadStarted) return;
     window.AuroraFinanceBillCompleteFixLoadStarted = true;
     const script = document.createElement('script');
-    script.src = 'finance-bill-complete-fix.js?v=20260823-finance-bill-complete-finalise-1';
+    script.src = 'finance-bill-complete-fix.js?v=20260823-finance-bill-complete-pot-deduction-2';
     script.async = false;
     document.head.appendChild(script);
   }
@@ -51,7 +51,8 @@
       mode: 'reload-saved-state',
       managedBillDateOrder: true,
       stableBillPointerClicks: true,
-      billCompletionFinalise: true
+      billCompletionFinalise: true,
+      normalisedFundingPotDeduction: true
     });
     return true;
   }
