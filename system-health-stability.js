@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-system-health-stability-holdings-authority-3';
+  const BUILD = '20260823-system-health-stability-holdings-authority-4';
   const NOISY = new Set([
     'aurora2:state',
     'aurora:stage3i-notifications',
@@ -56,7 +56,7 @@
 
   if (!document.querySelector('script[data-aurora-holdings-authority]')) {
     const script = document.createElement('script');
-    script.src = 'system-health-holdings-authority.js?v=20260823-system-health-holdings-authority-1';
+    script.src = 'system-health-holdings-authority.js?v=20260823-system-health-holdings-authority-2';
     script.defer = true;
     script.dataset.auroraHoldingsAuthority = '1';
     document.head.appendChild(script);
