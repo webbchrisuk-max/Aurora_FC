@@ -1,8 +1,17 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-finance-payday-reset-hard-1';
+  const BUILD = '20260823-finance-payday-reset-hard-bill-order-1';
   let ready = false;
+
+  function loadManagedBillOrder() {
+    if (window.AuroraFinanceManagedBillsDateOrder || window.AuroraFinanceManagedBillsDateOrderLoadStarted) return;
+    window.AuroraFinanceManagedBillsDateOrderLoadStarted = true;
+    const script = document.createElement('script');
+    script.src = 'finance-bills-date-order.js?v=20260823-finance-managed-bills-date-order-1';
+    script.async = false;
+    document.head.appendChild(script);
+  }
 
   function install() {
     const button = document.querySelector('[data-finance-preview-reset]');
@@ -30,7 +39,8 @@
     window.AuroraFinancePaydayHardReset = Object.freeze({
       build: BUILD,
       ready: true,
-      mode: 'reload-saved-state'
+      mode: 'reload-saved-state',
+      managedBillDateOrder: true
     });
     return true;
   }
@@ -49,6 +59,7 @@
   }
 
   function boot() {
+    loadManagedBillOrder();
     let tries = 0;
     const wait = () => {
       if (install()) {
