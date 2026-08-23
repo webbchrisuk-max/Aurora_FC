@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-finance-managed-bills-date-order-1';
+  const BUILD = '20260823-finance-managed-bills-date-order-2';
   const STATE_KEY = 'aurora2:state:v1';
   let applying = false;
   let observer = null;
@@ -70,6 +70,7 @@
         display:inline-flex;align-items:center;gap:6px;margin:0 3px;padding:3px 7px;
         border-radius:7px;border:1px solid rgba(110,231,255,.13);
         background:rgba(110,231,255,.045);color:#a9bcc8;font-weight:800;
+        pointer-events:none;
       }
       #financeBillActionList .finance-managed-bill-date.due-today,
       #financeBillActionList .finance-managed-bill-date.overdue{
@@ -81,6 +82,10 @@
       }
       #financeBillActionList .finance-action-row.due-today{
         border-color:rgba(255,78,95,.24);
+      }
+      #financeBillActionList .finance-row-actions,
+      #financeBillActionList .finance-row-actions button{
+        position:relative;z-index:3;pointer-events:auto;
       }
     `;
     document.head.appendChild(style);
@@ -106,7 +111,14 @@
     if (isToday) row.classList.add('due-today');
     if (isOverdue) row.classList.add('bill-overdue');
 
-    meta.innerHTML = `${esc(status)} • £${amount.toFixed(2)} • <b class="finance-managed-bill-date${dateClass}">${esc(dateText)}${tag}</b> • ${esc(bill?.fundingSource || 'Current Account')}`;
+    const desired = `${esc(status)} • £${amount.toFixed(2)} • <b class="finance-managed-bill-date${dateClass}">${esc(dateText)}${tag}</b> • ${esc(bill?.fundingSource || 'Current Account')}`;
+    if (meta.innerHTML !== desired) meta.innerHTML = desired;
+  }
+
+  function observeHost(host) {
+    if (!observer) observer = new MutationObserver(() => { if (!applying) scheduleApply(); });
+    observer.disconnect();
+    observer.observe(host, { childList: true });
   }
 
   function apply() {
@@ -116,9 +128,13 @@
     if (!host || !Array.isArray(bills)) return;
 
     const rows = [...host.querySelectorAll(':scope > .finance-action-row')];
-    if (!rows.length) return;
+    if (!rows.length) {
+      observeHost(host);
+      return;
+    }
 
     applying = true;
+    if (observer) observer.disconnect();
     try {
       ensureStyle();
       const byId = new Map(bills.map(b => [String(b?.id || ''), b]));
@@ -137,12 +153,14 @@
         return nameCmp || a.originalIndex - b.originalIndex;
       });
 
-      entries.forEach(({ row, bill }) => {
+      const currentRows = [...host.querySelectorAll(':scope > .finance-action-row')];
+      entries.forEach(({ row, bill }, index) => {
         if (bill) decorateRow(row, bill);
-        host.appendChild(row);
+        if (currentRows[index] !== row) host.appendChild(row);
       });
     } finally {
       applying = false;
+      observeHost(host);
     }
   }
 
@@ -157,10 +175,7 @@
       setTimeout(watch, 50);
       return;
     }
-    if (!observer) {
-      observer = new MutationObserver(() => { if (!applying) scheduleApply(); });
-      observer.observe(host, { childList: true, subtree: true });
-    }
+    observeHost(host);
     scheduleApply();
   }
 
@@ -174,6 +189,7 @@
   window.AuroraFinanceManagedBillsDateOrder = Object.freeze({
     build: BUILD,
     active: true,
+    stablePointerClicks: true,
     today: localTodayKey()
   });
 
