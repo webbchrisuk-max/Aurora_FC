@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-system-health-restored-2';
+  const BUILD = '20260823-system-health-legacy-cloud-display-1';
   const $ = id => document.getElementById(id);
   const arr = value => Array.isArray(value) ? value : [];
   const set = (id,value) => { const el=$(id); if(el) el.textContent=value ?? '—'; };
@@ -135,12 +135,12 @@
         meta:'CANONICAL'
       };
     }
-    if (key==='cloud state' && status==='ERROR' && /AURORA_STAGE3G_FIRESTORE_PATCH_BLOCKED/i.test(error) && window.AuroraStage3GShield?.active) {
+    if (key==='cloud state' && status==='ERROR' && /AURORA_STAGE3G_FIRESTORE_PATCH_BLOCKED/i.test(error)) {
       return {
         tone:'protected',
         title:'CLOUD STATE',
-        note:'Firestore write was deliberately blocked by the rebuild safety shield. Cloud data remains readable while overwrite/apply stays protected.',
-        meta:'PROTECTED'
+        note:'Legacy Stage 3G Firestore writes are retired. Browser Sync is the active cross-browser authority, so this blocked legacy write is expected and is not a live fault.',
+        meta:'RETIRED'
       };
     }
     return {
