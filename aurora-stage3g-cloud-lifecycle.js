@@ -1,16 +1,32 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-stage3g-cloud-lifecycle-autosync-hold-2';
+  const BUILD = '20260823-stage3g-cloud-lifecycle-static-conflict-3';
   const CLOUD_META_KEY = 'aurora2:cloud:meta:v1';
   const SIGNAL_WATCH_KEY = 'aurora2:scouting:signal-watch:v2';
+  const QUIET_PHASES = new Set(['LOCAL_APPLY_BLOCKED','LOCAL_META_WRITE_BLOCKED','FIRESTORE_WRITE_BLOCKED']);
   let firestoreWriteBlocks = 0;
   let coreWriteBlocks = 0;
   let localMetaBlocks = 0;
   let autoSyncDisableWrites = 0;
+  let lastBroadcastSignature = '';
 
   function cloudStatus() {
     try { return window.AuroraCloudSync?.status?.() || null; } catch (_) { return null; }
+  }
+
+  function semanticSignature(status, payload, state) {
+    return JSON.stringify({
+      status:String(status || ''),
+      phase:String(payload?.phase || ''),
+      signedIn:Boolean(state?.signedIn),
+      online:state?.online !== false,
+      bootstrapped:Boolean(state?.bootstrapped),
+      conflicts:Array.isArray(state?.conflicts) ? state.conflicts.map(String).sort() : [],
+      cloudRevision:Number(state?.cloudRevision || 0),
+      cloudDeviceId:String(state?.cloudDeviceId || ''),
+      deviceId:String(state?.deviceId || '')
+    });
   }
 
   function report(status, detail = {}) {
@@ -42,7 +58,18 @@
       const phase = payload.phase ? `Phase: ${payload.phase}. ` : '';
       note.textContent = `${phase}Cloud sign-in/read is available. Background auto-sync is paused on this dry-run shell to prevent repeated state refreshes.`;
     }
+
+    // Shield interceptions are diagnostic counters, not cloud lifecycle changes.
+    // Broadcasting them made conflict browsers continuously repaint every page.
+    if (QUIET_PHASES.has(String(payload.phase || '').toUpperCase())) return payload;
+
+    // A persistent conflict is a state, not a heartbeat. Broadcast only when
+    // its meaningful identity actually changes.
+    const signature = semanticSignature(status, payload, state);
+    if (signature === lastBroadcastSignature) return payload;
+    lastBroadcastSignature = signature;
     window.dispatchEvent(new CustomEvent('aurora:stage3g-cloud-lifecycle', { detail: payload }));
+    return payload;
   }
 
   if (!window.Aurora2?.core?.read || !window.Aurora2?.core?.write) {
@@ -101,15 +128,12 @@
   report('LOADING', { phase: 'LOADING_CLOUD_MODULE' });
 
   const cloud = document.createElement('script');
-  cloud.src = '/aurora-fc-2/aurora-cloud-sync.js?v=20260823-stage3g-cloud-autosync-hold-2';
+  cloud.src = '/aurora-fc-2/aurora-cloud-sync.js?v=20260823-stage3g-cloud-static-conflict-3';
   cloud.async = false;
   cloud.dataset.auroraStage3 = 'cloud-lifecycle-dry-run';
   cloud.addEventListener('load', () => {
     document.documentElement.dataset.auroraCloudSync = 'loaded';
 
-    // Critical stability rule: this shell is a dry-run/read shell. Keep cloud
-    // authentication and reads available, but do not let every aurora2:state
-    // event wake a background sync cycle after sign-in.
     try { window.AuroraCloudSync?.setAutoSync?.(false); } catch (_) {}
 
     report('ACTIVE', { phase: 'MODULE_LOADED_AUTOSYNC_PAUSED' });
@@ -148,6 +172,7 @@
       localMetaBlocks,
       autoSyncDisableWrites,
       backgroundAutoSyncEnabled: false,
+      broadcastMode: 'SEMANTIC_CHANGES_ONLY',
       cloud: cloudStatus()
     })
   });
