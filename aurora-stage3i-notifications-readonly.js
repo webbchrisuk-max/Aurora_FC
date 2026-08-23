@@ -1,8 +1,24 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-stage3i-notifications-endpoint-loop-guard-2';
+  const BUILD = '20260823-stage3i-income-health-notifications-disabled-3';
   const STAGE = '3I';
+  const PAGE = String(location.pathname || '').split('/').pop().toLowerCase();
+  const NOTIFICATIONS_DISABLED_HERE = PAGE === 'income.html' || PAGE === 'system-health.html';
+
+  if (NOTIFICATIONS_DISABLED_HERE) {
+    document.documentElement.dataset.auroraNotificationsReadonly = 'disabled';
+    document.documentElement.dataset.auroraNotifications = 'disabled';
+    window.AuroraStage3I = Object.freeze({
+      build: BUILD,
+      stageOwner: STAGE,
+      loaded: false,
+      disabled: true,
+      reason: 'INCOME_HEALTH_ENDPOINT_NOTIFICATION_REMOVED'
+    });
+    return;
+  }
+
   let blockedUpdates = 0;
   let allowedNotificationUpdates = 0;
   let suppressedEndpointHealthWrites = 0;
