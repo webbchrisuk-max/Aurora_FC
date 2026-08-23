@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="/aurora-fc-2/aurora-department-cards.css?v=20260815-1">
 <link rel="stylesheet" href="/aurora-fc-2/aurora-typography.css?v=20260816-1">
 <script src="aurora-stage4e-live-finance-route.js?v=20260823-stage4e-finance-local-write-protect-1" defer></script>
-<script src="finance-ui-controller.js?v=20260823-finance-ui-controller-2" defer></script>
+<script src="finance-ui-controller.js?v=20260823-finance-ui-controller-3" defer></script>
 <style>
 body{margin:0;background:#020612;color:#eef7ff}.finance-live-rebuild .page{max-width:1400px;margin:0 auto;padding:30px 24px 70px}.finance-command-hero{margin-top:8px}.finance-section-nav{position:sticky;top:72px;z-index:8}.live-section{scroll-margin-top:150px}.live-placeholder{min-height:160px;display:flex;align-items:center;justify-content:center;text-align:center;color:#8398ab;border:1px dashed rgba(110,231,255,.18);border-radius:18px;background:rgba(5,15,28,.45);margin-top:18px;padding:24px}.live-placeholder strong{display:block;color:#dff6ff;font-size:20px;margin-bottom:8px}.finance-field-grid .field{min-width:0;overflow:hidden}.finance-field-grid input[type="date"]{display:block;width:calc(100% - 10px);max-width:calc(100% - 10px);min-width:0;min-inline-size:0;box-sizing:border-box;justify-self:start}
 #overviewPanel[hidden],#paydayPanel[hidden],#potsPanel[hidden],#housePanel[hidden]{display:none!important}.finance-workspace-active{animation:financeWorkspaceIn .2s ease}.finance-section-nav .tab{cursor:pointer}.finance-section-nav .tab[aria-selected="true"]{box-shadow:0 0 0 1px rgba(110,231,255,.18),0 10px 30px rgba(0,0,0,.18)}@keyframes financeWorkspaceIn{from{opacity:.35;transform:translateY(5px)}to{opacity:1;transform:none}}
@@ -65,6 +65,15 @@ body{margin:0;background:#020612;color:#eef7ff}.finance-live-rebuild .page{max-w
       <article class="finance-score gold"><small>Total Funding Required</small><strong>£0.00</strong><span>Bills + pots + safety + planned spending</span></article>
       <article class="finance-score blue"><small>Protected Spending</small><strong>£0.00</strong><span>Personal cash kept aside</span></article>
       <article class="finance-score release"><small>Next Safe Release</small><strong>£0.00</strong><span>Current payday forecast</span></article>
+    </section>
+
+    <section class="finance-panel" id="financeOverviewPayments">
+      <div class="finance-panel-head"><div><span class="finance-panel-kicker">Next Payday Outgoings</span><h3>Payments to Make</h3></div><span class="finance-panel-note" data-fu-overview-payday>Live payday breakdown</span></div>
+      <div class="fu-summary" data-fu-overview-payment-summary></div>
+      <div class="finance-command-grid two" style="margin-top:12px">
+        <div><div class="fu-list" data-fu-overview-payments></div></div>
+        <div><div class="fu-list" data-fu-overview-destinations></div></div>
+      </div>
     </section>
 
     <section class="finance-command-grid two">
