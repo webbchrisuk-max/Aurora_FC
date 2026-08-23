@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-finance-command-workspaces-payday-dashboard-2';
+  const BUILD = '20260823-finance-command-workspaces-pots-bills-compact-3';
   const WORKSPACES = ['overviewPanel','paydayPanel','potsPanel','housePanel'];
   const DEFAULT = 'overviewPanel';
 
@@ -17,6 +17,15 @@
     script.src = 'finance-payday-command-dashboard.js?v=20260823-finance-payday-command-dashboard-1';
     script.defer = true;
     script.dataset.financePaydayCommandDashboard = '1';
+    document.head.appendChild(script);
+  }
+
+  function loadPotsBillsCompact() {
+    if (window.AuroraFinancePotsBillsCompact || document.querySelector('script[data-finance-pots-bills-compact]')) return;
+    const script = document.createElement('script');
+    script.src = 'finance-pots-bills-compact.js?v=20260823-finance-pots-bills-compact-1';
+    script.defer = true;
+    script.dataset.financePotsBillsCompact = '1';
     document.head.appendChild(script);
   }
 
@@ -103,6 +112,7 @@
 
   function start() {
     loadPaydayDashboard();
+    loadPotsBillsCompact();
     const nav = $('.finance-section-nav');
     if (nav) nav.setAttribute('role', 'tablist');
     $$('.finance-section-nav .tab').forEach(tab => {
