@@ -1,10 +1,11 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-stage3i-notifications-stable-1';
+  const BUILD = '20260823-stage3i-notifications-endpoint-loop-guard-2';
   const STAGE = '3I';
   let blockedUpdates = 0;
   let allowedNotificationUpdates = 0;
+  let suppressedEndpointHealthWrites = 0;
   let originalUpdate = null;
 
   const cleanPageHref = (value) => String(value || '').split('#')[0].split('?')[0].toLowerCase();
@@ -128,6 +129,7 @@
       loaded: Boolean(window.AuroraNotifications),
       allowedNotificationUpdates,
       blockedUpdates,
+      suppressedEndpointHealthWrites,
       notificationWritesEnabled: true,
       nonNotificationWritesBlocked: true,
       notifications,
@@ -161,6 +163,28 @@
     }
   }
 
+  function isEndpointMissingHealthOnlyWrite(current, proposed) {
+    try {
+      const before = clone(current?.notifications || {});
+      const after = clone(proposed?.notifications || {});
+      const beforeHealth = clone(before?.healthState || {});
+      const afterHealth = clone(after?.healthState || {});
+
+      if (String(afterHealth?.data2 || '') !== 'ENDPOINT_MISSING') return false;
+      if (String(beforeHealth?.data2 || '') === 'ENDPOINT_MISSING') return false;
+
+      delete before.healthState;
+      delete after.healthState;
+      if (JSON.stringify(before) !== JSON.stringify(after)) return false;
+
+      delete beforeHealth.data2;
+      delete afterHealth.data2;
+      return JSON.stringify(beforeHealth) === JSON.stringify(afterHealth);
+    } catch (_) {
+      return false;
+    }
+  }
+
   function installUpdateShield() {
     const core = window.Aurora2?.core;
     if (!core?.read || !core?.update) return false;
@@ -181,6 +205,14 @@
       }
 
       if (onlyNotificationsChanged(current, proposed)) {
+        if (isEndpointMissingHealthOnlyWrite(current, proposed)) {
+          suppressedEndpointHealthWrites += 1;
+          updatePanel('ACTIVE ✅', `Notification Centre is stable. AuroraData 2 endpoint-missing health bookkeeping is runtime-only on this browser, preventing notification state loops. Suppressed endpoint health writes: ${suppressedEndpointHealthWrites}.`);
+          settleNotificationBell();
+          report({ phase: 'ENDPOINT_MISSING_HEALTH_WRITE_SUPPRESSED' });
+          return current;
+        }
+
         allowedNotificationUpdates += 1;
         const saved = originalUpdate(() => proposed);
         const info = window.AuroraNotifications?.status?.();
@@ -218,7 +250,7 @@
 
     updatePanel('LOADING…', 'Loading the Aurora Notification Centre with notification-only state persistence.');
     const script = document.createElement('script');
-    script.src = '/aurora-fc-2/aurora-notifications.js?v=20260820-stage3i-notifications-stable-1';
+    script.src = '/aurora-fc-2/aurora-notifications.js?v=20260823-stage3i-endpoint-loop-guard-2';
     script.async = false;
     script.dataset.auroraStage3 = 'notifications-stable';
     script.addEventListener('load', () => {
@@ -227,7 +259,7 @@
       setTimeout(() => {
         const info = window.AuroraNotifications?.status?.() || {};
         mountNotificationBell();
-        updatePanel('ACTIVE ✅', `Notification Centre is active. Existing records: ${Number(info.total || 0)}. Notification state persists for dedupe/read/dismiss while non-notification writes remain shielded.`);
+        updatePanel('ACTIVE ✅', `Notification Centre is active. Existing records: ${Number(info.total || 0)}. Notification state persists for dedupe/read/dismiss while endpoint-missing health bookkeeping stays runtime-only.`);
         report({ loaded: true, phase: 'ACTIVE' });
       }, 500);
     }, { once: true });
