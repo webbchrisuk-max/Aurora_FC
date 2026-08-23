@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-finance-bill-complete-finalise-1';
+  const BUILD = '20260823-finance-bill-complete-pot-deduction-2';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const BACKUP_META_KEY = 'aurora2:state:backup:meta';
@@ -14,6 +14,7 @@
     const n = Number(value);
     return Number.isFinite(n) ? Math.max(0, n) : 0;
   };
+  const norm = value => String(value ?? '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const isoNow = () => new Date().toISOString();
   const monthKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   const nextMonthKey = key => {
@@ -99,19 +100,32 @@
 
     const paidAt = isoNow();
     const completedDue = beforeBill.due || beforeBill.occurrenceMonth || '';
-    const pi = pots.findIndex(p => !p.archived && p.name === beforeBill.fundingSource);
-    const beforePot = pi >= 0 ? clone(pots[pi]) : null;
+    const fundingSource = String(beforeBill.fundingSource || 'Current Account').trim() || 'Current Account';
+    const fundingKey = norm(fundingSource);
+    const isCurrentAccount = fundingKey === 'current account';
+    const pi = pots.findIndex(p => !p.archived && norm(p.name) === fundingKey);
 
+    if (!isCurrentAccount && pi < 0) {
+      throw new Error(`${fundingSource} could not be found. Payment was not completed.`);
+    }
+
+    const beforePot = pi >= 0 ? clone(pots[pi]) : null;
     if (pi >= 0) {
       const balance = num(pots[pi].balance);
       if (actual > balance + 0.005) throw new Error(`${pots[pi].name} does not have enough cash for this payment.`);
-      pots[pi] = { ...pots[pi], balance: Number((balance - actual).toFixed(2)), updatedAt: paidAt };
+      pots[pi] = {
+        ...pots[pi],
+        balance: Number((balance - actual).toFixed(2)),
+        updatedAt: paidAt
+      };
     }
 
     payments.unshift({
       id: uid('PAY'), billId: id, billName: beforeBill.name, amount: actual,
-      paidAt, fundingSource: beforeBill.fundingSource || 'Current Account',
-      reversed: false, reversedAt: null, beforeBill, beforePot
+      paidAt, fundingSource,
+      reversed: false, reversedAt: null, beforeBill, beforePot,
+      fundingPotId: pi >= 0 ? pots[pi].id || null : null,
+      fundingPotName: pi >= 0 ? pots[pi].name || fundingSource : null
     });
 
     const type = commitmentType(beforeBill);
@@ -154,7 +168,18 @@
     };
     localStorage.setItem(STATE_KEY, JSON.stringify(next));
     window.dispatchEvent(new CustomEvent('aurora2:state', { detail: next }));
-    return bills[bi];
+
+    const verify = readState();
+    const savedBill = (verify?.finance?.bills || []).find(b => b.id === id);
+    if (!savedBill || savedBill.lastPaidAt !== paidAt) throw new Error('Payment write could not be verified.');
+    if (pi >= 0) {
+      const savedPot = (verify?.finance?.pots || []).find(p => p.id === pots[pi].id);
+      if (!savedPot || Math.abs(num(savedPot.balance) - num(pots[pi].balance)) > 0.005) {
+        throw new Error(`${pots[pi].name} deduction could not be verified.`);
+      }
+    }
+
+    return { bill: savedBill, pot: pi >= 0 ? pots[pi] : null };
   }
 
   function handleComplete(event) {
@@ -175,10 +200,13 @@
       if (!Number.isFinite(actual) || actual <= 0) throw new Error('Enter an actual amount greater than £0.');
 
       button.disabled = true;
-      const updated = commitBill(bill.id, actual);
+      const result = commitBill(bill.id, actual);
+      const updated = result.bill;
       const nextLabel = updated.paid ? 'Bill completed' : `Next due ${updated.due || updated.occurrenceMonth || 'scheduled'}`;
-      setStatus(`${bill.name}: £${actual.toFixed(2)} recorded. ${nextLabel}.`, 'good');
+      const potLabel = result.pot ? ` ${result.pot.name} is now £${num(result.pot.balance).toFixed(2)}.` : '';
+      setStatus(`${bill.name}: £${actual.toFixed(2)} recorded. ${nextLabel}.${potLabel}`, 'good');
     } catch (error) {
+      button.disabled = false;
       setStatus(String(error?.message || error || 'Unable to complete bill.'), 'bad');
       console.error('[Aurora Finance Bill Complete Fix]', error);
     }
@@ -189,6 +217,6 @@
   window.AuroraFinanceBillCompleteFix = Object.freeze({
     build: BUILD,
     ready: true,
-    mode: 'finalise-current-occurrence-and-advance-recurring'
+    mode: 'finalise-and-deduct-normalised-funding-pot'
   });
 })();
