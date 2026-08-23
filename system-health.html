@@ -6,16 +6,17 @@
 <meta name="theme-color" content="#07111f">
 <title>Aurora City FC — System Health</title>
 <link rel="stylesheet" href="aurora-shell.css?v=foundation-1">
-<link rel="stylesheet" href="system-health-restored.css?v=20260820-system-health-restored-1">
-<script src="aurora-page-shell.js?v=20260823-browser-sync-authority-2" defer></script>
-<script src="aurora-stage3h-release-guard.js?v=20260819-stage3h-release-guard-probe-1" defer></script>
-<script src="aurora-stage3i-notifications-readonly.js?v=20260823-stage3i-notifications-endpoint-loop-guard-2" defer></script>
-<script src="/aurora-fc-2/aurora-data2-client.js?v=20260820-system-health-restored-1" defer></script>
-<script src="system-health-stability.js?v=20260823-system-health-stability-1" defer></script>
-<script src="system-health-restored.js?v=20260823-system-health-buffered-1" defer></script>
-<script src="aurora-cloud-conflict-resolver.js?v=20260820-cloud-conflict-resolver-1" defer></script>
-<script src="aurora-browser-sync.js?v=20260823-browser-sync-brave-quiet-2" defer></script>
-<script src="aurora-browser-sync-quota-fix.js?v=20260822-browser-sync-quota-fix-1" defer></script>
+<link rel="stylesheet" href="system-health-restored.css?v=20260823-system-health-browser-authority-3">
+<script src="aurora-page-shell.js?v=20260823-browser-sync-authority-3" defer></script>
+<script src="aurora-stage3h-release-guard.js?v=20260823-stage3h-release-guard-probe-2" defer></script>
+<script src="aurora-stage3i-notifications-readonly.js?v=20260823-stage3i-notifications-endpoint-loop-guard-3" defer></script>
+<script src="/aurora-fc-2/aurora-data2-client.js?v=20260823-system-health-browser-authority-3" defer></script>
+<script src="system-health-stability.js?v=20260823-system-health-browser-authority-3" defer></script>
+<script src="aurora-browser-sync.js?v=20260823-browser-sync-authority-3" defer></script>
+<script src="aurora-browser-sync-quota-fix.js?v=20260823-browser-sync-authority-3" defer></script>
+<script src="system-health-browser-sync-authority.js?v=20260823-system-health-browser-authority-3" defer></script>
+<script src="system-health-restored.js?v=20260823-system-health-browser-authority-3" defer></script>
+<script src="aurora-cloud-conflict-resolver.js?v=20260823-legacy-cloud-retired-2" defer></script>
 </head>
 <body>
 <header class="topbar">
@@ -36,14 +37,14 @@
     <div>
       <span class="health-eyebrow">Aurora 2.0 • Stable Core • Rebuild Control Room</span>
       <h1>System<br><span>Health</span></h1>
-      <p>The full control-room view is back: Stable Core, AuroraData 2, canonical holdings, notifications, backups, managed sync and protected Aurora Cloud diagnostics in one place.</p>
+      <p>The full control-room view is back: Stable Core, AuroraData 2, canonical holdings, notifications, backups, managed sync and protected Browser Sync diagnostics in one place.</p>
     </div>
     <article class="health-overall">
       <small>PLATFORM STATUS</small>
       <strong id="overallStatus">CHECKING</strong>
       <span id="overallNote">Running Aurora diagnostics…</span>
       <div class="hero-facts">
-        <div><small>Cloud</small><b id="heroCloud">—</b></div>
+        <div><small>Browser Sync</small><b id="heroCloud">—</b></div>
         <div><small>Notifications</small><b id="heroNotifications">—</b></div>
         <div><small>Backup</small><b id="heroBackup">—</b></div>
       </div>
@@ -56,7 +57,7 @@
     <article><small>Schema</small><strong id="schemaVersion">—</strong><span>Core state model</span></article>
     <article><small>AuroraData 2</small><strong id="backendStatus">—</strong><span id="backendMeta">Connection</span></article>
     <article><small>Holdings Sync</small><strong id="holdingsStatus">—</strong><span id="holdingsMeta">Canonical state</span></article>
-    <article class="cloud-kpi"><small>Aurora Cloud</small><strong id="cloudKpiStatus">—</strong><span id="cloudKpiMeta">Cross-device state</span></article>
+    <article class="cloud-kpi"><small>Browser Sync</small><strong id="cloudKpiStatus">—</strong><span id="cloudKpiMeta">Cross-browser state</span></article>
     <article class="notification-kpi"><small>Notifications</small><strong id="notificationStatus">—</strong><span id="notificationMeta">Event engine</span></article>
     <article><small>Last Good Backup</small><strong id="backupStatus">—</strong><span id="backupMeta">Local recovery</span></article>
   </section>
@@ -74,28 +75,28 @@
   </section>
 
   <section class="health-panel cloud-panel">
-    <div class="health-panel-head"><div><small>AURORA CLOUD</small><h2>Cross-Device State</h2><p class="health-copy">Cloud state is inspected live. During the rebuild, overwrite/apply actions remain protected so a diagnostic page cannot replace a good device copy by accident.</p></div><span id="cloudBadge" class="health-badge">CHECKING</span></div>
+    <div class="health-panel-head"><div><small>BROWSER SYNC</small><h2>Cross-Browser State</h2><p class="health-copy">Browser Sync is the single cross-browser state authority. Transfers are explicit and backed up; the retired legacy cloud runtime is no longer active.</p></div><span id="cloudBadge" class="health-badge">CHECKING</span></div>
     <div class="cloud-command-grid">
-      <article class="cloud-status-card"><small>CLOUD STATUS</small><strong id="cloudStatusTitle">Checking Aurora Cloud…</strong><span id="cloudStatusMeta">Waiting for the cloud engine.</span></article>
+      <article class="cloud-status-card"><small>SYNC STATUS</small><strong id="cloudStatusTitle">Checking Browser Sync…</strong><span id="cloudStatusMeta">Waiting for Browser Sync.</span></article>
       <article class="cloud-mini-card"><small>CURRENT DEVICE</small><strong id="cloudDeviceDisplay">—</strong><span id="cloudDeviceId">—</span></article>
-      <article class="cloud-mini-card"><small>CLOUD ACCOUNT</small><strong id="cloudAccount">—</strong><span id="cloudAccountMeta">Authentication</span></article>
-      <article class="cloud-mini-card"><small>LAST CLOUD WRITER</small><strong id="cloudLastWriter">—</strong><span id="cloudLastWriterMeta">—</span></article>
+      <article class="cloud-mini-card"><small>SYNC ACCOUNT</small><strong id="cloudAccount">—</strong><span id="cloudAccountMeta">Authentication</span></article>
+      <article class="cloud-mini-card"><small>MASTER BROWSER</small><strong id="cloudLastWriter">—</strong><span id="cloudLastWriterMeta">—</span></article>
     </div>
     <div class="cloud-timeline">
-      <div><small>Cloud Revision</small><strong id="cloudRevision">—</strong><span>Current saved generation</span></div>
-      <div><small>Last Sync</small><strong id="cloudLastSync">Never</strong><span>Upload or download</span></div>
-      <div><small>Cloud Writes</small><strong id="cloudWriteMode">PROTECTED</strong><span id="cloudWriteMeta">Rebuild safety shield</span></div>
-      <div><small>Local Apply</small><strong id="cloudApplyMode">PROTECTED</strong><span id="cloudApplyMeta">Rebuild safety shield</span></div>
+      <div><small>Master Revision</small><strong id="cloudRevision">—</strong><span>Current saved generation</span></div>
+      <div><small>Last Sync</small><strong id="cloudLastSync">Never</strong><span>Protected browser transfer</span></div>
+      <div><small>Master Save</small><strong id="cloudWriteMode">MANUAL</strong><span id="cloudWriteMeta">Explicit Save This Browser as Master only</span></div>
+      <div><small>Local Apply</small><strong id="cloudApplyMode">MANUAL</strong><span id="cloudApplyMeta">Explicit Use Cloud Copy Here only</span></div>
     </div>
     <div class="cloud-conflict" id="cloudConflictBox" hidden>
-      <div><small>CONFLICT PROTECTION</small><strong>Aurora Cloud conflict detected</strong><span id="cloudConflictMeta">Aurora stopped before overwriting either copy.</span></div>
-      <div class="cloud-conflict-actions"><button id="cloudUseCloud" type="button">Use Cloud Copy</button><button id="cloudUseDevice" class="danger" type="button">Replace Cloud with This Device</button></div>
+      <div><small>CONFLICT PROTECTION</small><strong>Browser Sync conflict detected</strong><span id="cloudConflictMeta">Aurora stopped before overwriting either copy.</span></div>
+      <div class="cloud-conflict-actions"><button id="cloudUseCloud" type="button">Use Master Copy Here</button><button id="cloudUseDevice" class="danger" type="button">Save This Browser as Master</button></div>
     </div>
     <div class="cloud-safety-grid">
-      <div><b>✓ Conflict stays visible</b><span>The warning remains here until the underlying cloud conflict is genuinely resolved.</span></div>
-      <div><b>✓ Toasts deduplicate</b><span>Notifications can now remember their own warning state instead of repeating the same pop-up every evaluation cycle.</span></div>
+      <div><b>✓ Conflict stays visible</b><span>The warning remains here until the underlying Browser Sync conflict is genuinely resolved.</span></div>
+      <div><b>✓ Toasts deduplicate</b><span>Notifications remember their warning state instead of repeating the same pop-up every evaluation cycle.</span></div>
       <div><b>✓ Secrets stay local</b><span>AuroraData endpoint/token and passwords are never included in this support snapshot.</span></div>
-      <div><b>✓ Rebuild shield respected</b><span>Cloud overwrite controls stay disabled while the Stage 3G protection layer is active.</span></div>
+      <div><b>✓ Legacy cloud retired</b><span>The old Stage 3G cloud lifecycle can no longer act as a second state authority.</span></div>
     </div>
   </section>
 
