@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260822-browser-sync-1';
+  const BUILD = '20260823-browser-sync-brave-quiet-2';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const SESSION_KEY = 'aurora2:cloud:session:v1';
@@ -435,7 +435,8 @@
     return next;
   }
 
-  async function downloadCloud() {
+  async function downloadCloud(options = {}) {
+    const quietApply = Boolean(options?.quietApply);
     if (!currentUser) await ensureToken(false);
     working = true;
     phase = 'DOWNLOADING';
@@ -452,17 +453,19 @@
       const stamp = now();
       saveMeta({ lastSyncAt: stamp, lastDownloadAt: stamp, remoteRevision: latest.revision, remoteHash: latest.hash });
       phase = 'SYNCED';
-      window.dispatchEvent(new CustomEvent('aurora2:state', { detail: { source: 'aurora-browser-sync', direction: 'download', revision: latest.revision } }));
-      emit();
+      if (!quietApply) {
+        window.dispatchEvent(new CustomEvent('aurora2:state', { detail: { source: 'aurora-browser-sync', direction: 'download', revision: latest.revision } }));
+        emit();
+      }
       return next;
     } catch (error) {
       phase = 'ERROR';
       lastError = String(error?.message || error);
-      emit();
+      if (!quietApply) emit();
       throw error;
     } finally {
       working = false;
-      emit();
+      if (!quietApply) emit();
     }
   }
 
@@ -524,7 +527,7 @@
     section.id = 'browserSyncPanel';
     section.className = 'health-panel browser-sync-panel';
     section.innerHTML = `
-      <div class="health-panel-head"><div><small>BROWSER SYNC</small><h2>Safari ↔ Brave State</h2><p class="health-copy">A dedicated raw-state mirror keeps current Aurora fields intact. Upload and download are explicit, backed up, and separate from the protected legacy Cloud Sync document.</p></div><span id="browserSyncBadge" class="health-badge">CHECKING</span></div>
+      <div class="health-panel-head"><div><small>BROWSER SYNC</small><h2>Safari ↔ Brave State</h2><p class="health-copy">A dedicated raw-state mirror keeps current Aurora fields intact. Upload and download are explicit, backed up, and separate from the retired legacy Cloud Sync document.</p></div><span id="browserSyncBadge" class="health-badge">CHECKING</span></div>
       <div class="browser-sync-grid">
         <div><small>THIS BROWSER</small><strong id="browserSyncDevice">—</strong><span id="browserSyncLocal">Local Aurora state</span></div>
         <div><small>CLOUD MASTER</small><strong id="browserSyncCloud">—</strong><span id="browserSyncCloudMeta">No browser mirror checked</span></div>
@@ -571,7 +574,14 @@
     document.getElementById('browserSyncDownload')?.addEventListener('click', async () => {
       if (!cloudCache) return;
       if (!confirm(`Use the Browser Sync cloud copy from ${cloudCache.deviceName || 'another browser'}?\n\nAurora will create a last-good backup of this browser before replacing cloud-managed state. Local backend/runtime settings stay on this device.`)) return;
-      try { await downloadCloud(); setTimeout(() => location.reload(), 500); } catch (_) {}
+      const braveQuiet = browserName() === 'Brave';
+      try {
+        await downloadCloud({ quietApply: braveQuiet });
+        setTimeout(() => {
+          if (braveQuiet) location.replace(location.href);
+          else location.reload();
+        }, braveQuiet ? 80 : 500);
+      } catch (_) {}
     });
     document.getElementById('browserSyncUpload')?.addEventListener('click', async () => {
       const warning = cloudCache
