@@ -1,179 +1,56 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-stage3g-cloud-lifecycle-static-conflict-3';
-  const CLOUD_META_KEY = 'aurora2:cloud:meta:v1';
-  const SIGNAL_WATCH_KEY = 'aurora2:scouting:signal-watch:v2';
-  const QUIET_PHASES = new Set(['LOCAL_APPLY_BLOCKED','LOCAL_META_WRITE_BLOCKED','FIRESTORE_WRITE_BLOCKED']);
-  let firestoreWriteBlocks = 0;
-  let coreWriteBlocks = 0;
-  let localMetaBlocks = 0;
-  let autoSyncDisableWrites = 0;
-  let lastBroadcastSignature = '';
+  const BUILD = '20260823-legacy-cloud-retired-browser-sync-authority-1';
 
-  function cloudStatus() {
-    try { return window.AuroraCloudSync?.status?.() || null; } catch (_) { return null; }
-  }
+  // The legacy Aurora Cloud state runtime is intentionally retired on the
+  // rebuilt Aurora_FC shell. Browser Sync is the single cross-browser state
+  // authority. Keeping the old Firestore state engine alive alongside Browser
+  // Sync caused duplicate conflict/status lifecycles and repeated UI refreshes
+  // on Chromium browsers.
+  //
+  // This shim performs NO cloud reads, writes, local state application,
+  // timers, subscriptions, fetch interception or Storage interception.
 
-  function semanticSignature(status, payload, state) {
-    return JSON.stringify({
-      status:String(status || ''),
-      phase:String(payload?.phase || ''),
-      signedIn:Boolean(state?.signedIn),
-      online:state?.online !== false,
-      bootstrapped:Boolean(state?.bootstrapped),
-      conflicts:Array.isArray(state?.conflicts) ? state.conflicts.map(String).sort() : [],
-      cloudRevision:Number(state?.cloudRevision || 0),
-      cloudDeviceId:String(state?.cloudDeviceId || ''),
-      deviceId:String(state?.deviceId || '')
-    });
-  }
+  const detail = Object.freeze({
+    build: BUILD,
+    status: 'ACTIVE',
+    phase: 'LEGACY_CLOUD_RETIRED',
+    legacyCloudRetired: true,
+    browserSyncAuthority: true,
+    cloudWritesEnabled: false,
+    localApplyEnabled: false,
+    backgroundAutoSyncEnabled: false
+  });
 
-  function report(status, detail = {}) {
-    const state = cloudStatus();
-    const payload = {
-      build: BUILD,
-      status,
-      phase: detail.phase || state?.phase || 'WAITING',
-      cloudModuleLoaded: Boolean(window.AuroraCloudSync),
-      firestoreWritesBlocked: firestoreWriteBlocks,
-      coreWritesBlocked: coreWriteBlocks,
-      localMetaWritesBlocked: localMetaBlocks,
-      autoSyncDisableWrites,
-      cloudWritesEnabled: false,
-      localApplyEnabled: false,
-      backgroundAutoSyncEnabled: false,
-      ...detail
-    };
-    document.documentElement.dataset.auroraCloudLifecycle = String(status || 'unknown').toLowerCase();
-    document.documentElement.dataset.auroraCloudPhase = String(payload.phase || 'unknown').toLowerCase();
-
-    const panel = document.getElementById('stage3gCloudLifecycleStatus');
-    const note = document.getElementById('stage3gCloudLifecycleNote');
-    if (panel) {
-      const label = status === 'ACTIVE' ? 'ACTIVE ✅' : status === 'FAILED' ? 'FAILED ❌' : 'LOADING…';
-      panel.textContent = `Cloud Lifecycle: ${label}`;
-    }
-    if (note) {
-      const phase = payload.phase ? `Phase: ${payload.phase}. ` : '';
-      note.textContent = `${phase}Cloud sign-in/read is available. Background auto-sync is paused on this dry-run shell to prevent repeated state refreshes.`;
-    }
-
-    // Shield interceptions are diagnostic counters, not cloud lifecycle changes.
-    // Broadcasting them made conflict browsers continuously repaint every page.
-    if (QUIET_PHASES.has(String(payload.phase || '').toUpperCase())) return payload;
-
-    // A persistent conflict is a state, not a heartbeat. Broadcast only when
-    // its meaningful identity actually changes.
-    const signature = semanticSignature(status, payload, state);
-    if (signature === lastBroadcastSignature) return payload;
-    lastBroadcastSignature = signature;
-    window.dispatchEvent(new CustomEvent('aurora:stage3g-cloud-lifecycle', { detail: payload }));
-    return payload;
-  }
-
-  if (!window.Aurora2?.core?.read || !window.Aurora2?.core?.write) {
-    report('FAILED', { phase: 'CORE_NOT_READY', error: 'CORE_NOT_READY' });
-    return;
-  }
-
-  const originalCoreWrite = window.Aurora2.core.write;
-  window.Aurora2.core.write = function auroraStage3gDryRunCoreWrite() {
-    coreWriteBlocks += 1;
-    report('ACTIVE', { phase: 'LOCAL_APPLY_BLOCKED' });
-    return window.Aurora2.core.read();
-  };
-
-  const nativeSetItem = Storage.prototype.setItem;
-  Storage.prototype.setItem = function auroraStage3gSetItem(key, value) {
-    const storageKey = String(key);
-    if (this === window.localStorage && storageKey === CLOUD_META_KEY) {
-      let allowAutoSyncDisable = false;
-      try {
-        const parsed = JSON.parse(String(value || '{}'));
-        allowAutoSyncDisable = parsed && parsed.autoSync === false;
-      } catch (_) {}
-      if (allowAutoSyncDisable) {
-        autoSyncDisableWrites += 1;
-        return nativeSetItem.call(this, key, value);
-      }
-      localMetaBlocks += 1;
-      report('ACTIVE', { phase: 'LOCAL_META_WRITE_BLOCKED' });
-      return;
-    }
-    if (this === window.localStorage && storageKey === SIGNAL_WATCH_KEY) {
-      localMetaBlocks += 1;
-      report('ACTIVE', { phase: 'LOCAL_META_WRITE_BLOCKED' });
-      return;
-    }
-    return nativeSetItem.call(this, key, value);
-  };
-
-  const nativeFetch = window.fetch.bind(window);
-  window.fetch = function auroraStage3gFetch(input, init = {}) {
-    let url = '';
-    try { url = typeof input === 'string' ? input : String(input?.url || input || ''); } catch (_) {}
-    const method = String(init?.method || input?.method || 'GET').toUpperCase();
-    try {
-      const parsed = new URL(url, location.href);
-      if (parsed.hostname === 'firestore.googleapis.com' && method === 'PATCH') {
-        firestoreWriteBlocks += 1;
-        report('ACTIVE', { phase: 'FIRESTORE_WRITE_BLOCKED' });
-        return Promise.reject(new TypeError('AURORA_STAGE3G_FIRESTORE_PATCH_BLOCKED'));
-      }
-    } catch (_) {}
-    return nativeFetch(input, init);
-  };
-
-  report('LOADING', { phase: 'LOADING_CLOUD_MODULE' });
-
-  const cloud = document.createElement('script');
-  cloud.src = '/aurora-fc-2/aurora-cloud-sync.js?v=20260823-stage3g-cloud-static-conflict-3';
-  cloud.async = false;
-  cloud.dataset.auroraStage3 = 'cloud-lifecycle-dry-run';
-  cloud.addEventListener('load', () => {
-    document.documentElement.dataset.auroraCloudSync = 'loaded';
-
-    try { window.AuroraCloudSync?.setAutoSync?.(false); } catch (_) {}
-
-    report('ACTIVE', { phase: 'MODULE_LOADED_AUTOSYNC_PAUSED' });
-
-    try {
-      window.AuroraCloudSync?.subscribe?.((state) => {
-        report('ACTIVE', { phase: state?.phase || 'ACTIVE', cloudState: state || null });
-      });
-    } catch (_) {}
-
-    const ready = window.AuroraCloudSync?.ready;
-    if (ready && typeof ready.then === 'function') {
-      ready.then((state) => {
-        try { window.AuroraCloudSync?.setAutoSync?.(false); } catch (_) {}
-        report('ACTIVE', { phase: state?.phase || 'READY', cloudReady: true, cloudState: state || null });
-      }).catch((error) => {
-        report('ACTIVE', { phase: 'READY_ERROR_SHIELDED', error: String(error?.message || error || '') });
-      });
-    }
-  }, { once: true });
-  cloud.addEventListener('error', () => {
-    document.documentElement.dataset.auroraCloudSync = 'failed';
-    report('FAILED', { phase: 'CLOUD_MODULE_LOAD_FAILED', error: 'CLOUD_MODULE_LOAD_FAILED' });
-  }, { once: true });
-  document.head.appendChild(cloud);
-
-  window.AuroraStage3GShield = Object.freeze({
+  window.AuroraLegacyCloudRetired = Object.freeze({
     build: BUILD,
     active: true,
-    originalCoreWrite,
-    nativeFetch,
-    nativeSetItem,
+    browserSyncAuthority: true,
+    reason: 'DUPLICATE_CLOUD_AUTHORITY_REMOVED'
+  });
+
+  // Preserve the diagnostic API shape without installing any runtime shields.
+  window.AuroraStage3GShield = Object.freeze({
+    build: BUILD,
+    active: false,
+    retired: true,
+    browserSyncAuthority: true,
     status: () => ({
-      firestoreWriteBlocks,
-      coreWriteBlocks,
-      localMetaBlocks,
-      autoSyncDisableWrites,
-      backgroundAutoSyncEnabled: false,
-      broadcastMode: 'SEMANTIC_CHANGES_ONLY',
-      cloud: cloudStatus()
+      legacyCloudRetired: true,
+      browserSyncAuthority: true,
+      firestoreWriteBlocks: 0,
+      coreWriteBlocks: 0,
+      localMetaBlocks: 0,
+      backgroundAutoSyncEnabled: false
     })
+  });
+
+  document.documentElement.dataset.auroraCloudLifecycle = 'retired';
+  document.documentElement.dataset.auroraCloudPhase = 'legacy-cloud-retired';
+
+  // One startup signal only. No repeating cloud heartbeat.
+  queueMicrotask(() => {
+    window.dispatchEvent(new CustomEvent('aurora:stage3g-cloud-lifecycle', { detail }));
   });
 })();
