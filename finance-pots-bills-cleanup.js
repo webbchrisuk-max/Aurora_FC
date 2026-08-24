@@ -1,13 +1,14 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260824-pots-bills-cleanup-1';
+  const BUILD = '20260824-pots-bills-cleanup-2';
   const STATE_KEY = 'aurora2:state:v1';
   if (window.__AuroraFinancePotsBillsCleanup === BUILD) return;
   window.__AuroraFinancePotsBillsCleanup = BUILD;
 
   const norm = v => String(v ?? '').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-  const money = v => new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(Math.max(0,Number(v)||0));
+  const num = v => Math.max(0, Number(v) || 0);
+  const money = v => new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(num(v));
 
   function state(){
     try { return window.Aurora2?.core?.read?.() || JSON.parse(localStorage.getItem(STATE_KEY) || '{}') || {}; }
@@ -48,9 +49,55 @@
 
   function tidyUpperBills(){
     const billCard = document.querySelector('#financeUnifiedPotsBills .fpb-card:has(#fpbBills)');
+    const heading = billCard?.querySelector('.fpb-head h3');
     const chip = billCard?.querySelector('.fpb-chip');
+    if (heading) heading.textContent = 'Next 5 Upcoming Bills';
     if (chip) chip.textContent = 'UPCOMING';
-    document.querySelectorAll('#fpbBills .fpb-actions').forEach(el => el.remove());
+
+    const rows = [...document.querySelectorAll('#fpbBills > .fpb-bill')];
+    rows.forEach((row,index) => {
+      row.style.display = index < 5 ? '' : 'none';
+      row.querySelectorAll('.fpb-actions').forEach(el => el.remove());
+    });
+  }
+
+  function syncPotStatuses(){
+    const s = state();
+    const pots = Array.isArray(s?.finance?.pots) ? s.finance.pots : [];
+    const fundingRows = Array.isArray(s?.finance?.fundingPolicy?.lastPlan?.rows)
+      ? s.finance.fundingPolicy.lastPlan.rows
+      : [];
+
+    document.querySelectorAll('#fpbPots .fpb-pot').forEach(card => {
+      const name = card.querySelector('h4')?.textContent?.trim() || '';
+      const pot = pots.find(p => norm(p?.name) === norm(name));
+      if (!pot || pot.archived) return;
+
+      const target = num(pot.target);
+      const spent = pot.goalMode === 'funded-progress' ? num(pot.spent) : 0;
+      const funded = num(pot.balance) + spent;
+      const gap = Math.max(0,target-funded);
+      const directFunding = Math.max(num(pot.fundingRequired),num(pot.fundingOverride),num(pot.fundingPerPayday));
+      const plannedFunding = fundingRows
+        .filter(row => norm(row?.name) === norm(pot.name))
+        .reduce((sum,row) => sum + num(row?.amount),0);
+      const status = card.querySelector('.fpb-status');
+      if (!status) return;
+
+      if (target <= 0.009) {
+        status.textContent = 'PROTECTED';
+        status.classList.remove('warn');
+        status.classList.add('good');
+      } else if (gap <= 0.009) {
+        status.textContent = 'FUNDED';
+        status.classList.remove('warn');
+        status.classList.add('good');
+      } else if (directFunding > 0.009 || plannedFunding > 0.009) {
+        status.textContent = 'FUNDING';
+        status.classList.remove('warn');
+        status.classList.add('good');
+      }
+    });
   }
 
   function currentPot(){
@@ -136,7 +183,7 @@
     if (header) host.appendChild(header);
     ordered.forEach(key => {
       const items = groups.get(key);
-      const total = items.reduce((sum,x)=>sum + Math.max(0,Number(x.bill?.amount)||0),0);
+      const total = items.reduce((sum,x)=>sum + num(x.bill?.amount),0);
       const activeCount = items.filter(x => !x.bill?.archived && !x.bill?.paid && x.bill?.included !== false).length;
       const section = document.createElement('section');
       section.className = 'aurora-bill-month';
@@ -153,6 +200,7 @@
     applying = true;
     installStyles();
     tidyUpperBills();
+    syncPotStatuses();
     syncPotEditor();
     groupManageBills();
     applying = false;
@@ -174,7 +222,7 @@
     observer.observe(root,{childList:true,subtree:true});
     window.addEventListener('aurora2:state',()=>setTimeout(apply,30));
     [200,500,1000,2000,4000].forEach(ms=>setTimeout(apply,ms));
-    window.AuroraFinancePotsBillsCleanup = Object.freeze({build:BUILD,ready:true});
+    window.AuroraFinancePotsBillsCleanup = Object.freeze({build:BUILD,ready:true,nextFiveBills:true,fundingPlanStatus:true});
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',boot,{once:true});
