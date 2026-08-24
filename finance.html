@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="/aurora-fc-2/immersive-departments.css?v=120-shared-hero-art">
 <link rel="stylesheet" href="/aurora-fc-2/aurora-department-cards.css?v=20260815-1">
 <link rel="stylesheet" href="/aurora-fc-2/aurora-typography.css?v=20260816-1">
-<script src="aurora-stage4e-live-finance-route.js?v=20260823-stage4e-finance-local-write-protect-1" defer></script>
+<script src="aurora-stage4e-live-finance-route.js?v=20260824-finance-overhaul-bootstrap-1" defer></script>
 <script src="finance-ui-controller.js?v=20260823-finance-ui-controller-3" defer></script>
 <style>
 body{margin:0;background:#020612;color:#eef7ff}.finance-live-rebuild .page{max-width:1400px;margin:0 auto;padding:30px 24px 70px}.finance-command-hero{margin-top:8px}.finance-section-nav{position:sticky;top:72px;z-index:8}.live-section{scroll-margin-top:150px}.live-placeholder{min-height:160px;display:flex;align-items:center;justify-content:center;text-align:center;color:#8398ab;border:1px dashed rgba(110,231,255,.18);border-radius:18px;background:rgba(5,15,28,.45);margin-top:18px;padding:24px}.live-placeholder strong{display:block;color:#dff6ff;font-size:20px;margin-bottom:8px}.finance-field-grid .field{min-width:0;overflow:hidden}.finance-field-grid input[type="date"]{display:block;width:calc(100% - 10px);max-width:calc(100% - 10px);min-width:0;min-inline-size:0;box-sizing:border-box;justify-self:start}
@@ -21,7 +21,7 @@ body{margin:0;background:#020612;color:#eef7ff}.finance-live-rebuild .page{max-w
 <body class="finance-command-page finance-live-rebuild">
 <header class="topbar">
   <div class="brand"><a class="menu" href="#club-nav">☰</a><div class="crest">A</div><div><strong>Aurora City FC</strong><span>FINANCE COMMAND</span></div></div>
-  <div class="status"><span>STAGE 4E</span><b>FINANCE REBUILD</b></div>
+  <div class="status"><span>FINANCE</span><b>FULL OPERATIONS</b></div>
 </header>
 <aside class="club-nav" id="club-nav">
   <div class="nav-head"><div class="crest">A</div><div><strong>Aurora City FC</strong><span>Stable rebuild</span></div><a href="#" class="nav-close">×</a></div>
@@ -34,10 +34,10 @@ body{margin:0;background:#020612;color:#eef7ff}.finance-live-rebuild .page{max-w
 <main class="page finance-shell-page">
   <section class="finance-command-hero">
     <div class="finance-command-hero-copy">
-      <div class="finance-status-line"><span class="finance-live-pill">● FINANCE SYSTEM LIVE</span><span class="finance-version-pill">STABLE REBUILD</span></div>
+      <div class="finance-status-line"><span class="finance-live-pill">● FINANCE SYSTEM LIVE</span><span class="finance-version-pill">FULL OPERATIONS</span></div>
       <span class="finance-eyebrow">Aurora City FC • Finance Department</span>
       <h2>Finance<br><span>Command Centre</span></h2>
-      <p>Protect every commitment, control the payday cycle and release one authoritative investment mission to Transfer.</p>
+      <p>Protect every commitment, control the payday cycle, manage bills and pots, track House Projects and release one authoritative investment mission to Transfer.</p>
     </div>
     <div class="finance-command-rule aurora-hero-facts" aria-label="Finance live position">
       <small>FINANCE POSITION</small>
@@ -54,8 +54,8 @@ body{margin:0;background:#020612;color:#eef7ff}.finance-live-rebuild .page{max-w
   <div class="finance-tabs finance-section-nav" aria-label="Finance sections">
     <a class="tab active" href="#overviewPanel"><i>⌂</i><span><b>Command Overview</b><small>Live money position</small></span></a>
     <a class="tab" href="#paydayPanel"><i>£</i><span><b>Payday Control</b><small>Protect • fund • release</small></span></a>
-    <a class="tab" href="#potsPanel"><i>▰</i><span><b>Pots & Bills</b><small>Health, funding & commitments</small></span></a>
-    <a class="tab" href="#housePanel"><i>⌂</i><span><b>House Projects</b><small>Renovation ledger</small></span></a>
+    <a class="tab" href="#potsPanel"><i>▰</i><span><b>Pots & Bills</b><small>Bills • mark paid • pots</small></span></a>
+    <a class="tab" href="#housePanel"><i>⌂</i><span><b>House Projects</b><small>Rooms • costs • paid ledger</small></span></a>
   </div>
 
   <section id="overviewPanel" class="tab-panel active live-section">
@@ -115,7 +115,7 @@ body{margin:0;background:#020612;color:#eef7ff}.finance-live-rebuild .page{max-w
           <div class="field"><label>Investment amount to release</label><input type="number" value="0" disabled><small>Can be less than safe surplus, never more.</small></div>
         </div>
       </article>
-      <article class="finance-panel"><div class="finance-panel-head"><div><span class="finance-panel-kicker">Rebuild Step 1</span><h3>Functionality comes next</h3></div><span class="rule-chip">READ ONLY</span></div><p>The approved Finance layout is now live. Live values, editors, bills, pots and House actions will be reconnected in controlled stages on top of this stable shell.</p></article>
+      <article class="finance-panel"><div class="finance-panel-head"><div><span class="finance-panel-kicker">Finance Operations</span><h3>Commitments connected</h3></div><span class="rule-chip green">LIVE</span></div><p>Bills, pot management, payment undo, House Projects and the protected Transfer release are connected to the same saved Finance state.</p></article>
     </section>
   </section>
 
@@ -123,9 +123,9 @@ body{margin:0;background:#020612;color:#eef7ff}.finance-live-rebuild .page{max-w
     <section class="fu-pb" aria-label="Pots and Bills control">
       <nav class="fu-pb-nav" aria-label="Pots and Bills sections">
         <button type="button" class="active" data-fu-pane="summary"><b>Overview</b><small>Money & health</small></button>
-        <button type="button" data-fu-pane="pots"><b>Pots</b><small>Progress & management</small></button>
-        <button type="button" data-fu-pane="bills"><b>Bills</b><small>Before payday</small></button>
-        <button type="button" data-fu-pane="actions"><b>Finance Actions</b><small>Add & edit</small></button>
+        <button type="button" data-fu-pane="pots"><b>Pots</b><small>Balances & progress</small></button>
+        <button type="button" data-fu-pane="bills"><b>Bills</b><small>View & mark paid</small></button>
+        <button type="button" data-fu-pane="actions"><b>Finance Actions</b><small>Add • edit • undo</small></button>
       </nav>
 
       <section class="fu-pane" data-fu-view="summary">
@@ -138,18 +138,18 @@ body{margin:0;background:#020612;color:#eef7ff}.finance-live-rebuild .page{max-w
       </section>
 
       <section class="fu-pane" data-fu-view="pots" hidden>
-        <article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Protected Savings</span><h4>Pot Health</h4></div></div><div class="fu-health" data-fu-health></div><details class="fu-collapsible"><summary>Manage Pots</summary><div data-fu-pot-mount></div></details></article>
+        <article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Protected Savings</span><h4>All Active Pots</h4></div></div><div class="fu-health" data-fu-health></div><details class="fu-collapsible"><summary>Legacy pot mount</summary><div data-fu-pot-mount></div></details></article>
       </section>
 
       <section class="fu-pane" data-fu-view="bills" hidden>
-        <article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Commitments</span><h4>Due Before Next Payday</h4></div></div><div class="fu-list" data-fu-bills-due></div><details class="fu-collapsible"><summary>View All Monthly Bills</summary><div data-fu-bill-mount></div></details></article>
+        <article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Commitments</span><h4>All Unpaid Bills</h4></div></div><div class="fu-list" data-fu-bills-due></div><details class="fu-collapsible"><summary>Legacy bill mount</summary><div data-fu-bill-mount></div></details></article>
       </section>
 
       <section class="fu-pane" data-fu-view="actions" hidden><div data-fu-actions-mount></div></section>
     </section>
   </section>
 
-  <section id="housePanel" class="live-section"><div class="live-placeholder"><div><strong>House Projects</strong>The House Fund position, reservations, room groups and paid/historical ledger will follow after the Finance shell is approved.</div></div></section>
+  <section id="housePanel" class="live-section"><div class="live-placeholder"><div><strong>House Projects loading…</strong>Restoring House Fund position, reservations, room groups and paid/historical ledger.</div></div></section>
 </main>
 </body>
 </html>
