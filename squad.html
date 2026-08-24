@@ -120,7 +120,7 @@
       <div><span class="squad-kicker">Club History • Read Only</span><h2>Former Players</h2><p>Sold, exited, closed and archived Squad records stay visible here as club history. Current Scouting evidence is also shown so former players can be reconsidered without changing the canonical Squad.</p></div>
       <span class="authority-chip" id="formerPlayerCount">0 records</span>
     </div>
-    <div class="filters"><input class="squad-history-search" id="formerPlayerSearch" placeholder="Search former ticker, company or broker"></div>
+    <div class="filters"><input class="squad-history-search" id="formerPlayerSearch" oninput="window.AuroraSquadFinalPolish?.render?.()" placeholder="Search former ticker, company or broker"></div>
     <div class="squad-history-grid" id="formerPlayerGrid"></div>
     <div class="squad-history-note">Historical figures use stored Squad exit fields first. Re-entry status uses live browser Scouting evidence where available, with verified AuroraScout snapshots for legacy former holdings when needed. Missing valuation is never invented.</div>
   </section>
