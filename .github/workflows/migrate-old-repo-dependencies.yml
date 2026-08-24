@@ -1,9 +1,8 @@
 name: Migrate old Aurora repo dependencies
 
 on:
-  push:
-    paths:
-      - '.github/workflows/migrate-old-repo-dependencies.yml'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -13,39 +12,40 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Aurora_FC
+      - name: Checkout migration branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Clone old repo
         run: git clone --depth 1 https://github.com/webbchrisuk-max/aurora-fc-2.git /tmp/aurora-old
 
-      - name: Copy missing root dependencies and assets
+      - name: Copy live dependencies and preserve assets
         shell: bash
         run: |
           set -euo pipefail
 
-          # Keep every newer file already present in Aurora_FC. Only fill gaps
-          # from the retiring repo so legacy code cannot overwrite the rebuild.
-          for f in /tmp/aurora-old/*; do
-            [ -f "$f" ] || continue
-            name="$(basename "$f")"
-            case "$name" in
-              *.js|*.css|*.json|*.txt|*.svg|*.html)
-                if [ ! -e "$name" ]; then cp "$f" "$name"; fi
-                ;;
-            esac
+          # Exact live dependencies still referenced by the rebuilt Aurora_FC pages.
+          for name in \
+            aurora.css \
+            finance-ui.css \
+            immersive-departments.css \
+            aurora-department-cards.css \
+            aurora-typography.css \
+            aurora-data2-client.js; do
+            if [ -f "/tmp/aurora-old/$name" ] && [ ! -e "$name" ]; then
+              cp "/tmp/aurora-old/$name" "$name"
+            fi
           done
 
-          # Preserve artwork and binary assets. Existing new-repo assets win.
+          # Preserve visual assets before the old repository is retired.
           if [ -d /tmp/aurora-old/assets ]; then
             mkdir -p assets
             cp -rn /tmp/aurora-old/assets/. assets/ || true
           fi
 
-          # Preserve useful old engines/configuration as reference without
-          # activating them over the current rebuild.
+          # Preserve useful legacy reference material without activating it.
           mkdir -p legacy/aurora-fc-2-reference
           for name in \
             AuroraMaster.json \
@@ -78,12 +78,11 @@ jobs:
           from pathlib import Path
 
           exts = {'.html', '.js', '.css', '.json', '.txt', '.svg'}
-          skip = {'.git'}
           changed = []
           for p in Path('.').rglob('*'):
               if not p.is_file() or p.suffix.lower() not in exts:
                   continue
-              if any(part in skip for part in p.parts):
+              if '.git' in p.parts or 'legacy' in p.parts:
                   continue
               try:
                   text = p.read_text(encoding='utf-8')
@@ -97,16 +96,19 @@ jobs:
           print('Repointed:', *changed, sep='\n- ')
           PY
 
-      - name: Verify no live old-repo dependency remains
+      - name: Verify migration
         shell: bash
         run: |
           set -euo pipefail
+          for name in aurora.css finance-ui.css immersive-departments.css aurora-department-cards.css aurora-typography.css aurora-data2-client.js; do
+            test -s "$name" || { echo "Missing required dependency: $name"; exit 1; }
+          done
           if grep -RIn --exclude-dir=.git --exclude-dir=legacy '/aurora-fc-2/' .; then
             echo 'Old-repo dependency still found outside legacy archive.'
             exit 1
           fi
 
-      - name: Commit migration
+      - name: Commit migration to PR branch
         shell: bash
         run: |
           set -euo pipefail
@@ -118,4 +120,4 @@ jobs:
             exit 0
           fi
           git commit -m 'Migrate dependencies from retiring aurora-fc-2 repo'
-          git push
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
