@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260822-club-control-restored-1';
+  const BUILD = '20260824-club-control-consolidated-1';
   const PREF_KEY = 'aurora:club-control:preferences:v1';
   const LOG_KEY = 'aurora:club-control:activity:v1';
   const DEFAULTS = Object.freeze({
@@ -100,8 +100,7 @@
     } catch (_) { return { label:'CHECK', detail:'Could not inspect service worker' }; }
   }
   function setText(id, value) {
-    const el = $(id);
-    if (el) el.textContent = value ?? '—';
+    document.querySelectorAll(`[id="${id}"]`).forEach(el => { el.textContent = value ?? '—'; });
   }
   function restampHeader() {
     document.querySelectorAll('.topbar .status span').forEach(node => { node.textContent = 'CLUB CONTROL'; });
@@ -161,7 +160,7 @@
     }).join('') : '<div class="cc-safe-card"><strong>No Club Control changes yet</strong><p>Only safe presentation and housekeeping actions are recorded here.</p></div>';
   }
   function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[ch]));
   }
   async function renderServiceWorker() {
     const status = await serviceWorkerStatus();
