@@ -10,7 +10,6 @@
 <link rel="stylesheet" href="squad-pitch.css?v=20260820-squad-pitch-profiles-1">
 <link rel="stylesheet" href="squad-final-polish.css?v=20260820-squad-final-polish-1">
 <script src="aurora-page-shell.js?v=20260819-stage3g-cloud-lifecycle-dryrun-1" defer></script>
-<script src="aurora-stage3i-notifications-readonly.js?v=20260819-stage3i-notifications-readonly-1" defer></script>
 <script src="squad-rebuild.js?v=20260820-squad-readonly-1" defer></script>
 <script src="squad-pitch.js?v=20260820-squad-pitch-profiles-1" defer></script>
 <script src="squad-final-polish.js?v=20260823-squad-former-player-reentry-2" defer></script>
@@ -66,7 +65,7 @@
       <span class="squad-kicker">Canonical Authority</span><h2>Squad Source</h2><p>This stage only reads existing Squad state. Confirmed broker receipts remain separate until the next controlled promotion stage.</p>
       <div class="authority-meta"><div><small>Source</small><strong id="squadSource">Checking…</strong></div><div><small>Last Squad update</small><strong id="squadUpdated">Checking…</strong></div><div><small>Yield on Cost</small><strong id="squadYoc">0.00%</strong></div><div><small>Locked positions</small><strong id="lockedCount">0</strong></div></div>
       <div class="chain"><div><b>01</b><span><strong>Registration</strong><span>Confirms real broker execution with AuroraData 2.</span></span></div><div><b>02</b><span><strong>Squad</strong><span>Owns the canonical account-scoped holding.</span></span></div><div><b>03</b><span><strong>Income</strong><span>Reads finished holdings and dividend truth.</span></span></div><div><b>04</b><span><strong>Scouting / Transfer</strong><span>Use Squad weights for portfolio-fit decisions.</span></span></div></div>
-      <div class="next-action"><small>Next controlled action</small><strong id="nextAction">Checking…</strong><span id="nextActionMeta">Checking first-team state.</span></div>
+      <div class="next-action"><small>Next controlled action</small><strong id="nextAction">Checking…</strong><span id="nextActionMeta">Checking first-team state.</span><a id="squadManagerAction" class="squad-manager-action" href="#">Open next step</a></div>
     </aside>
   </section>
 
@@ -104,10 +103,26 @@
     <article class="mini-card review"><small>Account Review</small><strong id="reviewValue">£0.00</strong><span id="reviewMeta">0 positions</span></article>
   </section>
 
+  <section class="squad-status-rail" id="squadStatusRail">
+    <article class="squad-status-tile"><small>⚽ First Team</small><strong id="statusFirstTeam">0</strong><span id="statusFirstTeamMeta">canonical players</span></article>
+    <article class="squad-status-tile protected"><small>🔒 Protected</small><strong id="statusProtected">0</strong><span>locked / protected players</span></article>
+    <article class="squad-status-tile former"><small>👋 Former Players</small><strong id="statusFormer">0</strong><span>archived account records</span></article>
+  </section>
+
   <section class="squad-card register-card">
     <div class="squad-head"><div><span class="squad-kicker">Canonical Holdings</span><h2>First Team Register</h2><p>The complete account-scoped register. The same ticker at two brokers remains two separate positions here.</p></div><span class="authority-chip" id="registerCount">0 shown</span></div>
     <div class="filters"><input id="holdingSearch" placeholder="Search ticker, company, sector or role"><select id="holdingAccount"><option value="ALL">All accounts</option><option value="IG">IG ISA</option><option value="T212">Trading 212 ISA</option><option value="CHECK">Account Review</option></select><button type="button" id="clearSquadFilters">Clear filters</button></div>
     <div class="holding-list" id="holdingRows"><div class="squad-empty">Loading canonical holdings…</div></div>
+  </section>
+
+  <section class="squad-card squad-history-card" id="formerPlayers">
+    <div class="squad-head">
+      <div><span class="squad-kicker">Club History • Read Only</span><h2>Former Players</h2><p>Sold, exited, closed and archived Squad records stay visible here as club history. Current Scouting evidence is also shown so former players can be reconsidered without changing the canonical Squad.</p></div>
+      <span class="authority-chip" id="formerPlayerCount">0 records</span>
+    </div>
+    <div class="filters"><input class="squad-history-search" id="formerPlayerSearch" placeholder="Search former ticker, company or broker"></div>
+    <div class="squad-history-grid" id="formerPlayerGrid"></div>
+    <div class="squad-history-note">Historical figures use stored Squad exit fields first. Re-entry status uses live browser Scouting evidence where available, with verified AuroraScout snapshots for legacy former holdings when needed. Missing valuation is never invented.</div>
   </section>
 
   <section class="bridge-health">
@@ -118,18 +133,19 @@
       <div class="squad-gate hold" id="squadBridgeGate"><strong>CHECKING BRIDGE</strong><span>Reading Registration receipts.</span></div>
     </article>
 
-    <aside class="squad-card">
+    <aside class="squad-card" id="squadDataHealth">
       <span class="squad-kicker">Data Health</span><h2>First Team Integrity</h2><p>Missing data is surfaced rather than guessed. These checks never change the canonical holding.</p>
       <div class="health-grid">
         <div class="health-card" id="healthAccount"><small>Broker Scope</small><strong id="healthAccountCount">0</strong><span id="healthAccountMeta">Checking…</span></div>
         <div class="health-card" id="healthBook"><small>Book Cost</small><strong id="healthBookCount">0</strong><span id="healthBookMeta">Checking…</span></div>
         <div class="health-card" id="healthPrice"><small>Price / Value</small><strong id="healthPriceCount">0</strong><span id="healthPriceMeta">Checking…</span></div>
         <div class="health-card" id="healthIncome"><small>Dividend Income</small><strong id="healthIncomeCount">0</strong><span id="healthIncomeMeta">Checking…</span></div>
+        <div class="health-card multi-broker" id="healthMultiBroker"><small>Multi-Broker Players</small><strong id="healthMultiBrokerCount">0</strong><span id="healthMultiBrokerMeta">Checking account separation…</span><em class="squad-integrity-detail" id="healthMultiBrokerDetail"></em></div>
       </div>
     </aside>
   </section>
 
-  <div class="squad-gate ready" style="margin-top:22px"><strong>SQUAD S1 — READ-ONLY REBUILD + RESTORED HERITAGE</strong><span>The Value XI, analytical drawer, Former Players history, multi-broker integrity, intelligent Manager Action and protected-player markers are presentation-only. No Holding Editor, legacy import or receipt-promotion write is enabled.</span></div>
+  <div class="squad-gate ready" style="margin-top:22px"><strong>SQUAD • CANONICAL READ</strong><span>The Value XI, analytical drawer, Former Players history, multi-broker integrity, Manager Action and protected-player markers are presentation-only. No Holding Editor, legacy import or receipt-promotion write is enabled.</span></div>
 </main>
 
 <div class="squad-player-drawer-backdrop" id="squadPlayerDrawerBackdrop" hidden></div>
