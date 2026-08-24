@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260824-phase2-shared-shell-5';
+  const BUILD = '20260824-phase2-shared-shell-6';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   const NAV = Object.freeze({
@@ -58,6 +58,16 @@
     document.head.appendChild(script);
   }
 
+  function loadIncomeBrokerCashTruthGuard() {
+    if (currentFile !== 'income.html') return;
+    if (window.__AuroraIncomeBrokerCashTruthGuard || [...document.scripts].some(script => String(script.src || '').includes('income-broker-cash-truth-guard.js'))) return;
+    const script = document.createElement('script');
+    script.src = 'income-broker-cash-truth-guard.js?v=20260824-income-broker-cash-truth-guard-1';
+    script.async = false;
+    script.dataset.auroraPhase2 = 'income-broker-cash-truth';
+    document.head.appendChild(script);
+  }
+
   function loadPhase2FormerReentryEvidence() {
     if (currentFile !== 'squad.html') return;
     if (window.__AuroraFormerReentryMarketEvidence || [...document.scripts].some(script => String(script.src || '').includes('squad-former-reentry-market-evidence.js'))) return;
@@ -103,6 +113,7 @@
   stampInternalNavigation();
   loadPhase2IncomeProjection();
   loadIncomeExactCostAuthority();
+  loadIncomeBrokerCashTruthGuard();
   loadPhase2FormerReentryEvidence();
   loadPhase2RegistrationSettlement();
   loadRegistrationReinvestmentReceipts();
