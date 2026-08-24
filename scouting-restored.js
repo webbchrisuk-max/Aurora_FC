@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-global-scouting-restore-1';
+  const BUILD = '20260824-scouting-controller-consolidated-1';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const NETWORK_URLS = [
@@ -464,7 +464,6 @@
     if (raw?.brokerEligible === false || raw?.brokerEligibility === false) { status='block'; reasons.push('Broker eligibility is explicitly unavailable.'); }
     let pending = false;
     if (status !== 'block') {
-      if (!(livePriceGbp > 0)) { pending=true; reasons.push('Live GBP execution price is missing.'); }
       if (!(yieldPct > 0)) { pending=true; reasons.push('Recurring dividend yield evidence is missing.'); }
       if (dividendSafety == null) { pending=true; reasons.push('Dividend-safety evidence is still missing.'); }
       if (Math.min(sustainableCoverage,maximumCoverage) < HARD_GATES.pendingCoverage) { pending=true; reasons.push(`Only ${coveragePct}% of weighted factor evidence is available.`); }
@@ -479,6 +478,7 @@
       if (preferredAccount === 'CHECK') reasons.push('Preferred broker still needs confirmation.');
       if (Math.min(sustainableCoverage,maximumCoverage) < .8) reasons.push(`Evidence coverage is ${coveragePct}%; controlled sizing only.`);
     }
+    if (!(livePriceGbp > 0) && status !== 'block') reasons.push('Execution price is not a Scouting gate; current price must be resolved before allocation / registration.');
     if (!reasons.length) reasons.push('Clears the canonical income, safety, valuation and portfolio-fit gates.');
     const strategy = state?.scouting?.strategy === 'maximum' ? 'maximum' : 'sustainable';
     const activeScore = strategy === 'maximum' ? maximumScore : sustainableScore;
@@ -489,7 +489,7 @@
     else if (activeScore >= 80) recommendation='STRONG BUY';
     else if (activeScore >= 70) recommendation='BUY';
     const reason = `${recommendation} • Sustainable ${sustainableScore}/100 • Maximum ${maximumScore}/100 • ${yieldPct>0?yieldPct.toFixed(2)+'% yield • ':''}${reasons.join(' ')}`;
-    return {...raw,ticker,name:String(raw?.name||ticker||'Target'),preferredAccount,yieldPct:Number(yieldPct.toFixed(4)),livePriceGbp:Number(livePriceGbp.toFixed(6)),confidence,dataQuality:confidence,dividendSafety,incomeScore,valuationScore,portfolioFit:fit.score,dividendGrowth,businessQuality,sustainableScore,maximumScore,status,recommendation,eligibilityReasons:reasons,reason,evidenceCoverage:coveragePct,projectedPortfolio:{tickerPct:fit.tickerPct,sectorPct:fit.sectorPct,testAmountGbp:missionBudget(state)},eligibleForTransfer:status==='pass'||status==='caution',approvedForTransfer:false,scoringEngine:'AURORA_SCOUTING_INTELLIGENCE_3_RESTORED',scoringEngineVersion:'3.0.1-restored',source:String(raw?.source||'AURORA1_GLOBAL_AUTO_BENCH'),lastAssessedAt:now(),updatedAt:now()};
+    return {...raw,ticker,name:String(raw?.name||ticker||'Target'),preferredAccount,yieldPct:Number(yieldPct.toFixed(4)),livePriceGbp:Number(livePriceGbp.toFixed(6)),confidence,dataQuality:confidence,dividendSafety,incomeScore,valuationScore,portfolioFit:fit.score,dividendGrowth,businessQuality,sustainableScore,maximumScore,status,recommendation,eligibilityReasons:reasons,reason,evidenceCoverage:coveragePct,projectedPortfolio:{tickerPct:fit.tickerPct,sectorPct:fit.sectorPct,testAmountGbp:missionBudget(state)},eligibleForTransfer:status==='pass'||status==='caution',executionPriceStatus:livePriceGbp>0?'AVAILABLE':'REQUIRED_AT_EXECUTION',livePriceRequiredAtExecution:!(livePriceGbp>0),scoutingPriceIndependent:true,approvedForTransfer:false,scoringEngine:'AURORA_SCOUTING_INTELLIGENCE_3_RESTORED',scoringEngineVersion:'3.0.1-restored',source:String(raw?.source||'AURORA1_GLOBAL_AUTO_BENCH'),lastAssessedAt:now(),updatedAt:now()};
   }
 
   function autoPromotionProfile(row) {
@@ -756,7 +756,7 @@
     if (netError) { netError.textContent=meta.lastError||''; netError.hidden=!meta.lastError; }
     document.querySelectorAll('[data-strategy]').forEach(button=>button.classList.toggle('active',button.dataset.strategy===strategy));
     const approve = document.getElementById('approveShortlist');
-    if (approve) { approve.disabled=scoutingLocked(state)||!targets.some(target=>target.eligibleForTransfer); approve.textContent=state.scouting?.status==='SCOUTING_READY'?`Approved ${approved.length}`:'Approve Shortlist'; }
+    if (approve) { approve.disabled=scoutingLocked(state)||!targets.some(target=>assessTarget(target,state).eligibleForTransfer); approve.textContent=state.scouting?.status==='SCOUTING_READY'?`Approved ${approved.length}`:'Approve Shortlist'; }
     renderTargets(state);
     renderNetwork(state);
     window.AuroraRestoredScouting = Object.freeze({build:BUILD,universe:universe.length,active:targets.length,approved:approved.length,strategy,status:state.scouting?.status||'SCOUTING_REVIEW',networkStatus:meta.status||'NOT_SYNCED'});
