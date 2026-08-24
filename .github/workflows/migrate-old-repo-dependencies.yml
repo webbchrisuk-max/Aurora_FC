@@ -1,0 +1,121 @@
+name: Migrate old Aurora repo dependencies
+
+on:
+  push:
+    paths:
+      - '.github/workflows/migrate-old-repo-dependencies.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Aurora_FC
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone old repo
+        run: git clone --depth 1 https://github.com/webbchrisuk-max/aurora-fc-2.git /tmp/aurora-old
+
+      - name: Copy missing root dependencies and assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Keep every newer file already present in Aurora_FC. Only fill gaps
+          # from the retiring repo so legacy code cannot overwrite the rebuild.
+          for f in /tmp/aurora-old/*; do
+            [ -f "$f" ] || continue
+            name="$(basename "$f")"
+            case "$name" in
+              *.js|*.css|*.json|*.txt|*.svg|*.html)
+                if [ ! -e "$name" ]; then cp "$f" "$name"; fi
+                ;;
+            esac
+          done
+
+          # Preserve artwork and binary assets. Existing new-repo assets win.
+          if [ -d /tmp/aurora-old/assets ]; then
+            mkdir -p assets
+            cp -rn /tmp/aurora-old/assets/. assets/ || true
+          fi
+
+          # Preserve useful old engines/configuration as reference without
+          # activating them over the current rebuild.
+          mkdir -p legacy/aurora-fc-2-reference
+          for name in \
+            AuroraMaster.json \
+            PRE_HARDENING_BASELINE.json \
+            README_INCOME_v0.1.txt \
+            aurora-notifications.js \
+            aurora-core.js \
+            aurora-cloud-sync.js \
+            aurora-sync-manager.js \
+            aurora-platform.js \
+            aurora-motion.js \
+            aurora-motion.css \
+            aurora-hero-art.js \
+            aurora-scouting-engine.js \
+            aurora-scouting-leagues.js \
+            aurora-transfer-strategy.js \
+            chairman-offer-ladder.js \
+            aurora-release.js \
+            aurora-release.json; do
+            if [ -f "/tmp/aurora-old/$name" ]; then
+              cp "/tmp/aurora-old/$name" "legacy/aurora-fc-2-reference/$name"
+            fi
+          done
+
+      - name: Repoint old repo URLs to Aurora_FC
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          exts = {'.html', '.js', '.css', '.json', '.txt', '.svg'}
+          skip = {'.git'}
+          changed = []
+          for p in Path('.').rglob('*'):
+              if not p.is_file() or p.suffix.lower() not in exts:
+                  continue
+              if any(part in skip for part in p.parts):
+                  continue
+              try:
+                  text = p.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              new = text.replace('/aurora-fc-2/', '/Aurora_FC/')
+              new = new.replace('https://webbchrisuk-max.github.io/aurora-fc-2/', 'https://webbchrisuk-max.github.io/Aurora_FC/')
+              if new != text:
+                  p.write_text(new, encoding='utf-8')
+                  changed.append(str(p))
+          print('Repointed:', *changed, sep='\n- ')
+          PY
+
+      - name: Verify no live old-repo dependency remains
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RIn --exclude-dir=.git --exclude-dir=legacy '/aurora-fc-2/' .; then
+            echo 'Old-repo dependency still found outside legacy archive.'
+            exit 1
+          fi
+
+      - name: Commit migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Aurora Migration Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'Nothing to migrate.'
+            exit 0
+          fi
+          git commit -m 'Migrate dependencies from retiring aurora-fc-2 repo'
+          git push
