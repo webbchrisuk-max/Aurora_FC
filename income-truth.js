@@ -1,12 +1,15 @@
 (() => {
   'use strict';
-  const BUILD='20260820-income-truth-1';
+  const BUILD='20260824-income-truth-consolidated-1';
   const arr=v=>Array.isArray(v)?v:[];
   const num=v=>{const n=Number(String(v??'').replace(/[£,%]/g,'').replace(/,/g,''));return Number.isFinite(n)?n:0};
   const ticker=v=>String(v||'').replace(/^LON:/i,'').replace(/\.L$/i,'').replace(/\..*$/,'').toUpperCase().trim();
   const accountCode=v=>{const s=String(v||'').toLowerCase();if(s.includes('212'))return'T212';if(/\big\b/.test(s)||s.includes('ig isa'))return'IG';const u=String(v||'').toUpperCase();return u==='IG'||u==='T212'?u:'CHECK'};
   const accountLabel=v=>accountCode(v)==='IG'?'IG ISA':accountCode(v)==='T212'?'Trading 212 ISA':'Account review';
-  const parseDate=v=>{if(!v)return null;const raw=String(v).trim();const d=/^\d{4}-\d{2}-\d{2}/.test(raw)?new Date(`${raw.slice(0,10)}T12:00:00`):new Date(raw);return Number.isNaN(d.getTime())?null:d};
+  const WEEKDAYS={sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+  const MONTHS={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  function validDate(year,month,day){const d=new Date(year,month,day,12,0,0,0);return d.getFullYear()===year&&d.getMonth()===month&&d.getDate()===day?d:null}
+  function parseDate(value){if(!value)return null;const raw=String(value).trim();let match=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);if(match)return validDate(Number(match[1]),Number(match[2])-1,Number(match[3]));match=raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);if(match){let year=Number(match[3]);if(year<100)year+=year>=70?1900:2000;return validDate(year,Number(match[2])-1,Number(match[1]))}match=raw.match(/^(?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+)?([A-Za-z]{3,9})\s+(\d{1,2})(?:[\s,]+(\d{4}))?$/i);if(match){const weekday=match[1]?WEEKDAYS[match[1].slice(0,3).toLowerCase()]:null;const month=MONTHS[match[2].slice(0,3).toLowerCase()];const day=Number(match[3]);const explicitYear=match[4]?Number(match[4]):null;if(Number.isInteger(month)){if(explicitYear)return validDate(explicitYear,month,day);const now=new Date();const years=[now.getFullYear()-1,now.getFullYear(),now.getFullYear()+1];let candidates=years.map(year=>validDate(year,month,day)).filter(Boolean);if(weekday!==null){const weekdayMatches=candidates.filter(date=>date.getDay()===weekday);if(weekdayMatches.length)candidates=weekdayMatches}candidates.sort((a,b)=>Math.abs(a.getTime()-now.getTime())-Math.abs(b.getTime()-now.getTime()));if(candidates[0])return candidates[0]}}const fallback=new Date(raw);return Number.isNaN(fallback.getTime())?null:fallback}
   const dateISO=d=>d instanceof Date&&!Number.isNaN(d.getTime())?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';
   const monthKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   function activeHoldings(state){return arr(state?.squad?.holdings).filter(h=>['ACTIVE','LOCKED'].includes(String(h?.status||'').toUpperCase())&&num(h?.shares)>0)}
