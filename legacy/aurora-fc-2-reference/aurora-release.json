@@ -1,0 +1,10 @@
+{
+  "product": "Aurora 2.0",
+  "release": "Scouting Intelligence 3",
+  "build": "2026.08.19.3",
+  "schemaVersion": 11,
+  "syncManagerVersion": 1,
+  "platformVersion": 1,
+  "releasedAt": "2026-08-19T16:58:00+01:00",
+  "channel": "stable-candidate"
+}

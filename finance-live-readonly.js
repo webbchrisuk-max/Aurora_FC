@@ -241,8 +241,8 @@
     try {
       if (!rawState()) throw new Error('FINANCE_STATE_NOT_FOUND');
       installReadonlyAuroraFacade();
-      await loadIsolated('/aurora-fc-2/finance-funding.js?v=20260820-live-readonly-1');
-      await loadIsolated('/aurora-fc-2/finance.js?v=20260820-live-readonly-1');
+      await loadIsolated('/Aurora_FC/finance-funding.js?v=20260820-live-readonly-1');
+      await loadIsolated('/Aurora_FC/finance.js?v=20260820-live-readonly-1');
       ready = true;
       render();
       window.addEventListener('pageshow', render);

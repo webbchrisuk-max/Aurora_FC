@@ -184,7 +184,7 @@
   });
 
   const clubCommand = document.createElement('script');
-  clubCommand.src = '/aurora-fc-2/aurora-club-command.js?v=20260823-browser-sync-authority-shell-1';
+  clubCommand.src = '/Aurora_FC/aurora-club-command.js?v=20260823-browser-sync-authority-shell-1';
   clubCommand.async = false;
   clubCommand.dataset.auroraStage3 = 'club-command-read-only';
   clubCommand.addEventListener('load', () => {
@@ -233,7 +233,7 @@
   }, { once: true });
 
   const sync = document.createElement('script');
-  sync.src = '/aurora-fc-2/aurora-sync-manager.js?v=20260823-browser-sync-authority-shell-1';
+  sync.src = '/Aurora_FC/aurora-sync-manager.js?v=20260823-browser-sync-authority-shell-1';
   sync.async = false;
   sync.dataset.auroraStage3 = 'sync-manager-browser-sync-authority';
   sync.addEventListener('load', () => {
@@ -247,7 +247,7 @@
   }, { once: true });
 
   const platform = document.createElement('script');
-  platform.src = '/aurora-fc-2/aurora-platform.js?v=20260823-browser-sync-authority-shell-1';
+  platform.src = '/Aurora_FC/aurora-platform.js?v=20260823-browser-sync-authority-shell-1';
   platform.async = false;
   platform.dataset.auroraStage3 = 'core-plus-platform';
   platform.addEventListener('load', () => {
@@ -261,7 +261,7 @@
   }, { once: true });
 
   const core = document.createElement('script');
-  core.src = '/aurora-fc-2/aurora-core.js?v=20260823-browser-sync-authority-shell-1';
+  core.src = '/Aurora_FC/aurora-core.js?v=20260823-browser-sync-authority-shell-1';
   core.async = false;
   core.dataset.auroraStage3 = 'core-plus-platform-plus-sync-browser-sync-authority';
   core.addEventListener('load', () => {

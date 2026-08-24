@@ -101,7 +101,7 @@
     report('LOADING…', 'Loading the exact old finance-house.js on top of Funding.');
 
     const script = document.createElement('script');
-    script.src = '/aurora-fc-2/finance-house.js?v=20260820-stage4b-finance-house-probe-1';
+    script.src = '/Aurora_FC/finance-house.js?v=20260820-stage4b-finance-house-probe-1';
     script.async = false;
     script.addEventListener('load', () => {
       houseLoaded = Boolean(window.Aurora2?.house);

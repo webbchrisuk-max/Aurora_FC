@@ -266,7 +266,7 @@
 
     updatePanel('LOADING…', 'Loading the Aurora Notification Centre with notification-only state persistence.');
     const script = document.createElement('script');
-    script.src = '/aurora-fc-2/aurora-notifications.js?v=20260823-stage3i-endpoint-loop-guard-2';
+    script.src = '/Aurora_FC/aurora-notifications.js?v=20260823-stage3i-endpoint-loop-guard-2';
     script.async = false;
     script.dataset.auroraStage3 = 'notifications-stable';
     script.addEventListener('load', () => {

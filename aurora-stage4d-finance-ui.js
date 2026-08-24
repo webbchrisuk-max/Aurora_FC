@@ -151,7 +151,7 @@
     report('LOADING…', 'Loading the exact old finance-ui.js on top of the verified 4C Finance harness.');
 
     const script = document.createElement('script');
-    script.src = '/aurora-fc-2/finance-ui.js?v=20260820-stage4d-finance-ui-probe-1';
+    script.src = '/Aurora_FC/finance-ui.js?v=20260820-stage4d-finance-ui-probe-1';
     script.async = false;
     script.addEventListener('load', () => {
       financeUiLoaded = Boolean(window.AuroraFinanceUI);

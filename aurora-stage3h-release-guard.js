@@ -78,7 +78,7 @@
     setStatus('LOADING…', 'Loading the exact old Aurora Release module. Page-specific Release child modules are suppressed for this shared-runtime probe.');
 
     const release = document.createElement('script');
-    release.src = '/aurora-fc-2/aurora-release.js?v=20260820-stage3h-release-guard-probe-2';
+    release.src = '/Aurora_FC/aurora-release.js?v=20260820-stage3h-release-guard-probe-2';
     release.async = false;
     release.dataset.auroraStage3 = 'release-guard-only';
     release.addEventListener('load', () => {

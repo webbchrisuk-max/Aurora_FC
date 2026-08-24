@@ -133,7 +133,7 @@
     report('LOADING…', 'Loading the exact old aurora-motion.js controller with its page-specific child loaders isolated by the Stage 4E test path.');
 
     const script = document.createElement('script');
-    script.src = '/aurora-fc-2/aurora-motion.js?v=20260820-stage4e-motion-core-probe-1';
+    script.src = '/Aurora_FC/aurora-motion.js?v=20260820-stage4e-motion-core-probe-1';
     script.async = false;
     script.addEventListener('load', () => {
       motionLoaded = Boolean(window.AuroraMotion);

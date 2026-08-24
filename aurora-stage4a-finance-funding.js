@@ -141,11 +141,11 @@
     window.AuroraStage4AFundingLoadStarted = true;
 
     const mission = document.createElement('script');
-    mission.src = '/aurora-fc-2/aurora-transfer-mission.js?v=20260820-stage4a-finance-funding-probe-6';
+    mission.src = '/Aurora_FC/aurora-transfer-mission.js?v=20260820-stage4a-finance-funding-probe-6';
     mission.async = false;
     mission.addEventListener('load', () => {
       const funding = document.createElement('script');
-      funding.src = '/aurora-fc-2/finance-funding.js?v=20260820-stage4a-finance-funding-probe-6';
+      funding.src = '/Aurora_FC/finance-funding.js?v=20260820-stage4a-finance-funding-probe-6';
       funding.async = false;
       funding.addEventListener('load', () => {
         fundingLoaded = true;

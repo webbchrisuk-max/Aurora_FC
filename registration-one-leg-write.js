@@ -7,7 +7,7 @@
   const RESERVE_KEY = 'aurora2:registration:write:reserve';
   const ROUTE_BACKUP_KEY = 'aurora2:transfer:route:backup:lastgood';
   const FULL_BACKUP_KEY = 'aurora2:state:backup:lastgood';
-  const DATA_CLIENT_SRC = '/aurora-fc-2/aurora-data2-client.js?v=20260820-registration-one-leg-write-1';
+  const DATA_CLIENT_SRC = '/Aurora_FC/aurora-data2-client.js?v=20260820-registration-one-leg-write-1';
   const CONTRACT_SRC = 'aurora-transfer-mission.js?v=20260820-registration-one-leg-write-1';
 
   const arr = value => Array.isArray(value) ? value : [];

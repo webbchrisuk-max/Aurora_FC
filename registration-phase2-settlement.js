@@ -4,7 +4,7 @@
   const BUILD = '20260824-phase2-registration-settlement-1';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:registration:phase2:backup:lastgood';
-  const DATA_CLIENT_SRC = '/aurora-fc-2/aurora-data2-client.js?v=20260824-phase2-registration-settlement-1';
+  const DATA_CLIENT_SRC = '/Aurora_FC/aurora-data2-client.js?v=20260824-phase2-registration-settlement-1';
   const CONTRACT_SRC = 'aurora-transfer-mission.js?v=20260824-phase2-registration-settlement-1';
   const EPSILON = 0.005;
 

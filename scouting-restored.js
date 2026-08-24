@@ -5,8 +5,8 @@
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const NETWORK_URLS = [
-    'https://webbchrisuk-max.github.io/aurora-fc-2/AuroraMaster.json',
-    'https://raw.githubusercontent.com/webbchrisuk-max/aurora-fc-2/main/AuroraMaster.json'
+    'https://webbchrisuk-max.github.io/Aurora_FC/AuroraMaster.json',
+    'https://raw.githubusercontent.com/webbchrisuk-max/Aurora_FC/main/AuroraMaster.json'
   ];
   const NETWORK_SYNC_MS = 6 * 60 * 60 * 1000;
   const NETWORK_RENDER_LIMIT = 120;

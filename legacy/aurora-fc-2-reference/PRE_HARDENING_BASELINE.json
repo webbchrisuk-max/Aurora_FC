@@ -1,0 +1,19 @@
+{
+  "repository": "webbchrisuk-max/aurora-fc-2",
+  "branch": "main",
+  "captured": "2026-08-14T17:53:00+01:00",
+  "pre_hardening_blob_shas": {
+    "aurora-core.js": "65275abfe171a68586670096cc4aee6a10b70abd",
+    "aurora-shell.js": "11fee90279bbafc0029b367534a5b6016c8b807c",
+    "aurora-page-shell.js": "079075d59dc2e4f3f40add8cfa1aff0cce247ed3",
+    "aurora-holdings-sync.js": "9d640e166922233e25674915ccdc7f909373c0a3",
+    "index.html": "fb3cb8eaf62c77ed8edc85628b7585401a22731d",
+    "finance.html": "f0416abc3b6943733570264c28ee402b2f39f379",
+    "scouting.html": "1f9b2af44b2601e5c6c57cd3e8c8f784b6a4a6da",
+    "transfer.html": "3bac0a991aac6c0c010473060e5eba4f70909496",
+    "registration.html": "65c1310ac18859c299329ba3e65bee37a3613d57",
+    "squad.html": "c41d88be8fff051f0f16af63882d69804132be3c",
+    "income.html": "76a3d8ef743e040baad5caaf98aa16590455f860",
+    "club-control.html": "fed6a82f35a9b2d24b4acf12ed6317cb75251244"
+  }
+}

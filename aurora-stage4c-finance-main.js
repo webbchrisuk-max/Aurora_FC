@@ -147,7 +147,7 @@
     }
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = '/aurora-fc-2/finance-house.js?v=20260820-stage4c-finance-main-probe-2';
+      script.src = '/Aurora_FC/finance-house.js?v=20260820-stage4c-finance-main-probe-2';
       script.async = false;
       script.addEventListener('load', () => {
         houseLoaded = Boolean(window.Aurora2?.house?.renderAll);
@@ -164,7 +164,7 @@
   }
 
   async function mountLegacyFinanceDom() {
-    const response = await fetch('/aurora-fc-2/finance.html?v=20260820-stage4c-finance-main-probe-2', { cache: 'no-store' });
+    const response = await fetch('/Aurora_FC/finance.html?v=20260820-stage4c-finance-main-probe-2', { cache: 'no-store' });
     if (!response.ok) throw new Error(`FINANCE_HTML_${response.status}`);
     const html = await response.text();
     const parsed = new DOMParser().parseFromString(html, 'text/html');
@@ -211,7 +211,7 @@
 
       const restore = () => { document.addEventListener = originalAdd; };
       const script = document.createElement('script');
-      script.src = '/aurora-fc-2/finance.js?v=20260820-stage4c-finance-main-probe-2';
+      script.src = '/Aurora_FC/finance.js?v=20260820-stage4c-finance-main-probe-2';
       script.async = false;
       script.addEventListener('load', () => {
         restore();
