@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260824-phase2-shared-shell-2';
+  const BUILD = '20260824-phase2-shared-shell-3';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   const NAV = Object.freeze({
@@ -58,6 +58,16 @@
     document.head.appendChild(script);
   }
 
+  function loadPhase2RegistrationSettlement() {
+    if (currentFile !== 'registration.html') return;
+    if (window.__AuroraRegistrationPhase2Settlement || [...document.scripts].some(script => String(script.src || '').includes('registration-phase2-settlement.js'))) return;
+    const script = document.createElement('script');
+    script.src = 'registration-phase2-settlement.js?v=20260824-phase2-registration-settlement-1';
+    script.async = false;
+    script.dataset.auroraPhase2 = 'registration-broker-cash-settlement';
+    document.head.appendChild(script);
+  }
+
   repairSidebarMarkup();
   document.documentElement.dataset.auroraShell = 'ready';
   document.documentElement.dataset.auroraShellBuild = BUILD;
@@ -73,6 +83,7 @@
   stampInternalNavigation();
   loadPhase2IncomeProjection();
   loadPhase2FormerReentryEvidence();
+  loadPhase2RegistrationSettlement();
 
   window.AuroraShell = Object.freeze({
     build: BUILD,
