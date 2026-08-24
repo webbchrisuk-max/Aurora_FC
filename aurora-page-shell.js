@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260824-phase2-shared-shell-3';
+  const BUILD = '20260824-phase2-shared-shell-4';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   const NAV = Object.freeze({
@@ -48,6 +48,16 @@
     document.head.appendChild(script);
   }
 
+  function loadIncomeExactCostAuthority() {
+    if (currentFile !== 'income.html') return;
+    if (window.__AuroraIncomeReinvestmentExactCostAuthority || [...document.scripts].some(script => String(script.src || '').includes('income-reinvestment-exact-cost-authority.js'))) return;
+    const script = document.createElement('script');
+    script.src = 'income-reinvestment-exact-cost-authority.js?v=20260824-income-reinvestment-exact-cost-authority-1';
+    script.async = false;
+    script.dataset.auroraPhase2 = 'income-exact-reinvestment-cost-authority';
+    document.head.appendChild(script);
+  }
+
   function loadPhase2FormerReentryEvidence() {
     if (currentFile !== 'squad.html') return;
     if (window.__AuroraFormerReentryMarketEvidence || [...document.scripts].some(script => String(script.src || '').includes('squad-former-reentry-market-evidence.js'))) return;
@@ -82,6 +92,7 @@
 
   stampInternalNavigation();
   loadPhase2IncomeProjection();
+  loadIncomeExactCostAuthority();
   loadPhase2FormerReentryEvidence();
   loadPhase2RegistrationSettlement();
 
