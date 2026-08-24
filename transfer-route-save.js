@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260820-transfer-route-save-1';
+  const BUILD = '20260824-transfer-route-save-phase2-funding-1';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const ROUTE_BACKUP_KEY = 'aurora2:transfer:route:backup:lastgood';
@@ -75,11 +75,17 @@
     const budget = round(mission?.approvedBudget);
     const previewBudget = round(preview?.budget);
     const allocations = arr(preview?.allocations).filter(row => num(row?.amount) > 0);
-    const allocated = round(allocations.reduce((sum,row) => sum + num(row.amount), 0));
+    const allocated = round(allocations.reduce((sum,row) => sum + num(row.financeAmount ?? row.amount), 0));
     if (!(budget > 0)) errors.push('Finance budget is zero.');
     if (Math.abs(budget - previewBudget) > .005) errors.push('Preview budget no longer matches Finance.');
-    if (Math.abs(budget - allocated) > .005) errors.push(`Allocations total ${money(allocated)} instead of ${money(budget)}.`);
+    if (Math.abs(budget - allocated) > .005) errors.push(`Finance-funded allocations total ${money(allocated)} instead of ${money(budget)}.`);
     if (!allocations.length) errors.push('No purchase legs exist.');
+
+    const funding = preview?.phase2Funding;
+    if (preview?.phase2BrokerCashWired === true) {
+      if (!funding?.fundingPlan?.reconciles) errors.push('Phase 2 broker-cash funding plan does not reconcile.');
+      if (round(funding?.fundingPlan?.financeGap) > .005) errors.push('Phase 2 funding requires more new Finance cash than the approved release.');
+    }
 
     const seen = new Set();
     allocations.forEach(row => {
@@ -92,9 +98,11 @@
         const blocked = String(target.status || '').toLowerCase() === 'block' || String(target.recommendation || '').toUpperCase() === 'BLOCK';
         if (blocked || target.approvedForTransfer !== true) errors.push(`${ticker(row.ticker)} is no longer approved for Transfer.`);
       }
-      if (!['IG','T212'].includes(accountCode(row.account))) errors.push(`${ticker(row.ticker)} has no executable broker route.`);
+      const account = accountCode(row.account);
+      if (!['IG','T212'].includes(account)) errors.push(`${ticker(row.ticker)} has no executable broker route.`);
       if (!(num(row.yieldPct) > 0)) errors.push(`${ticker(row.ticker)} has no supported income evidence.`);
       if (!(num(row.estimatedPriceGbp) > 0)) errors.push(`${ticker(row.ticker)} has no supported market price.`);
+      if (num(row.brokerCashAmount) > 0 && !['IG','T212'].includes(account)) errors.push(`${ticker(row.ticker)} broker cash is not tied to a valid broker.`);
     });
 
     return {ok:errors.length === 0, errors, mission, budget, allocations, allocated};
@@ -110,6 +118,11 @@
 
     const allocations = checked.allocations.map(row => {
       const target = findTarget(state, row) || {};
+      const financeAmount = round(row.financeAmount ?? row.amount);
+      const brokerCashAmount = round(row.brokerCashAmount);
+      const totalPurchaseAmount = round(row.totalPurchaseAmount ?? (financeAmount + brokerCashAmount));
+      const expectedAnnualIncome = num(row.phase2ExpectedAnnualIncome ?? row.expectedAnnualIncome);
+      const expectedShares = num(row.phase2ExpectedShares ?? row.expectedShares);
       return {
         id:uid('ALLOC'),
         targetId:target.id || null,
@@ -119,17 +132,28 @@
         name:target.name || row.ticker || 'Target',
         account:accountCode(row.account),
         sector:String(target.sector || ''),
-        amount:round(row.amount),
+        amount:financeAmount,
+        financeAmount,
+        brokerCashAmount,
+        totalPurchaseAmount,
+        phase2FundingSource:brokerCashAmount > 0 ? 'FINANCE_PLUS_EXISTING_BROKER_CASH' : 'FINANCE_ONLY',
         yieldPct:Math.max(0, num(row.yieldPct)),
-        expectedAnnualIncome:Number(Math.max(0,num(row.expectedAnnualIncome)).toFixed(6)),
+        expectedAnnualIncome:Number(Math.max(0,expectedAnnualIncome).toFixed(6)),
         estimatedPriceGbp:Math.max(0,num(row.estimatedPriceGbp)),
-        estimatedShares:Math.max(0,Math.floor(num(row.expectedShares))),
+        estimatedShares:Math.max(0,Math.floor(expectedShares)),
         scoutingScore:strategy === 'maximum' ? num(target.maximumScore) : num(target.sustainableScore),
         scoutingStatus:String(target.status || 'caution').toLowerCase(),
         reason:target.reason || 'Scouting-approved allocation',
         status:'SIMULATED'
       };
     });
+
+    const brokerCashUsed = {
+      IG:round(allocations.filter(row=>row.account==='IG').reduce((sum,row)=>sum+num(row.brokerCashAmount),0)),
+      T212:round(allocations.filter(row=>row.account==='T212').reduce((sum,row)=>sum+num(row.brokerCashAmount),0))
+    };
+    brokerCashUsed.total = round(brokerCashUsed.IG + brokerCashUsed.T212);
+    const totalPurchaseAllocated = round(allocations.reduce((sum,row)=>sum+num(row.totalPurchaseAmount),0));
 
     return {
       id:routeId,
@@ -146,13 +170,17 @@
       targetCount:allocations.length,
       allocations,
       allocated:checked.allocated,
+      financeAllocated:checked.allocated,
+      brokerCashUsed,
+      brokerCashUsedTotal:brokerCashUsed.total,
+      totalPurchaseAllocated,
       income:Number(allocations.reduce((sum,row)=>sum+num(row.expectedAnnualIncome),0).toFixed(6)),
       remaining:round(checked.budget - checked.allocated),
       status:'SIMULATION',
       locked:false,
       createdAt:previous?.missionId === checked.mission.id ? previous.createdAt || stamp : stamp,
       updatedAt:stamp,
-      source:'TRANSFER_T3_PREVIEW'
+      source:preview?.phase2BrokerCashWired === true ? 'TRANSFER_T3_PREVIEW_PHASE2_BROKER_CASH' : 'TRANSFER_T3_PREVIEW'
     };
   }
 
@@ -182,7 +210,7 @@
           updatedAt:stamp
         },
         alerts:[
-          {id:uid('ALERT'),title:'Transfer route approved',note:`${money(locked.mission.amountAllocated)} allocated • ${money(locked.mission.amountRemaining)} held back.`,when:'now',createdAt:stamp},
+          {id:uid('ALERT'),title:'Transfer route approved',note:`${money(locked.mission.amountAllocated)} Finance cash allocated • ${money(route.brokerCashUsedTotal)} existing broker cash attached.`,when:'now',createdAt:stamp},
           ...arr(state.alerts).filter(alert => alert?.title !== 'Transfer route approved')
         ].slice(0,8),
         updatedAt:stamp
@@ -230,36 +258,40 @@
     const checked = status === 'DRAFT' ? validate(state,preview) : null;
 
     if (status === 'LOCKED' && route?.locked && String(route.missionId || '') === String(mission.id || '')) {
+      const brokerCash = round(route?.brokerCashUsedTotal);
+      const totalPurchases = round(route?.totalPurchaseAllocated || mission.amountAllocated);
       host.innerHTML = `
         <span class="transfer-kicker">Stage T4 • Route Authority</span>
         <h2>Route locked for Registration</h2>
-        <p>The Finance mission and purchase legs are now frozen. Registration can record executions against these exact legs but cannot rewrite the route.</p>
+        <p>The Finance mission, broker destinations and Phase 2 funding sources are frozen. Registration can record executions against these exact legs but cannot rewrite the route.</p>
         <div class="route-save-grid">
-          <div><small>Mission budget</small><strong>${money(mission.approvedBudget)}</strong></div>
-          <div><small>Locked allocations</small><strong>${money(mission.amountAllocated)}</strong></div>
-          <div><small>Purchase legs</small><strong>${arr(route.allocations).filter(row=>num(row.amount)>0).length}</strong></div>
+          <div><small>Finance cash</small><strong>${money(mission.amountAllocated)}</strong></div>
+          <div><small>Existing broker cash</small><strong>${money(brokerCash)}</strong></div>
+          <div><small>Total planned purchases</small><strong>${money(totalPurchases)}</strong></div>
         </div>
-        <div class="route-save-locked"><strong>ROUTE LOCKED</strong>${money(mission.amountAllocated)} is locked across ${arr(route.allocations).filter(row=>num(row.amount)>0).length} purchase legs. Stable leg IDs have been created for Registration.<br><a href="registration.html">Open Registration Desk →</a></div>`;
+        <div class="route-save-locked"><strong>ROUTE LOCKED</strong>${money(mission.amountAllocated)} Finance cash + ${money(brokerCash)} existing broker cash is locked across ${arr(route.allocations).filter(row=>num(row.amount)>0).length} purchase legs. Each leg carries its own broker-cash split for Registration settlement.<br><a href="registration.html">Open Registration Desk →</a></div>`;
       document.documentElement.dataset.transferRoute = 'locked';
-      window.AuroraTransferRouteSave = Object.freeze({build:BUILD,ready:true,status:'LOCKED',routeId:route.id,missionId:mission.id,legs:arr(route.allocations).length});
+      window.AuroraTransferRouteSave = Object.freeze({build:BUILD,ready:true,status:'LOCKED',routeId:route.id,missionId:mission.id,legs:arr(route.allocations).length,brokerCashUsed:brokerCash,totalPurchaseAllocated:totalPurchases});
       return;
     }
 
     const ready = Boolean(checked?.ok);
-    const previewAmount = round(preview?.allocated);
+    const previewFinance = round(preview?.allocated);
+    const previewBrokerCash = round(preview?.phase2Funding?.brokerCashUsed?.total);
+    const previewTotal = round(preview?.totalPurchaseAllocated || previewFinance);
     host.innerHTML = `
       <span class="transfer-kicker">Stage T4 • Save + Lock</span>
       <h2>Approve the final route</h2>
-      <p>This is the first Transfer write. Aurora will revalidate the live Finance mission and Scouting approvals, back up the current state, create stable purchase-leg IDs and lock the route for Registration.</p>
+      <p>This is the first Transfer write. Aurora will revalidate the live Finance mission and Scouting approvals, preserve the account-locked broker-cash split, back up the current state, create stable purchase-leg IDs and lock the route for Registration.</p>
       <div class="route-save-grid">
-        <div><small>Finance mission</small><strong>${money(mission.approvedBudget)}</strong></div>
-        <div><small>Preview route</small><strong>${money(previewAmount)}</strong></div>
-        <div><small>Preview legs</small><strong>${arr(preview?.allocations).filter(row=>num(row.amount)>0).length}</strong></div>
+        <div><small>Finance cash</small><strong>${money(previewFinance)}</strong></div>
+        <div><small>Existing broker cash</small><strong>${money(previewBrokerCash)}</strong></div>
+        <div><small>Total planned purchases</small><strong>${money(previewTotal)}</strong></div>
       </div>
       ${ready ? `<div class="route-save-action"><button type="button" id="saveLockTransferRoute">Save & Lock Route</button><span class="route-save-note">Backup created before the write. After lock, Registration becomes the execution authority.</span></div>` : `<div class="route-save-hold"><strong>ROUTE SAVE HELD</strong><br>${checked?.errors?.join(' • ') || `Mission status ${status} is not available for a new route save.`}</div>`}`;
 
     document.getElementById('saveLockTransferRoute')?.addEventListener('click', () => {
-      if (!confirm(`Lock the ${money(mission.approvedBudget)} Transfer route for Registration?\n\nThis freezes the current allocations and broker destinations.`)) return;
+      if (!confirm(`Lock the Transfer route for Registration?\n\nFinance cash: ${money(previewFinance)}\nExisting broker cash: ${money(previewBrokerCash)}\nTotal planned purchases: ${money(previewTotal)}\n\nBroker cash stays ring-fenced to its own account.`)) return;
       saveAndLock();
     }, {once:true});
     document.documentElement.dataset.transferRoute = ready ? 'ready-to-lock' : 'hold';
@@ -278,6 +310,7 @@
     window.addEventListener('pageshow', () => setTimeout(render,0));
     window.addEventListener('focus', () => setTimeout(render,0));
     window.addEventListener('aurora2:state', () => setTimeout(render,0));
+    window.addEventListener('aurora:phase2-allocation-wired', () => setTimeout(render,0));
     window.addEventListener('storage', event => {
       if (event.key === STATE_KEY || event.key === BACKUP_KEY) setTimeout(render,0);
     });
