@@ -82,7 +82,7 @@ jobs:
           for p in Path('.').rglob('*'):
               if not p.is_file() or p.suffix.lower() not in exts:
                   continue
-              if '.git' in p.parts or 'legacy' in p.parts:
+              if '.git' in p.parts or 'legacy' in p.parts or '.github' in p.parts:
                   continue
               try:
                   text = p.read_text(encoding='utf-8')
@@ -103,12 +103,12 @@ jobs:
           for name in aurora.css finance-ui.css immersive-departments.css aurora-department-cards.css aurora-typography.css aurora-data2-client.js; do
             test -s "$name" || { echo "Missing required dependency: $name"; exit 1; }
           done
-          if grep -RIn --exclude-dir=.git --exclude-dir=legacy '/aurora-fc-2/' .; then
+          if grep -RIn --exclude-dir=.git --exclude-dir=.github --exclude-dir=legacy '/aurora-fc-2/' .; then
             echo 'Old-repo dependency still found outside legacy archive.'
             exit 1
           fi
 
-      - name: Commit migration to PR branch
+      - name: Commit migration
         shell: bash
         run: |
           set -euo pipefail
