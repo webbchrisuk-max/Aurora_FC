@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-browser-sync-authority-shell-1';
+  const BUILD = '20260824-phase2-shared-shell-2';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   const NAV = Object.freeze({
@@ -48,6 +48,16 @@
     document.head.appendChild(script);
   }
 
+  function loadPhase2FormerReentryEvidence() {
+    if (currentFile !== 'squad.html') return;
+    if (window.__AuroraFormerReentryMarketEvidence || [...document.scripts].some(script => String(script.src || '').includes('squad-former-reentry-market-evidence.js'))) return;
+    const script = document.createElement('script');
+    script.src = 'squad-former-reentry-market-evidence.js?v=20260824-squad-former-reentry-market-evidence-1';
+    script.async = false;
+    script.dataset.auroraPhase2 = 'former-reentry-market-evidence';
+    document.head.appendChild(script);
+  }
+
   repairSidebarMarkup();
   document.documentElement.dataset.auroraShell = 'ready';
   document.documentElement.dataset.auroraShellBuild = BUILD;
@@ -62,6 +72,7 @@
 
   stampInternalNavigation();
   loadPhase2IncomeProjection();
+  loadPhase2FormerReentryEvidence();
 
   window.AuroraShell = Object.freeze({
     build: BUILD,
