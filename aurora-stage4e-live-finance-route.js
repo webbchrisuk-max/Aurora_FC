@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260824-finance-overhaul-bootstrap-1';
+  const BUILD = '20260824-finance-overhaul-bootstrap-2';
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
   if (currentFile !== 'finance.html') return;
 
@@ -44,7 +44,6 @@
   }
 
   async function bootFinanceOperations() {
-    // Read/preview foundation first.
     await loadScript(`finance-live-readonly.js?v=${BUILD}`, 'finance-live-readonly.js');
     await waitFor(() => window.AuroraFinanceLiveReadonly?.ready, 5000);
 
@@ -57,8 +56,6 @@
     await loadScript(`finance-payday-save.js?v=${BUILD}`, 'finance-payday-save.js');
     await waitFor(() => window.AuroraFinancePaydaySave?.ready, 5000);
 
-    // These modules no longer block one another. A failure in one department
-    // cannot make Bills, Pots or House Projects disappear.
     await Promise.all([
       loadScript(`finance-payday-reset-hard.js?v=${BUILD}`, 'finance-payday-reset-hard.js'),
       loadScript(`finance-protected-bills.js?v=${BUILD}`, 'finance-protected-bills.js'),
@@ -75,6 +72,9 @@
       loadScript(`finance-pot-delete.js?v=${BUILD}`, 'finance-pot-delete.js'),
       loadScript(`finance-operations-overhaul.js?v=${BUILD}`, 'finance-operations-overhaul.js')
     ]);
+
+    await loadScript(`finance-pots-bills-cleanup.js?v=${BUILD}`, 'finance-pots-bills-cleanup.js');
+    await waitFor(() => window.AuroraFinancePotsBillsCleanup?.ready, 5000);
 
     await loadScript(`finance-release-candidate.js?v=${BUILD}`, 'finance-release-candidate.js');
     await waitFor(() => window.AuroraFinanceReleaseCandidate?.ready, 5000);
@@ -100,6 +100,7 @@
     protectedBills:true,
     potsBillsReadonly:true,
     potsBillsActions:true,
+    potsBillsCleanup:true,
     potDelete:true,
     houseProjects:true,
     operationsOverhaul:true,
