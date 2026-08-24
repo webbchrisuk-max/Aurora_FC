@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260824-finance-pots-bills-compat-2';
+  const BUILD = '20260824-finance-pots-bills-compat-3';
   const STATE_KEY = 'aurora2:state:v1';
   const arr = value => Array.isArray(value) ? value : [];
 
@@ -24,6 +24,20 @@
     return { s, pots, bills };
   }
 
+  function loadScriptOnce(flag, src, marker) {
+    if (window[flag] || [...document.scripts].some(script => String(script.src || '').includes(marker))) return;
+    window[flag] = true;
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
+  function ensureOperations() {
+    loadScriptOnce('AuroraFinanceHouseProjectsLoadStarted','finance-house-projects.js?v=20260824-finance-house-restore-1','finance-house-projects.js');
+    loadScriptOnce('AuroraFinanceOperationsOverhaulLoadStarted','finance-operations-overhaul.js?v=20260824-finance-operations-overhaul-1','finance-operations-overhaul.js');
+  }
+
   function publish() {
     const current = snapshot();
     window.AuroraFinancePotsBillsReadonly = Object.freeze({
@@ -39,12 +53,13 @@
     window.dispatchEvent(new CustomEvent('aurora:finance-pots-bills-ready', {
       detail: { build: BUILD, pots: current.pots.length, bills: current.bills.length, ownsMarkup: false }
     }));
+    ensureOperations();
   }
 
   function boot() {
-    // finance.html now owns the Pots & Bills layout. This bridge intentionally
-    // does not replace #potsPanel.innerHTML; it only preserves the readiness
-    // contract required by the backed-up write/action modules.
+    // finance.html owns the visible Pots & Bills workspace. This compatibility
+    // authority preserves the readiness contract for backed-up write modules
+    // without replacing the new unified Finance UI.
     publish();
     window.addEventListener('aurora2:state', publish);
     window.addEventListener('pageshow', publish);
