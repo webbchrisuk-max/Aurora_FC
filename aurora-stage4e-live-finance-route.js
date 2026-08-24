@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260824-finance-overhaul-bootstrap-2';
+  const BUILD = '20260824-finance-overhaul-bootstrap-3';
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
   if (currentFile !== 'finance.html') return;
 
@@ -68,13 +68,7 @@
     await loadScript(`finance-pots-bills-actions.js?v=${BUILD}`, 'finance-pots-bills-actions.js');
     await waitFor(() => window.AuroraFinancePotsBillsActions?.ready, 5000);
 
-    await Promise.all([
-      loadScript(`finance-pot-delete.js?v=${BUILD}`, 'finance-pot-delete.js'),
-      loadScript(`finance-operations-overhaul.js?v=${BUILD}`, 'finance-operations-overhaul.js')
-    ]);
-
-    await loadScript(`finance-pots-bills-cleanup.js?v=${BUILD}`, 'finance-pots-bills-cleanup.js');
-    await waitFor(() => window.AuroraFinancePotsBillsCleanup?.ready, 5000);
+    await loadScript(`finance-operations-overhaul.js?v=${BUILD}`, 'finance-operations-overhaul.js');
 
     await loadScript(`finance-release-candidate.js?v=${BUILD}`, 'finance-release-candidate.js');
     await waitFor(() => window.AuroraFinanceReleaseCandidate?.ready, 5000);
@@ -100,8 +94,7 @@
     protectedBills:true,
     potsBillsReadonly:true,
     potsBillsActions:true,
-    potsBillsCleanup:true,
-    potDelete:true,
+    potsBillsCanonical:true,
     houseProjects:true,
     operationsOverhaul:true,
     missionRelease:true
