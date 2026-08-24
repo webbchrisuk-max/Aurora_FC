@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260824-phase2-shared-shell-4';
+  const BUILD = '20260824-phase2-shared-shell-5';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   const NAV = Object.freeze({
@@ -78,6 +78,16 @@
     document.head.appendChild(script);
   }
 
+  function loadRegistrationReinvestmentReceipts() {
+    if (currentFile !== 'registration.html') return;
+    if (window.__AuroraRegistrationReinvestmentReceipts || [...document.scripts].some(script => String(script.src || '').includes('registration-reinvestment-receipts.js'))) return;
+    const script = document.createElement('script');
+    script.src = 'registration-reinvestment-receipts.js?v=20260824-registration-reinvestment-receipts-1';
+    script.async = false;
+    script.dataset.auroraPhase2 = 'registration-reinvestment-proof';
+    document.head.appendChild(script);
+  }
+
   repairSidebarMarkup();
   document.documentElement.dataset.auroraShell = 'ready';
   document.documentElement.dataset.auroraShellBuild = BUILD;
@@ -95,6 +105,7 @@
   loadIncomeExactCostAuthority();
   loadPhase2FormerReentryEvidence();
   loadPhase2RegistrationSettlement();
+  loadRegistrationReinvestmentReceipts();
 
   window.AuroraShell = Object.freeze({
     build: BUILD,
