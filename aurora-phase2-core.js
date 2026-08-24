@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260824-phase2-core-1';
+  const BUILD = '20260824-phase2-core-2';
   if (window.AuroraPhase2Core?.build === BUILD) return;
 
   const arr = value => Array.isArray(value) ? value : [];
@@ -127,6 +127,136 @@
     });
   }
 
+  const INCOME_PLAN_KEY = 'aurora2:income:target2000-plan:v1';
+  const TARGET_MONTHLY = 2000;
+  const TARGET_ANNUAL = TARGET_MONTHLY * 12;
+  const GOAL_DATE = new Date('2034-08-24T12:00:00');
+  const DEFAULT_MONTHLY_INVESTMENT = 1000;
+  const MAX_MONTHS = 360;
+
+  function addMonths(date, months) {
+    const next = new Date(date);
+    next.setHours(12, 0, 0, 0);
+    next.setMonth(next.getMonth() + months);
+    return next;
+  }
+
+  function monthsBetween(a, b) {
+    const left = a instanceof Date ? a : new Date(a);
+    const right = b instanceof Date ? b : new Date(b);
+    if (Number.isNaN(left.getTime()) || Number.isNaN(right.getTime())) return 0;
+    return (right.getFullYear() - left.getFullYear()) * 12 + (right.getMonth() - left.getMonth()) + (right.getDate() - left.getDate()) / 30.4375;
+  }
+
+  function incomePlanSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(INCOME_PLAN_KEY) || '{}') || {};
+      return { monthlyInvestment: roundMoney(saved.monthlyInvestment || DEFAULT_MONTHLY_INVESTMENT) || DEFAULT_MONTHLY_INVESTMENT };
+    } catch (_) {
+      return { monthlyInvestment: DEFAULT_MONTHLY_INVESTMENT };
+    }
+  }
+
+  function saveMonthlyInvestment(value) {
+    const monthlyInvestment = roundMoney(value);
+    try { localStorage.setItem(INCOME_PLAN_KEY, JSON.stringify({monthlyInvestment,updatedAt:new Date().toISOString()})); } catch (_) {}
+    window.dispatchEvent(new CustomEvent('aurora:income-goal-plan', {detail:{monthlyInvestment}}));
+    return monthlyInvestment;
+  }
+
+  function projectIncomeGoal({ startAnnual, monthlyInvestment, yieldPct, startDate = new Date(), maxMonths = MAX_MONTHS } = {}) {
+    let annual = Math.max(0, num(startAnnual));
+    const monthly = Math.max(0, num(monthlyInvestment));
+    const yieldRate = Math.max(0, num(yieldPct)) / 100;
+    const started = new Date(startDate);
+    started.setHours(12,0,0,0);
+    if (annual >= TARGET_ANNUAL) return {reached:true,months:0,date:started,annualIncome:annual};
+    if (!(yieldRate > 0) || (!(monthly > 0) && !(annual > 0))) return {reached:false,months:null,date:null,annualIncome:annual};
+    for (let month = 1; month <= maxMonths; month += 1) {
+      const reinvestedDividendCash = annual / 12;
+      annual += (monthly + reinvestedDividendCash) * yieldRate;
+      if (annual >= TARGET_ANNUAL) return {reached:true,months:month,date:addMonths(started,month),annualIncome:annual};
+    }
+    return {reached:false,months:null,date:null,annualIncome:annual};
+  }
+
+  function annualIncomeAtMonths({ startAnnual, monthlyInvestment, yieldPct, months } = {}) {
+    let annual = Math.max(0, num(startAnnual));
+    const monthly = Math.max(0, num(monthlyInvestment));
+    const rate = Math.max(0, num(yieldPct)) / 100;
+    for (let index = 0; index < Math.max(0, Math.floor(num(months))); index += 1) {
+      annual += (monthly + annual / 12) * rate;
+    }
+    return annual;
+  }
+
+  function monthsToGoal(startDate = new Date()) {
+    return Math.max(0, Math.ceil(monthsBetween(startDate, GOAL_DATE)));
+  }
+
+  function requiredMonthlyInvestment(startAnnual, yieldPct, startDate = new Date()) {
+    const months = monthsToGoal(startDate);
+    if (!months || num(startAnnual) >= TARGET_ANNUAL) return 0;
+    if (!(num(yieldPct) > 0)) return null;
+    let low = 0, high = 10000;
+    if (annualIncomeAtMonths({startAnnual,monthlyInvestment:high,yieldPct,months}) < TARGET_ANNUAL) return null;
+    for (let index = 0; index < 48; index += 1) {
+      const mid = (low + high) / 2;
+      if (annualIncomeAtMonths({startAnnual,monthlyInvestment:mid,yieldPct,months}) >= TARGET_ANNUAL) high = mid;
+      else low = mid;
+    }
+    return roundMoney(high);
+  }
+
+  function requiredYieldPct(startAnnual, monthlyInvestment, startDate = new Date()) {
+    const months = monthsToGoal(startDate);
+    if (!months || num(startAnnual) >= TARGET_ANNUAL) return 0;
+    let low = 0, high = 50;
+    if (annualIncomeAtMonths({startAnnual,monthlyInvestment,yieldPct:high,months}) < TARGET_ANNUAL) return null;
+    for (let index = 0; index < 48; index += 1) {
+      const mid = (low + high) / 2;
+      if (annualIncomeAtMonths({startAnnual,monthlyInvestment,yieldPct:mid,months}) >= TARGET_ANNUAL) high = mid;
+      else low = mid;
+    }
+    return Number(high.toFixed(2));
+  }
+
+  function projectionStatus(result) {
+    if (!result?.reached || !result?.date) return {label:'BEHIND TARGET',cls:'bad',deltaMonths:null};
+    const deltaMonths = monthsBetween(result.date, GOAL_DATE);
+    if (Math.abs(deltaMonths) <= 1) return {label:'ON TARGET',cls:'good',deltaMonths};
+    return deltaMonths > 1 ? {label:'AHEAD OF TARGET',cls:'good',deltaMonths} : {label:'BEHIND TARGET',cls:'bad',deltaMonths};
+  }
+
+  const incomeGoal = Object.freeze({
+    planKey:INCOME_PLAN_KEY,
+    targetMonthly:TARGET_MONTHLY,
+    targetAnnual:TARGET_ANNUAL,
+    goalDate:GOAL_DATE.toISOString().slice(0,10),
+    defaultMonthlyInvestment:DEFAULT_MONTHLY_INVESTMENT,
+    maxMonths:MAX_MONTHS,
+    planSettings:incomePlanSettings,
+    saveMonthlyInvestment,
+    project:projectIncomeGoal,
+    annualAtMonths:annualIncomeAtMonths,
+    monthsBetween,
+    monthsToGoal,
+    requiredMonthlyInvestment,
+    requiredYieldPct,
+    projectionStatus
+  });
+
+  function loadTransferTargetDecisionEngine() {
+    const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
+    if (currentFile !== 'transfer.html') return;
+    if (window.__AuroraTransferTargetDecisionEngine || [...document.scripts].some(script => String(script.src || '').includes('transfer-target-decision-engine.js'))) return;
+    const script = document.createElement('script');
+    script.src = 'transfer-target-decision-engine.js?v=20260824-transfer-target-decision-1';
+    script.async = false;
+    script.dataset.auroraPhase2 = 'target-pace-decision-engine';
+    document.head.appendChild(script);
+  }
+
   const api = Object.freeze({
     build: BUILD,
     ready: true,
@@ -139,10 +269,12 @@
     roundMoney,
     normalizeBrokerCash,
     allocationDemand,
-    fundingPlan
+    fundingPlan,
+    incomeGoal
   });
 
   window.AuroraPhase2Core = api;
   document.documentElement.dataset.auroraPhase2Core = 'ready';
-  window.dispatchEvent(new CustomEvent('aurora:phase2-core-ready', { detail: { build: BUILD, readOnly: true } }));
+  window.dispatchEvent(new CustomEvent('aurora:phase2-core-ready', { detail: { build: BUILD, readOnly: true, incomeGoal:true } }));
+  loadTransferTargetDecisionEngine();
 })();
