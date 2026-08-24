@@ -38,6 +38,16 @@
     });
   }
 
+  function loadPhase2IncomeProjection() {
+    if (currentFile !== 'income.html') return;
+    if (window.__AuroraIncomeTarget2000Projection || [...document.scripts].some(script => String(script.src || '').includes('income-target2000-projection.js'))) return;
+    const script = document.createElement('script');
+    script.src = 'income-target2000-projection.js?v=20260824-phase2-income-2000-projection-1';
+    script.async = false;
+    script.dataset.auroraPhase2 = 'income-target-2000';
+    document.head.appendChild(script);
+  }
+
   repairSidebarMarkup();
   document.documentElement.dataset.auroraShell = 'ready';
   document.documentElement.dataset.auroraShellBuild = BUILD;
@@ -51,6 +61,7 @@
   });
 
   stampInternalNavigation();
+  loadPhase2IncomeProjection();
 
   window.AuroraShell = Object.freeze({
     build: BUILD,
