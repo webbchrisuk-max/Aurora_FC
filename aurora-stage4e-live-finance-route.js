@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260825-finance-overhaul-bootstrap-6';
+  const BUILD = '20260825-finance-overhaul-bootstrap-7';
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
   if (currentFile !== 'finance.html') return;
 
