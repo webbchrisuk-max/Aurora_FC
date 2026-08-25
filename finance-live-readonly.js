@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260825-finance-live-readonly-payday-engine-3';
+  const BUILD = '20260825-finance-live-readonly-payday-engine-4';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   let blockedWrites = 0;
@@ -69,7 +69,7 @@
     const inputs=qa('#paydayPanel .finance-field-grid .field input');
     if(inputs[0])inputs[0].value=String(normalized.paydayDate||'');if(inputs[1])inputs[1].value=Number(normalized.openingCash||0).toFixed(2);if(inputs[2])inputs[2].value=Number(normalized.expectedWages||0).toFixed(2);if(inputs[3])inputs[3].value=Number(normalized.wagesReceived||0).toFixed(2);if(inputs[4])inputs[4].value=Number(normalized.extraCash||0).toFixed(2);if(inputs[5])inputs[5].value=Number(normalized.protectedCash||0).toFixed(2);if(inputs[6])inputs[6].value=Number(normalized.releaseAmount||0).toFixed(2);
     const mission=state.mission,missionAmount=Math.max(0,Number(mission?.approvedBudget)||0);text(q('.mission-panel .mission-amount'),money(missionAmount));text(q('.mission-panel .mission-status'),mission?String(mission.status||'MISSION').replaceAll('_',' '):'NO ACTIVE MISSION');text(q('.mission-panel p'),mission?`${mission.id||'Mission'}${mission.paydayDate?` • released payday ${mission.paydayDate}`:''}`:'No released mission is active.');
-    const recon=qa('.reconcile-grid > div');text(recon[0]?.querySelector('strong'),money(c.safeSurplus));text(recon[1]?.querySelector('strong'),money(missionAmount));text(recon[1]?.querySelector('span'),mission?String(mission.status||'MISSION').replaceAll('_',' '):'No active mission');const difference=Number((c.safeSurplus-missionAmount).toFixed(2));text(recon[2]?.querySelector('strong'),`${difference<0?'− ':''}${money(Math.abs(difference))}`);text(recon[2]?.querySelector('span'),mission?(Math.abs(difference)<.005?'Forecast matches released mission':difference>0?'Next forecast is above current mission':'Current mission is above next forecast'):'No released mission to compare');
+    const recon=qa('.reconcile-grid > div');text(recon[0]?.querySelector('strong'),money(c.safeSurplus));text(recon[1]?.querySelector('strong'),money(missionAmount));text(recon[1]?.querySelector('span'),mission?String(mission.status||'MISSION').replaceAll('_',' '):'No active mission');const difference=Number((c.safeSurplus-missionAmount).toFixed(2));text(recon[2]?.querySelector('strong'),`${difference<0?'− ':''}${money(Math.abs(difference))}`);text(recon[2]?.querySelector('span'),mission?(Math.abs(difference)<0.005?'Forecast matches released mission':difference>0?'Next forecast is above current mission':'Current mission is above next forecast'):'No released mission to compare');
     text(q('.finance-version-pill'),'LIVE DATA • PAYDAY READY');
     document.documentElement.dataset.financeLiveReadonly='active';
     window.AuroraFinanceLiveReadonly=Object.freeze({build:BUILD,ready:true,blockedWrites,blockedUpdates,runtimeErrors:[...runtimeErrors],values:{openingCash:Number(normalized.openingCash||0),wagesReceived:Number(normalized.wagesReceived||0),commitments:Number(c.commitments||0),protectedCash:Number(normalized.protectedCash||0),safeSurplus:Number(c.safeSurplus||0),holdingPotBalance:hpBalance,holdingSpendBeforePayday:Number(auto.holdingSpendBeforePayday||0),holdingProjectedBalanceAtPayday:Number(auto.holdingProjectedBalanceAtPayday||0),holdingPotTopUp:Number(auto.holdingTopUp||0)}});
@@ -84,7 +84,7 @@
       if(!rawState())throw new Error('FINANCE_STATE_NOT_FOUND');
       installReadonlyAuroraFacade();
       await loadIsolated('/Aurora_FC/finance-funding.js?v=20260825-payday-engine-restore-1');
-      await loadIsolated('/Aurora_FC/finance.js?v=20260825-payday-engine-restore-2');
+      await loadIsolated('/Aurora_FC/finance.js?v=20260825-payday-engine-next-cycle-1');
       ready=true;render();
       window.addEventListener('pageshow',render);window.addEventListener('focus',render);window.addEventListener('storage',event=>{if(event.key===STATE_KEY||event.key===BACKUP_KEY)render()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')render()});
     }catch(error){recordError(error)}
