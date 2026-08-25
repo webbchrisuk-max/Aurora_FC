@@ -1,4 +1,4 @@
-/* Aurora City FC — Finance Payday Control Engine — next-cycle Holding Pot + capped rollover */
+/* Aurora City FC — Finance Payday Control Engine — next-cycle Holding Pot + rollover-first pot budget */
 (function(w){
   'use strict';
 
@@ -29,7 +29,8 @@
   function rolloverPosition(state){
     const pot=rolloverPot(state),balance=Number(num(pot?.balance).toFixed(2));
     const gap=Number(Math.max(0,ROLLOVER_TARGET-balance).toFixed(2));
-    const contribution=pot?Number(Math.min(ROLLOVER_PER_PAYDAY,gap).toFixed(2)):0;
+    const planned=Number(Math.max(0,num(pot?.fundingPerPayday)).toFixed(2));
+    const contribution=pot?Number(Math.min(ROLLOVER_PER_PAYDAY,gap,planned).toFixed(2)):0;
     return{pot,balance,gap,contribution,target:ROLLOVER_TARGET,maxPerPayday:ROLLOVER_PER_PAYDAY};
   }
 
@@ -139,10 +140,7 @@
 
   function paydayFundingPreview(state,plan){
     const c=calc(plan,state);
-    const rows=arr(c.fundingPlan?.rows).map(r=>({id:String(r.id||''),name:String(r.name||'Pot'),amount:Number(num(r.amount).toFixed(2)),reason:String(r.reason||'')})).filter(r=>r.id&&r.amount>.005&&!isRolloverPotName(r.name));
-    if(c.auto.rolloverPot&&c.auto.rolloverContribution>.005){
-      rows.push({id:String(c.auto.rolloverPot.id||'payday-rollover'),name:String(c.auto.rolloverPot.name||'Payday Rollover'),amount:Number(c.auto.rolloverContribution.toFixed(2)),reason:`Payday Rollover • £${ROLLOVER_TARGET.toFixed(2)} target • max £${ROLLOVER_PER_PAYDAY.toFixed(2)} per payday`});
-    }
+    const rows=arr(c.fundingPlan?.rows).map(r=>({id:String(r.id||''),name:String(r.name||'Pot'),amount:Number(num(r.amount).toFixed(2)),reason:String(r.reason||'')})).filter(r=>r.id&&r.amount>.005);
     const goalPotsTotal=Number(rows.reduce((s,r)=>s+r.amount,0).toFixed(2));
     const holdingContribution=Number((num(c.auto.annualHoldingContribution)+num(c.auto.holdingTopUp)).toFixed(2));
     return{c,rows,goalPotsTotal,holdingContribution,rolloverContribution:Number(c.auto.rolloverContribution||0),total:Number((goalPotsTotal+holdingContribution).toFixed(2))};
