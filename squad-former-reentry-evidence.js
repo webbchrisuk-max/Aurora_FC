@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260824-squad-former-reentry-evidence-1';
+  const BUILD = '20260825-squad-former-reentry-evidence-2';
   if (window.__AuroraFormerReentryEvidence === BUILD) return;
   window.__AuroraFormerReentryEvidence = BUILD;
 
@@ -44,6 +44,15 @@
     style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2
   }).format(value);
 
+  function loadLivePriceAuthority() {
+    if (window.AuroraSquadLivePriceAuthority || document.querySelector('script[data-squad-live-price-authority]')) return;
+    const script = document.createElement('script');
+    script.src = 'squad-live-price-authority.js?v=20260825-squad-live-price-authority-1';
+    script.async = false;
+    script.dataset.squadLivePriceAuthority = '1';
+    document.head.appendChild(script);
+  }
+
   function cardTicker(card) {
     const heading = card.querySelector('.squad-former-head strong')?.textContent || '';
     return String(heading.split('—')[0] || '').trim().toUpperCase();
@@ -79,6 +88,7 @@
   }
 
   function boot() {
+    loadLivePriceAuthority();
     bind();
     applyEvidence();
     setTimeout(applyEvidence, 120);
