@@ -301,3 +301,12 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
 })();
+
+(() => {
+  if (window.__auroraIncomeNextDividendCountdownLoader) return;
+  window.__auroraIncomeNextDividendCountdownLoader = true;
+  const script = document.createElement('script');
+  script.src = 'income-next-dividend-countdown.js?v=20260825-income-next-dividend-countdown-1';
+  script.defer = true;
+  document.head.appendChild(script);
+})();
