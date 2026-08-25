@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260825-finance-live-readonly-payday-engine-5';
+  const BUILD = '20260825-finance-live-readonly-payday-engine-6';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   let blockedWrites = 0;
@@ -83,7 +83,7 @@
     try{
       if(!rawState())throw new Error('FINANCE_STATE_NOT_FOUND');
       installReadonlyAuroraFacade();
-      await loadIsolated('/Aurora_FC/finance-funding.js?v=20260825-payday-engine-restore-1');
+      await loadIsolated('/Aurora_FC/finance-funding.js?v=20260825-normal-pot-cap-300-1');
       await loadIsolated('/Aurora_FC/finance.js?v=20260825-payday-engine-rollover-1');
       ready=true;render();
       window.addEventListener('pageshow',render);window.addEventListener('focus',render);window.addEventListener('storage',event=>{if(event.key===STATE_KEY||event.key===BACKUP_KEY)render()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')render()});
