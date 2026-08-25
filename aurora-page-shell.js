@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260824-phase2-shared-shell-6';
+  const BUILD = '20260825-phase2-shared-shell-7';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   const NAV = Object.freeze({
@@ -92,7 +92,7 @@
     if (currentFile !== 'registration.html') return;
     if (window.__AuroraRegistrationReinvestmentReceipts || [...document.scripts].some(script => String(script.src || '').includes('registration-reinvestment-receipts.js'))) return;
     const script = document.createElement('script');
-    script.src = 'registration-reinvestment-receipts.js?v=20260824-registration-reinvestment-receipts-1';
+    script.src = 'registration-reinvestment-receipts.js?v=20260824-registration-reinvestment-proof-1';
     script.async = false;
     script.dataset.auroraPhase2 = 'registration-reinvestment-proof';
     document.head.appendChild(script);
@@ -233,7 +233,7 @@
   }, { once: true });
 
   const sync = document.createElement('script');
-  sync.src = '/Aurora_FC/aurora-sync-manager.js?v=20260823-browser-sync-authority-shell-1';
+  sync.src = '/Aurora_FC/legacy/aurora-fc-2-reference/aurora-sync-manager.js?v=20260825-shell-runtime-fix-1';
   sync.async = false;
   sync.dataset.auroraStage3 = 'sync-manager-browser-sync-authority';
   sync.addEventListener('load', () => {
@@ -247,7 +247,7 @@
   }, { once: true });
 
   const platform = document.createElement('script');
-  platform.src = '/Aurora_FC/aurora-platform.js?v=20260823-browser-sync-authority-shell-1';
+  platform.src = '/Aurora_FC/legacy/aurora-fc-2-reference/aurora-platform.js?v=20260825-shell-runtime-fix-1';
   platform.async = false;
   platform.dataset.auroraStage3 = 'core-plus-platform';
   platform.addEventListener('load', () => {
@@ -261,7 +261,7 @@
   }, { once: true });
 
   const core = document.createElement('script');
-  core.src = '/Aurora_FC/aurora-core.js?v=20260823-browser-sync-authority-shell-1';
+  core.src = '/Aurora_FC/legacy/aurora-fc-2-reference/aurora-core.js?v=20260825-shell-runtime-fix-1';
   core.async = false;
   core.dataset.auroraStage3 = 'core-plus-platform-plus-sync-browser-sync-authority';
   core.addEventListener('load', () => {
