@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260825-income-next-dividend-countdown-1';
+  const BUILD = '20260825-income-next-dividend-countdown-2';
   if (window.__AuroraIncomeNextDividendCountdown === BUILD) return;
   window.__AuroraIncomeNextDividendCountdown = BUILD;
 
@@ -29,6 +29,11 @@
     return `${days} days away`;
   }
 
+  function displayDate(value) {
+    const date = parseDate(value);
+    return date ? date.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
+  }
+
   function readSummary() {
     try {
       return JSON.parse(localStorage.getItem(SUMMARY_KEY) || 'null');
@@ -37,20 +42,22 @@
     }
   }
 
+  function removeDuplicateScorecard() {
+    const kNext = document.getElementById('kNext');
+    const card = kNext?.closest('.income-score');
+    if (card) card.remove();
+  }
+
   function apply(summary = readSummary()) {
+    removeDuplicateScorecard();
     const next = summary?.nextDividend;
     if (!next?.date) return;
     const countdown = countdownLabel(next.date);
-    if (!countdown) return;
-
+    const date = displayDate(next.date);
     const hero = document.getElementById('heroNext');
-    if (hero) hero.textContent = `${next.ticker || 'Next'} • ${money(next.amount)} • ${countdown}`;
+    if (!hero) return;
 
-    const kNext = document.getElementById('kNext');
-    if (kNext) kNext.textContent = next.ticker || '—';
-
-    const meta = document.getElementById('kNextMeta');
-    if (meta) meta.textContent = `${money(next.amount)} • ${countdown} • ${next.date}`;
+    hero.innerHTML = `<span style="display:block">${next.ticker || 'Next'} • ${money(next.amount)}</span><small style="display:block;margin-top:5px;font-size:.72em;font-weight:700;opacity:.72">${date}${countdown ? ` • ${countdown}` : ''}</small>`;
   }
 
   window.addEventListener('aurora:income-summary', event => apply(event.detail));
