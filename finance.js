@@ -1,11 +1,14 @@
-/* Aurora City FC — Finance Payday Control Engine — projected-payday Holding Pot runtime */
+/* Aurora City FC — Finance Payday Control Engine — next-cycle Holding Pot protection */
 (function(w){
   'use strict';
 
   const A=()=>w.Aurora2;
   const PAYDAYS_PER_YEAR=13;
   const PAY_CYCLE_DAYS=28;
-  const HOLDING_TARGET_CYCLES=3;
+  // Safety funding protects the NEXT payday cycle only. The regular 13-pay
+  // contribution already smooths the full funding year, so Finance must not
+  // front-load additional cash for cycle 2/3 bills into the current payday.
+  const HOLDING_TARGET_CYCLES=1;
 
   const arr=v=>Array.isArray(v)?v:[];
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
