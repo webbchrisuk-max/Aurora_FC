@@ -1,19 +1,19 @@
-/* Aurora City FC — Finance Payday Control Engine — next-cycle Holding Pot protection */
+/* Aurora City FC — Finance Payday Control Engine — next-cycle Holding Pot + capped rollover */
 (function(w){
   'use strict';
 
   const A=()=>w.Aurora2;
   const PAYDAYS_PER_YEAR=13;
   const PAY_CYCLE_DAYS=28;
-  // Safety funding protects the NEXT payday cycle only. The regular 13-pay
-  // contribution already smooths the full funding year, so Finance must not
-  // front-load additional cash for cycle 2/3 bills into the current payday.
   const HOLDING_TARGET_CYCLES=1;
+  const ROLLOVER_TARGET=350;
+  const ROLLOVER_PER_PAYDAY=100;
 
   const arr=v=>Array.isArray(v)?v:[];
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const cleanName=v=>String(v??'').trim().toLowerCase().replace(/\s+/g,' ');
   const isHoldingPotName=v=>cleanName(v)==='holding pot';
+  const isRolloverPotName=v=>cleanName(v).includes('rollover');
   const dateISO=d=>d instanceof Date&&!Number.isNaN(d.getTime())?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';
 
   function parseLocalDate(v){if(!v)return null;const d=new Date(`${String(v).slice(0,10)}T12:00:00`);return Number.isNaN(d.getTime())?null:d}
@@ -25,11 +25,17 @@
   function potFunded(p){const balance=num(p?.balance);return p?.goalMode==='funded-progress'?balance+num(p?.spent):balance}
   function potGap(p){return Math.max(0,num(p?.target)-potFunded(p))}
   function holdingPot(state){return activePots(state).find(p=>isHoldingPotName(p?.name))||null}
+  function rolloverPot(state){return activePots(state).find(p=>isRolloverPotName(p?.name))||null}
+  function rolloverPosition(state){
+    const pot=rolloverPot(state),balance=Number(num(pot?.balance).toFixed(2));
+    const gap=Number(Math.max(0,ROLLOVER_TARGET-balance).toFixed(2));
+    const contribution=pot?Number(Math.min(ROLLOVER_PER_PAYDAY,gap).toFixed(2)):0;
+    return{pot,balance,gap,contribution,target:ROLLOVER_TARGET,maxPerPayday:ROLLOVER_PER_PAYDAY};
+  }
 
   function occurrenceCountForUndatedBill(bill,payday,nextPayday){
     if(!payday||!nextPayday)return 0;
-    const days=Math.max(1,Math.round((nextPayday-payday)/86400000));
-    const frequency=String(bill?.frequency||'one-off');
+    const days=Math.max(1,Math.round((nextPayday-payday)/86400000)),frequency=String(bill?.frequency||'one-off');
     if(frequency==='weekly')return Math.max(1,Math.ceil(days/7));
     if(frequency==='4-weeks')return Math.max(1,Math.ceil(days/28));
     if(frequency==='5-weeks')return Math.max(1,Math.ceil(days/35));
@@ -68,7 +74,7 @@
   function summarizeOccurrences(rows){
     const map=new Map();
     rows.forEach(o=>{const x=map.get(o.billId)||{billId:o.billId,name:o.billName,count:0,total:0,estimated:false,overdue:false};x.count++;x.total+=num(o.amount);x.estimated=x.estimated||!!o.estimated;x.overdue=x.overdue||!!o.overdue;map.set(o.billId,x)});
-    return [...map.values()].sort((a,b)=>b.total-a.total||String(a.name).localeCompare(String(b.name)));
+    return[...map.values()].sort((a,b)=>b.total-a.total||String(a.name).localeCompare(String(b.name)));
   }
 
   function holdingDynamicForecast(holdingBills,annualOccurrences,payday,annualContribution,hp){
@@ -92,13 +98,13 @@
 
     const hp=holdingPot(state),holdingBills=bills.filter(b=>isHoldingPotName(b.fundingSource)),holdingOccurrences=cycleOccurrences.filter(o=>isHoldingPotName(o.fundingSource)),annualHoldingOccurrences=[];
     holdingBills.forEach(b=>annualHoldingOccurrences.push(...projectBillOccurrences(b,payday,annualEnd)));
-    const holdingRequired=Number(holdingOccurrences.reduce((s,o)=>s+num(o.amount),0).toFixed(2)),annualHoldingTotal=Number(annualHoldingOccurrences.reduce((s,o)=>s+num(o.amount),0).toFixed(2)),annualHoldingContribution=Number((annualHoldingTotal/PAYDAYS_PER_YEAR).toFixed(2));
+    const holdingRequired=Number(holdingOccurrences.reduce((s,o)=>s+num(o.amount),0).toFixed(2));
+    const annualHoldingTotal=Number(annualHoldingOccurrences.reduce((s,o)=>s+num(o.amount),0).toFixed(2));
+    const annualHoldingContribution=Number((annualHoldingTotal/PAYDAYS_PER_YEAR).toFixed(2));
 
     const today=new Date();today.setHours(12,0,0,0);
     const prePaydayHoldingOccurrences=[];
-    if(payday&&payday>today){
-      holdingBills.forEach(b=>prePaydayHoldingOccurrences.push(...projectBillOccurrences(b,today,payday)));
-    }
+    if(payday&&payday>today)holdingBills.forEach(b=>prePaydayHoldingOccurrences.push(...projectBillOccurrences(b,today,payday)));
     const holdingSpendBeforePayday=Number(prePaydayHoldingOccurrences.reduce((s,o)=>s+num(o.amount),0).toFixed(2));
     const holdingBalance=Number(num(hp?.balance).toFixed(2));
     const holdingProjectedBalanceAtPayday=Number(Math.max(0,holdingBalance-holdingSpendBeforePayday).toFixed(2));
@@ -108,9 +114,12 @@
     const holdingProjectedBeforeTopUp=Number((holdingProjectedBalanceAtPayday+annualHoldingContribution).toFixed(2));
     const holdingTopUp=Number((payday?Math.max(0,dynamic.dynamicTarget-holdingProjectedBeforeTopUp):0).toFixed(2));
     const holdingAfterFunding=Number((holdingProjectedBeforeTopUp+holdingTopUp).toFixed(2));
-    const potsDue=Number(activePots(state).filter(p=>!isHoldingPotName(p.name)).reduce((s,p)=>s+Math.min(potGap(p),num(p.fundingPerPayday)),0).toFixed(2));
 
-    return{billsDue,potsDue,bills:currentAccountBills,billOccurrences:currentAccountOccurrences,allOccurrences:cycleOccurrences,payday:payday?dateISO(payday):'',nextPayday:nextPayday?dateISO(nextPayday):'',annualEnd:annualEnd?dateISO(annualEnd):'',holdingPot:hp,holdingOccurrences,holdingSummary:summarizeOccurrences(holdingOccurrences),annualHoldingOccurrences,annualHoldingSummary:summarizeOccurrences(annualHoldingOccurrences),annualHoldingTotal,annualHoldingContribution,holdingRequired,holdingBalance,holdingSpendBeforePayday,holdingProjectedBalanceAtPayday,holdingPrePaydayShortfall,prePaydayHoldingOccurrences,prePaydayHoldingSummary:summarizeOccurrences(prePaydayHoldingOccurrences),holdingTopUp,holdingSurplus:Number(Math.max(0,holdingAfterFunding-holdingRequired).toFixed(2)),holdingDynamicTarget:dynamic.dynamicTarget,holdingCalculatedTarget:dynamic.calculatedTarget,holdingMinimumFloor:dynamic.minimumFloor,holdingCycleTotals:dynamic.cycleTotals,holdingCycleCounts:dynamic.cycleCounts,holdingPeakCycle:dynamic.peakCycle,holdingAfterFunding,holdingProjectedBeforeTopUp,holdingTargetHeadroom:Number((holdingAfterFunding-dynamic.dynamicTarget).toFixed(2)),holdingTargetCycles:HOLDING_TARGET_CYCLES};
+    const rollover=rolloverPosition(state);
+    const otherGoalPotsDue=Number(activePots(state).filter(p=>!isHoldingPotName(p.name)&&!isRolloverPotName(p.name)).reduce((s,p)=>s+Math.min(potGap(p),num(p.fundingPerPayday)),0).toFixed(2));
+    const potsDue=Number((otherGoalPotsDue+rollover.contribution).toFixed(2));
+
+    return{billsDue,potsDue,otherGoalPotsDue,bills:currentAccountBills,billOccurrences:currentAccountOccurrences,allOccurrences:cycleOccurrences,payday:payday?dateISO(payday):'',nextPayday:nextPayday?dateISO(nextPayday):'',annualEnd:annualEnd?dateISO(annualEnd):'',holdingPot:hp,holdingOccurrences,holdingSummary:summarizeOccurrences(holdingOccurrences),annualHoldingOccurrences,annualHoldingSummary:summarizeOccurrences(annualHoldingOccurrences),annualHoldingTotal,annualHoldingContribution,holdingRequired,holdingBalance,holdingSpendBeforePayday,holdingProjectedBalanceAtPayday,holdingPrePaydayShortfall,prePaydayHoldingOccurrences,prePaydayHoldingSummary:summarizeOccurrences(prePaydayHoldingOccurrences),holdingTopUp,holdingSurplus:Number(Math.max(0,holdingAfterFunding-holdingRequired).toFixed(2)),holdingDynamicTarget:dynamic.dynamicTarget,holdingCalculatedTarget:dynamic.calculatedTarget,holdingMinimumFloor:dynamic.minimumFloor,holdingCycleTotals:dynamic.cycleTotals,holdingCycleCounts:dynamic.cycleCounts,holdingPeakCycle:dynamic.peakCycle,holdingAfterFunding,holdingProjectedBeforeTopUp,holdingTargetHeadroom:Number((holdingAfterFunding-dynamic.dynamicTarget).toFixed(2)),holdingTargetCycles:HOLDING_TARGET_CYCLES,rolloverPot:rollover.pot,rolloverBalance:rollover.balance,rolloverTarget:rollover.target,rolloverGap:rollover.gap,rolloverContribution:rollover.contribution,rolloverMaxPerPayday:rollover.maxPerPayday};
   }
 
   function stateWithFundingPreview(state,plan){
@@ -121,21 +130,29 @@
   function calc(plan,state=A()?.core?.read?.()||{}){
     const expectedWages=num(plan?.expectedWages??plan?.netPay),wagesReceived=num(plan?.wagesReceived??plan?.netPay),wageDifference=Number((wagesReceived-expectedWages).toFixed(2)),wageExtra=Math.max(0,wageDifference),wageShortfall=Math.max(0,-wageDifference);
     const preview=stateWithFundingPreview(state,{...plan,expectedWages,wagesReceived,netPay:wagesReceived}),auto=autoCommitments(preview.state,plan||{}),fundingPlan=preview.fundingPlan||{},wageExtraToPots=Number(num(fundingPlan.extraAllocated).toFixed(2)),wageExtraRemaining=Number(Math.max(0,wageExtra-wageExtraToPots).toFixed(2));
-    const normalized={...(plan||{}),expectedWages,wagesReceived,netPay:wagesReceived,wageDifference,wageExtra,wageShortfall,wageExtraToPots,wageExtraRemaining,billsDue:auto.billsDue,potsDue:auto.potsDue,annualBillFunding:auto.annualHoldingContribution,holdingPotTopUp:auto.holdingTopUp};
-    const totalCash=Number((num(normalized.openingCash)+wagesReceived+num(normalized.extraCash)).toFixed(2)),commitments=Number((auto.billsDue+auto.annualHoldingContribution+auto.holdingTopUp+auto.potsDue+num(normalized.otherPlanned)).toFixed(2)),safeSurplus=Number(Math.max(0,totalCash-commitments-num(normalized.protectedCash)).toFixed(2));
+    const normalized={...(plan||{}),expectedWages,wagesReceived,netPay:wagesReceived,wageDifference,wageExtra,wageShortfall,wageExtraToPots,wageExtraRemaining,billsDue:auto.billsDue,potsDue:auto.potsDue,annualBillFunding:auto.annualHoldingContribution,holdingPotTopUp:auto.holdingTopUp,rolloverContribution:auto.rolloverContribution};
+    const totalCash=Number((num(normalized.openingCash)+wagesReceived+num(normalized.extraCash)).toFixed(2));
+    const commitments=Number((auto.billsDue+auto.annualHoldingContribution+auto.holdingTopUp+auto.potsDue+num(normalized.otherPlanned)).toFixed(2));
+    const safeSurplus=Number(Math.max(0,totalCash-commitments-num(normalized.protectedCash)).toFixed(2));
     return{totalCash,commitments,safeSurplus,auto,plan:normalized,fundingPlan};
   }
 
   function paydayFundingPreview(state,plan){
-    const c=calc(plan,state),rows=arr(c.fundingPlan?.rows).map(r=>({id:String(r.id||''),name:String(r.name||'Pot'),amount:Number(num(r.amount).toFixed(2)),reason:String(r.reason||'')})).filter(r=>r.id&&r.amount>.005),goalPotsTotal=Number(rows.reduce((s,r)=>s+r.amount,0).toFixed(2)),holdingContribution=Number((num(c.auto.annualHoldingContribution)+num(c.auto.holdingTopUp)).toFixed(2));
-    return{c,rows,goalPotsTotal,holdingContribution,total:Number((goalPotsTotal+holdingContribution).toFixed(2))};
+    const c=calc(plan,state);
+    const rows=arr(c.fundingPlan?.rows).map(r=>({id:String(r.id||''),name:String(r.name||'Pot'),amount:Number(num(r.amount).toFixed(2)),reason:String(r.reason||'')})).filter(r=>r.id&&r.amount>.005&&!isRolloverPotName(r.name));
+    if(c.auto.rolloverPot&&c.auto.rolloverContribution>.005){
+      rows.push({id:String(c.auto.rolloverPot.id||'payday-rollover'),name:String(c.auto.rolloverPot.name||'Payday Rollover'),amount:Number(c.auto.rolloverContribution.toFixed(2)),reason:`Payday Rollover • £${ROLLOVER_TARGET.toFixed(2)} target • max £${ROLLOVER_PER_PAYDAY.toFixed(2)} per payday`});
+    }
+    const goalPotsTotal=Number(rows.reduce((s,r)=>s+r.amount,0).toFixed(2));
+    const holdingContribution=Number((num(c.auto.annualHoldingContribution)+num(c.auto.holdingTopUp)).toFixed(2));
+    return{c,rows,goalPotsTotal,holdingContribution,rolloverContribution:Number(c.auto.rolloverContribution||0),total:Number((goalPotsTotal+holdingContribution).toFixed(2))};
   }
 
   function nextPaydayPlan(plan){
     const payday=parseLocalDate(plan?.paydayDate),nextDate=payday?dateISO(addDays(payday,PAY_CYCLE_DAYS)):'',expected=num(plan?.expectedWages??plan?.netPay);
-    return{...(plan||{}),paydayDate:nextDate,openingCash:0,expectedWages:expected,wagesReceived:expected,netPay:expected,wageDifference:0,wageExtra:0,wageShortfall:0,wageExtraToPots:0,wageExtraRemaining:0,extraCash:0,otherPlanned:0,releaseAmount:0,billsDue:0,potsDue:0,annualBillFunding:0,holdingPotTopUp:0};
+    return{...(plan||{}),paydayDate:nextDate,openingCash:0,expectedWages:expected,wagesReceived:expected,netPay:expected,wageDifference:0,wageExtra:0,wageShortfall:0,wageExtraToPots:0,wageExtraRemaining:0,extraCash:0,otherPlanned:0,releaseAmount:0,billsDue:0,potsDue:0,annualBillFunding:0,holdingPotTopUp:0,rolloverContribution:0};
   }
 
   w.Aurora2=w.Aurora2||{};
-  w.Aurora2.financePaydayControl=Object.freeze({paydayFundingPreview,nextPaydayPlan,calc,autoCommitments,projectBillOccurrences,nextDue});
+  w.Aurora2.financePaydayControl=Object.freeze({paydayFundingPreview,nextPaydayPlan,calc,autoCommitments,projectBillOccurrences,nextDue,rolloverPosition});
 })(window);
