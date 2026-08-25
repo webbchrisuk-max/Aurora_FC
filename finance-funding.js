@@ -1,10 +1,12 @@
-/* Aurora FC 2.0 — Finance Funding Engine v1.5 — Capped Optional Pots */
+/* Aurora FC 2.0 — Finance Funding Engine v1.6 — Rollover-First Optional Pots */
 (function(w){
   'use strict';
 
   const A=()=>w.Aurora2;
   const PAY_CYCLE_DAYS=28;
   const NORMAL_POT_PAYDAY_CAP=300;
+  const ROLLOVER_TARGET=350;
+  const ROLLOVER_PER_PAYDAY=100;
   const LEGACY_KEYS=['aurora_wealth_centre','aurora_wealth_centre_backup_v3'];
   let syncing=false;
 
@@ -76,7 +78,7 @@
   }
 
   function legacyGoalBudget(state){
-    const mission=obj(state?.paydayMission), inputs=obj(mission.inputs);
+    const mission=obj(state?.paydayMission),inputs=obj(mission.inputs);
     const direct=num(inputs.goalPots);
     if(direct>0)return direct;
     const alternatives=[state?.goalPotBudget,state?.goalPots,state?.paydayGoalPots,state?.paydayMission?.plan?.goalPots];
@@ -92,8 +94,8 @@
   function importLegacyMetadata(state2){
     const legacy=readLegacy();
     if(!legacy)return {state:state2,changed:false,legacy:null};
-    const lf=legacy.state, map=legacyPotMap(lf);
-    const f=obj(state2.finance), policy={...obj(f.fundingPolicy)};
+    const lf=legacy.state,map=legacyPotMap(lf);
+    const f=obj(state2.finance),policy={...obj(f.fundingPolicy)};
     let changed=false;
     const pots=arr(f.pots).map(p=>{
       const lp=map.get(norm(p.name))||map.get(norm(String(p.id||'').replace(/^A1-POT-/i,'')));
@@ -118,7 +120,7 @@
   }
 
   function initialiseDefaultBudgetIfNeeded(state){
-    const f=obj(state?.finance), policy={...obj(f.fundingPolicy)};
+    const f=obj(state?.finance),policy={...obj(f.fundingPolicy)};
     if(Number(policy.engineVersion||0)<3){
       policy.previousExtraPotBudget=num(policy.extraPotBudget??policy.goalPotBudget);
       policy.goalPotBudget=0;
@@ -132,7 +134,7 @@
   }
 
   function deadlineInfo(p,payday){
-    const gap=potGap(p,A()?.core?.read?.()), deadline=parseDate(p?.deadline), pd=parseDate(payday);
+    const gap=potGap(p,A()?.core?.read?.()),deadline=parseDate(p?.deadline),pd=parseDate(payday);
     if(!deadline||!pd||gap<=.009)return {hasDeadline:!!deadline,gap,required:0,paydays:0,deadline};
     const diff=deadline.getTime()-pd.getTime();
     const cycles=Math.floor(diff/(PAY_CYCLE_DAYS*86400000));
@@ -154,7 +156,7 @@
     if(strategy==='balanced'){
       let active=candidates.map(x=>({...x,remainingGap:Math.max(0,x.gap-(allocations.get(x.pot.id)?.amount||0))})).filter(x=>x.remainingGap>.009).sort((a,b)=>a.priority-b.priority||b.remainingGap-a.remainingGap);
       while(remaining>.009&&active.length){
-        const share=remaining/active.length, next=[];
+        const share=remaining/active.length,next=[];
         for(const row of active){
           const current=allocations.get(row.pot.id)?.amount||0;
           const need=Math.max(0,row.gap-current);
@@ -206,7 +208,7 @@
   }
 
   function buildPlan(state){
-    const f=obj(state.finance), plan=obj(f.plan), policy=obj(f.fundingPolicy);
+    const f=obj(state.finance),plan=obj(f.plan),policy=obj(f.fundingPolicy);
     const expectedWages=num(plan.expectedWages!=null?plan.expectedWages:plan.netPay);
     const wagesReceived=num(plan.wagesReceived!=null?plan.wagesReceived:plan.netPay);
     const wageDifference=Number((wagesReceived-expectedWages).toFixed(2));
@@ -216,6 +218,10 @@
     const strategy=['priority','balanced','critical'].includes(policy.strategy)?policy.strategy:'priority';
     const payday=plan.paydayDate||'';
     const pots=arr(f.pots);
+    const rollover=pots.find(p=>!p?.archived&&isRolloverPot(p))||null;
+    const rolloverBalance=Number(num(rollover?.balance).toFixed(2));
+    const rolloverGap=Number(Math.max(0,ROLLOVER_TARGET-rolloverBalance).toFixed(2));
+    const rolloverContribution=rollover?Number(Math.min(optionalBudget,ROLLOVER_PER_PAYDAY,rolloverGap).toFixed(2)):0;
     const candidates=pots.filter(p=>!excludedFromGoalFunding(p)).map(p=>({pot:p,gap:potGap(p,state),priority:[1,2,3].includes(Number(p.priority))?Number(p.priority):2,deadline:deadlineInfo(p,payday)}));
     const allocations=new Map();
     let requiredFunding=0,deadlineRequired=0;
@@ -232,21 +238,27 @@
         requiredFunding+=required;
       }
     }
+    if(rollover&&rolloverContribution>.009){
+      addAllocation(allocations,rollover,rolloverContribution,`Payday Rollover • £${ROLLOVER_TARGET.toFixed(2)} target • max £${ROLLOVER_PER_PAYDAY.toFixed(2)} per payday`);
+    }
     const paceOnlyCandidates=candidates.filter(row=>row.deadline.hasDeadline);
     const extraCandidates=candidates.filter(row=>!row.deadline.hasDeadline);
-    let remainingExtra=allocatePriority(extraCandidates,optionalBudget,allocations,strategy);
+    const optionalAfterRollover=Math.max(0,optionalBudget-rolloverContribution);
+    let remainingExtra=allocatePriority(extraCandidates,optionalAfterRollover,allocations,strategy);
     let nextPots=pots.map(p=>{
-      const a=allocations.get(p.id),nextFunding=a?Math.min(potGap(p,state),a.amount):0;
-      const reason=a?a.reasons.join(' • '):(potGap(p,state)<=.009?'Target funded':excludedFromGoalFunding(p)?'Excluded from goal-pot funding':'No deadline requirement; waiting for optional extra funding');
+      const a=allocations.get(p.id);
+      const fundingGap=isRolloverPot(p)?Math.max(0,ROLLOVER_TARGET-num(p.balance)):potGap(p,state);
+      const nextFunding=a?Math.min(fundingGap,a.amount):0;
+      const reason=a?a.reasons.join(' • '):(fundingGap<=.009?'Target funded':excludedFromGoalFunding(p)?'Excluded from normal goal-pot funding':'No deadline requirement; waiting for optional extra funding');
       return {...p,fundingPerPayday:Number(nextFunding.toFixed(2)),fundingReason:reason,fundingRequired:Number((a?.required||0).toFixed(2))};
     });
-    const extraAllocated=Math.max(0,optionalBudget-remainingExtra);
+    const extraAllocated=Number((optionalBudget-remainingExtra).toFixed(2));
     const targetAllocated=Number((requiredFunding+extraAllocated).toFixed(2));
     nextPots=reconcileFundingPennies(nextPots,targetAllocated,state);
     const allocated=Number(nextPots.reduce((s,p)=>s+Math.max(0,num(p.fundingPerPayday)),0).toFixed(2));
     const requiredVisible=Number(nextPots.reduce((s,p)=>s+Math.max(0,num(p.fundingRequired)),0).toFixed(2));
     const rows=nextPots.filter(p=>num(p.fundingPerPayday)>0).map(p=>({id:p.id,name:p.name,amount:Number(num(p.fundingPerPayday).toFixed(2)),required:Number(num(p.fundingRequired).toFixed(2)),reason:p.fundingReason,deadline:p.deadline||''}));
-    return {pots:nextPots,policy:{...policy,goalPotBudget:0,extraPotBudget:0,engineVersion:3,strategy,lastCalculatedAt:isoNow(),lastPlan:{paydayDate:payday,budget:Number(extraBudget.toFixed(2)),normalPotCap:NORMAL_POT_PAYDAY_CAP,optionalBudget:Number(optionalBudget.toFixed(2)),expectedWages:Number(expectedWages.toFixed(2)),wagesReceived:Number(wagesReceived.toFixed(2)),wageDifference:Number(wageDifference.toFixed(2)),wageShortfall:Number(wageShortfall.toFixed(2)),requiredFunding:Number(requiredVisible.toFixed(2)),deadlineRequired:Number(deadlineRequired.toFixed(2)),deadlineAllocated:Number(deadlineRequired.toFixed(2)),deadlineShortfall:0,extraBudget:Number(extraBudget.toFixed(2)),extraAllocated:Number(extraAllocated.toFixed(2)),paceOnlyCount:paceOnlyCandidates.length,extraEligibleCount:extraCandidates.length,allocated:Number(allocated.toFixed(2)),totalFunding:Number(allocated.toFixed(2)),unallocated:Number(Math.max(0,extraBudget-extraAllocated).toFixed(2)),rows}}};
+    return {pots:nextPots,policy:{...policy,goalPotBudget:0,extraPotBudget:0,engineVersion:3,strategy,lastCalculatedAt:isoNow(),lastPlan:{paydayDate:payday,budget:Number(extraBudget.toFixed(2)),normalPotCap:NORMAL_POT_PAYDAY_CAP,optionalBudget:Number(optionalBudget.toFixed(2)),rolloverTarget:ROLLOVER_TARGET,rolloverMaxPerPayday:ROLLOVER_PER_PAYDAY,rolloverContribution:Number(rolloverContribution.toFixed(2)),optionalAfterRollover:Number(optionalAfterRollover.toFixed(2)),expectedWages:Number(expectedWages.toFixed(2)),wagesReceived:Number(wagesReceived.toFixed(2)),wageDifference:Number(wageDifference.toFixed(2)),wageShortfall:Number(wageShortfall.toFixed(2)),requiredFunding:Number(requiredVisible.toFixed(2)),deadlineRequired:Number(deadlineRequired.toFixed(2)),deadlineAllocated:Number(deadlineRequired.toFixed(2)),deadlineShortfall:0,extraBudget:Number(extraBudget.toFixed(2)),extraAllocated:Number(extraAllocated.toFixed(2)),paceOnlyCount:paceOnlyCandidates.length,extraEligibleCount:extraCandidates.length,allocated:Number(allocated.toFixed(2)),totalFunding:Number(allocated.toFixed(2)),unallocated:Number(Math.max(0,extraBudget-extraAllocated).toFixed(2)),rows}}};
   }
 
   function materiallyChanged(a,b){if(arr(a).length!==arr(b).length)return true;for(let i=0;i<a.length;i++){if(a[i].id!==b[i].id)return true;for(const k of ['fundingPerPayday','fundingReason','fundingRequired','deadline','note'])if(String(a[i][k]??'')!==String(b[i][k]??''))return true;}return false;}
