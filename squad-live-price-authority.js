@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260825-shared-market-price-authority-2';
+  const BUILD = '20260825-shared-market-price-authority-3';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const MASTER_URL = 'AuroraMaster.json';
@@ -152,7 +152,7 @@
     };
   }
 
-  function patchTarget(row, quotes, stamp) {
+  function patchMarketRow(row, quotes, stamp) {
     const quote = quotes.get(ticker(row?.ticker || row?.symbol || row?.marketSymbol));
     if (!quote) return row;
     return {
@@ -186,10 +186,18 @@
     const previous = value - day;
     const dayPct = coverage && previous > 0 ? day / previous * 100 : null;
     const evidence = evidenceRows(quotes, stamp);
+    const scouting = current?.scouting || {};
     return {
       ...current,
       squad:{...(current?.squad || {}),holdings,priceSource:lastSource,priceUpdatedAt:stamp},
-      scouting:{...(current?.scouting || {}),targets:arr(current?.scouting?.targets).map(row => patchTarget(row, quotes, stamp)),marketPriceSource:lastSource,marketPriceUpdatedAt:stamp},
+      scouting:{
+        ...scouting,
+        targets:arr(scouting.targets).map(row => patchMarketRow(row, quotes, stamp)),
+        universe:arr(scouting.universe).map(row => patchMarketRow(row, quotes, stamp)),
+        replacementBasket:arr(scouting.replacementBasket).map(row => patchMarketRow(row, quotes, stamp)),
+        marketPriceSource:lastSource,
+        marketPriceUpdatedAt:stamp
+      },
       market:{
         ...(current?.market || {}),evidence,livePrices:evidence,portfolioValueGbp:Number(value.toFixed(8)),
         ...(dayPct === null ? {} : {portfolioTodayChangeGbp:Number(day.toFixed(8)),portfolioTodayChangePct:Number(dayPct.toFixed(8))}),
@@ -201,7 +209,12 @@
   function materiallyChanged(current, next) {
     const a = arr(current?.squad?.holdings), b = arr(next?.squad?.holdings);
     if (a.length !== b.length) return true;
-    return a.some((row,index) => Math.abs(num(row?.livePriceGbp)-num(b[index]?.livePriceGbp)) > 0.0000001 || Math.abs(num(row?.dailyChangePct)-num(b[index]?.dailyChangePct)) > 0.0000001);
+    if (a.some((row,index) => Math.abs(num(row?.livePriceGbp)-num(b[index]?.livePriceGbp)) > 0.0000001 || Math.abs(num(row?.dailyChangePct)-num(b[index]?.dailyChangePct)) > 0.0000001)) return true;
+    const before = new Map(arr(current?.market?.evidence).map(row => [ticker(row?.ticker || row?.symbol),row]));
+    return arr(next?.market?.evidence).some(row => {
+      const old = before.get(ticker(row?.ticker || row?.symbol));
+      return !old || Math.abs(num(old?.livePriceGbp)-num(row?.livePriceGbp)) > 0.0000001 || Math.abs(num(old?.dailyChangePct)-num(row?.dailyChangePct)) > 0.0000001;
+    });
   }
 
   function writeState(current, next) {
