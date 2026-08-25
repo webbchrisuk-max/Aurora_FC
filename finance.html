@@ -11,9 +11,9 @@
 <link rel="stylesheet" href="/Aurora_FC/immersive-departments.css?v=120-shared-hero-art">
 <link rel="stylesheet" href="/Aurora_FC/aurora-department-cards.css?v=20260815-1">
 <link rel="stylesheet" href="/Aurora_FC/aurora-typography.css?v=20260816-1">
-<script src="aurora-stage4e-live-finance-route.js?v=20260824-finance-overhaul-bootstrap-1" defer></script>
+<script src="aurora-stage4e-live-finance-route.js?v=20260825-finance-overhaul-bootstrap-4" defer></script>
 <script src="finance-ui-controller.js?v=20260823-finance-ui-controller-3" defer></script>
-<script src="finance-workspace-refresh.js?v=20260824-finance-workspace-refresh-1" defer></script>
+<script src="finance-workspace-refresh.js?v=20260825-finance-workspace-refresh-3" defer></script>
 <style>
 body{margin:0;background:#020612;color:#eef7ff}.finance-live-rebuild .page{max-width:1400px;margin:0 auto;padding:30px 24px 70px}.finance-command-hero{margin-top:8px}.finance-section-nav{position:sticky;top:72px;z-index:8}.live-section{scroll-margin-top:150px}.live-placeholder{min-height:160px;display:flex;align-items:center;justify-content:center;text-align:center;color:#8398ab;border:1px dashed rgba(110,231,255,.18);border-radius:18px;background:rgba(5,15,28,.45);margin-top:18px;padding:24px}.live-placeholder strong{display:block;color:#dff6ff;font-size:20px;margin-bottom:8px}.finance-field-grid .field{min-width:0;overflow:hidden}.finance-field-grid input[type="date"]{display:block;width:calc(100% - 10px);max-width:calc(100% - 10px);min-width:0;min-inline-size:0;box-sizing:border-box;justify-self:start}
 #overviewPanel[hidden],#paydayPanel[hidden],#potsPanel[hidden],#housePanel[hidden]{display:none!important}.finance-workspace-active{animation:financeWorkspaceIn .2s ease}.finance-section-nav .tab{cursor:pointer}.finance-section-nav .tab[aria-selected="true"]{box-shadow:0 0 0 1px rgba(110,231,255,.18),0 10px 30px rgba(0,0,0,.18)}@keyframes financeWorkspaceIn{from{opacity:.35;transform:translateY(5px)}to{opacity:1;transform:none}}
@@ -74,81 +74,21 @@ body{margin:0;background:#020612;color:#eef7ff}.finance-live-rebuild .page{max-w
     </section>
 
     <section class="finance-command-grid two">
-      <article class="finance-panel readiness-panel">
-        <div class="finance-panel-head"><div><span class="finance-panel-kicker">Finance Control Check</span><h3>Payday Readiness</h3></div><span class="readiness-badge warn">CHECKING</span></div>
-        <div class="readiness-grid"><div class="readiness-item"><small>Bill planning</small><strong>—</strong></div><div class="readiness-item"><small>Holding Pot</small><strong>—</strong></div><div class="readiness-item"><small>Goal pots</small><strong>—</strong></div><div class="readiness-item"><small>Mission gate</small><strong>—</strong></div></div>
-      </article>
-      <article class="finance-panel mission-panel">
-        <div class="finance-panel-head"><div><span class="finance-panel-kicker">Current Released Mission</span><h3>Transfer Budget</h3></div><span class="mission-lock-chip">FROZEN AFTER RELEASE</span></div>
-        <div class="mission-amount">£0.00</div><strong class="mission-status">NO ACTIVE MISSION</strong><p>No released mission is active.</p><div class="mission-lock">Released missions stay frozen while the next payday forecast continues updating.</div>
-      </article>
+      <article class="finance-panel readiness-panel"><div class="finance-panel-head"><div><span class="finance-panel-kicker">Finance Control Check</span><h3>Payday Readiness</h3></div><span class="readiness-badge warn">CHECKING</span></div><div class="readiness-grid"><div class="readiness-item"><small>Bill planning</small><strong>—</strong></div><div class="readiness-item"><small>Holding Pot</small><strong>—</strong></div><div class="readiness-item"><small>Goal pots</small><strong>—</strong></div><div class="readiness-item"><small>Mission gate</small><strong>—</strong></div></div></article>
+      <article class="finance-panel mission-panel"><div class="finance-panel-head"><div><span class="finance-panel-kicker">Current Released Mission</span><h3>Transfer Budget</h3></div><span class="mission-lock-chip">FROZEN AFTER RELEASE</span></div><div class="mission-amount">£0.00</div><strong class="mission-status">NO ACTIVE MISSION</strong><p>No released mission is active.</p><div class="mission-lock">Released missions stay frozen while the next payday forecast continues updating.</div></article>
     </section>
 
-    <section class="finance-panel reconcile-panel">
-      <div class="finance-panel-head"><div><span class="finance-panel-kicker">Payday Reconciliation</span><h3>Current mission vs next forecast</h3></div><span class="finance-panel-note">Finance keeps the live mission frozen</span></div>
-      <div class="reconcile-grid"><div><small>Next Safe Release</small><strong>£0.00</strong><span>Live payday inputs</span></div><div><small>Current Released Mission</small><strong>£0.00</strong><span>No active mission</span></div><div><small>Difference</small><strong>£0.00</strong><span>No released mission to compare</span></div></div>
-      <div class="finance-notice">Finance will keep the released mission frozen while calculating the next safe release independently.</div>
-    </section>
+    <section class="finance-panel reconcile-panel"><div class="finance-panel-head"><div><span class="finance-panel-kicker">Payday Reconciliation</span><h3>Current mission vs next forecast</h3></div><span class="finance-panel-note">Finance keeps the live mission frozen</span></div><div class="reconcile-grid"><div><small>Next Safe Release</small><strong>£0.00</strong><span>Live payday inputs</span></div><div><small>Current Released Mission</small><strong>£0.00</strong><span>No active mission</span></div><div><small>Difference</small><strong>£0.00</strong><span>No released mission to compare</span></div></div><div class="finance-notice">Finance will keep the released mission frozen while calculating the next safe release independently.</div></section>
 
     <section class="finance-command-grid two">
-      <article class="finance-panel forecast-panel">
-        <div class="finance-panel-head"><div><span class="finance-panel-kicker">Next Payday Forecast</span><h3>Automatic Commitments</h3></div><a class="mini-link-btn" href="#paydayPanel">Edit Payday</a></div>
-        <div class="forecast-list finance-legacy-forecast-list"><div><span>Expected wages</span><strong>£0.00</strong></div><div><span>Wages received</span><strong>£0.00</strong></div><div><span>Extra wage</span><strong class="positive">£0.00</strong></div><div class="forecast-total"><span>Total cash available</span><strong>£0.00</strong></div><div><span>Current Account bills</span><strong>− £0.00</strong></div><div><span>13-pay bill funding</span><strong>− £0.00</strong></div><div><span>Holding Pot safety top-up</span><strong>− £0.00</strong></div><div><span>Pot funding required</span><strong>− £0.00</strong></div><div><span>Other planned spending</span><strong>− £0.00</strong></div><div><span>Protected spending money</span><strong>− £0.00</strong></div><div class="safe-surplus"><span>Safe surplus</span><strong>£0.00</strong></div></div>
-      </article>
-      <article class="finance-panel rule-panel">
-        <div class="finance-panel-head"><div><span class="finance-panel-kicker">Money Protection Order</span><h3>Finance owns the money</h3></div><span class="rule-chip">SINGLE SOURCE</span></div>
-        <div class="rule-flow"><div><i>01</i><b>Income lands</b><span>Opening cash + wages + other cash</span></div><div><i>02</i><b>Commitments protected</b><span>Bills, annual bill funding and pot funding</span></div><div><i>03</i><b>Safety protected</b><span>Holding Pot + personal spending</span></div><div><i>04</i><b>Mission released</b><span>Only the safe surplus can reach Transfer</span></div></div>
-      </article>
+      <article class="finance-panel forecast-panel"><div class="finance-panel-head"><div><span class="finance-panel-kicker">Next Payday Forecast</span><h3>Automatic Commitments</h3></div><a class="mini-link-btn" href="#paydayPanel">Edit Payday</a></div><div class="forecast-list finance-legacy-forecast-list"><div><span>Expected wages</span><strong>£0.00</strong></div><div><span>Wages received</span><strong>£0.00</strong></div><div><span>Extra wage</span><strong class="positive">£0.00</strong></div><div class="forecast-total"><span>Total cash available</span><strong>£0.00</strong></div><div><span>Current Account bills</span><strong>− £0.00</strong></div><div><span>13-pay bill funding</span><strong>− £0.00</strong></div><div><span>Holding Pot safety top-up</span><strong>− £0.00</strong></div><div><span>Pot funding required</span><strong>− £0.00</strong></div><div><span>Other planned spending</span><strong>− £0.00</strong></div><div><span>Protected spending money</span><strong>− £0.00</strong></div><div class="safe-surplus"><span>Safe surplus</span><strong>£0.00</strong></div></div></article>
+      <article class="finance-panel rule-panel"><div class="finance-panel-head"><div><span class="finance-panel-kicker">Money Protection Order</span><h3>Finance owns the money</h3></div><span class="rule-chip">SINGLE SOURCE</span></div><div class="rule-flow"><div><i>01</i><b>Income lands</b><span>Opening cash + wages + other cash</span></div><div><i>02</i><b>Commitments protected</b><span>Bills, annual bill funding and pot funding</span></div><div><i>03</i><b>Safety protected</b><span>Holding Pot + personal spending</span></div><div><i>04</i><b>Mission released</b><span>Only the safe surplus can reach Transfer</span></div></div></article>
     </section>
   </section>
 
-  <section id="paydayPanel" class="live-section">
-    <section class="finance-command-grid two">
-      <article class="finance-panel payday-planner">
-        <div class="finance-panel-head"><div><span class="finance-panel-kicker">Payday Control</span><h3>Actual Payday Planner</h3></div><span class="rule-chip green">LIVE COMMITMENTS</span></div>
-        <div class="field-grid finance-field-grid">
-          <div class="field"><label>Payday date</label><input type="date" disabled><small>Aurora calculates bills over 13 paydays and protects commitments first.</small></div>
-          <div class="field"><label>Opening cash</label><input type="number" value="0" disabled><small>Cash available before the wage lands.</small></div>
-          <div class="field"><label>Expected wages</label><input type="number" value="0" disabled><small>Normal expected take-home pay.</small></div>
-          <div class="field"><label>Wages received</label><input type="number" value="0" disabled><small>The actual wage that landed.</small></div>
-          <div class="field"><label>Other cash / one-off income</label><input type="number" value="0" disabled><small>Non-wage cash included this payday.</small></div>
-          <div class="field"><label>Protected spending money</label><input type="number" value="0" disabled><small>Your personal spending money for the pay cycle.</small></div>
-          <div class="field"><label>Investment amount to release</label><input type="number" value="0" disabled><small>Can be less than safe surplus, never more.</small></div>
-        </div>
-      </article>
-      <article class="finance-panel"><div class="finance-panel-head"><div><span class="finance-panel-kicker">Finance Operations</span><h3>Commitments connected</h3></div><span class="rule-chip green">LIVE</span></div><p>Bills, pot management, payment undo, House Projects and the protected Transfer release are connected to the same saved Finance state.</p></article>
-    </section>
-  </section>
+  <section id="paydayPanel" class="live-section"><section class="finance-command-grid two"><article class="finance-panel payday-planner"><div class="finance-panel-head"><div><span class="finance-panel-kicker">Payday Control</span><h3>Actual Payday Planner</h3></div><span class="rule-chip green">LIVE COMMITMENTS</span></div><div class="field-grid finance-field-grid"><div class="field"><label>Payday date</label><input type="date" disabled><small>Aurora calculates bills over 13 paydays and protects commitments first.</small></div><div class="field"><label>Opening cash</label><input type="number" value="0" disabled><small>Cash available before the wage lands.</small></div><div class="field"><label>Expected wages</label><input type="number" value="0" disabled><small>Normal expected take-home pay.</small></div><div class="field"><label>Wages received</label><input type="number" value="0" disabled><small>The actual wage that landed.</small></div><div class="field"><label>Other cash / one-off income</label><input type="number" value="0" disabled><small>Non-wage cash included this payday.</small></div><div class="field"><label>Protected spending money</label><input type="number" value="0" disabled><small>Your personal spending money for the pay cycle.</small></div><div class="field"><label>Investment amount to release</label><input type="number" value="0" disabled><small>Can be less than safe surplus, never more.</small></div></div></article><article class="finance-panel"><div class="finance-panel-head"><div><span class="finance-panel-kicker">Finance Operations</span><h3>Commitments connected</h3></div><span class="rule-chip green">LIVE</span></div><p>Bills, pot management, payment undo, House Projects and the protected Transfer release are connected to the same saved Finance state.</p></article></section></section>
 
-  <section id="potsPanel" class="live-section fu-ready">
-    <section class="fu-pb" aria-label="Pots and Bills control">
-      <nav class="fu-pb-nav" aria-label="Pots and Bills sections">
-        <button type="button" class="active" data-fu-pane="summary"><b>Overview</b><small>Money & health</small></button>
-        <button type="button" data-fu-pane="pots"><b>Pots</b><small>Balances & progress</small></button>
-        <button type="button" data-fu-pane="bills"><b>Bills</b><small>View & mark paid</small></button>
-        <button type="button" data-fu-pane="actions"><b>Finance Actions</b><small>Add • edit • undo</small></button>
-      </nav>
-
-      <section class="fu-pane" data-fu-view="summary">
-        <div class="fu-summary" data-fu-summary></div>
-        <div class="fu-intel">
-          <article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Priority</span><h4>Needs Attention</h4></div></div><div class="fu-list" data-fu-attention></div></article>
-          <article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Safety</span><h4>Holding Pot Cover</h4></div></div><div class="fu-list" data-fu-cover></div></article>
-        </div>
-        <article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Funding</span><h4>Next Payday Pot Moves</h4></div></div><div class="fu-list" data-fu-pb-moves></div></article>
-      </section>
-
-      <section class="fu-pane" data-fu-view="pots" hidden>
-        <article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Protected Savings</span><h4>All Active Pots</h4></div></div><div class="fu-health" data-fu-health></div><details class="fu-collapsible"><summary>Legacy pot mount</summary><div data-fu-pot-mount></div></details></article>
-      </section>
-
-      <section class="fu-pane" data-fu-view="bills" hidden>
-        <article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Commitments</span><h4>All Unpaid Bills</h4></div></div><div class="fu-list" data-fu-bills-due></div><details class="fu-collapsible"><summary>Legacy bill mount</summary><div data-fu-bill-mount></div></details></article>
-      </section>
-
-      <section class="fu-pane" data-fu-view="actions" hidden><div data-fu-actions-mount></div></section>
-    </section>
-  </section>
+  <section id="potsPanel" class="live-section fu-ready"><section class="fu-pb" aria-label="Pots and Bills control"><nav class="fu-pb-nav" aria-label="Pots and Bills sections"><button type="button" class="active" data-fu-pane="summary"><b>Overview</b><small>Money & health</small></button><button type="button" data-fu-pane="pots"><b>Pots</b><small>Balances & progress</small></button><button type="button" data-fu-pane="bills"><b>Bills</b><small>View & mark paid</small></button><button type="button" data-fu-pane="actions"><b>Finance Actions</b><small>Add • edit • undo</small></button></nav><section class="fu-pane" data-fu-view="summary"><div class="fu-summary" data-fu-summary></div><div class="fu-intel"><article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Priority</span><h4>Needs Attention</h4></div></div><div class="fu-list" data-fu-attention></div></article><article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Safety</span><h4>Holding Pot Cover</h4></div></div><div class="fu-list" data-fu-cover></div></article></div><article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Funding</span><h4>Next Payday Pot Moves</h4></div></div><div class="fu-list" data-fu-pb-moves></div></article></section><section class="fu-pane" data-fu-view="pots" hidden><article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Protected Savings</span><h4>All Active Pots</h4></div></div><div class="fu-health" data-fu-health></div><details class="fu-collapsible"><summary>Legacy pot mount</summary><div data-fu-pot-mount></div></details></article></section><section class="fu-pane" data-fu-view="bills" hidden><article class="fu-card"><div class="fu-head"><div><span class="fu-kicker">Commitments</span><h4>All Unpaid Bills</h4></div></div><div class="fu-list" data-fu-bills-due></div><details class="fu-collapsible"><summary>Legacy bill mount</summary><div data-fu-bill-mount></div></details></article></section><section class="fu-pane" data-fu-view="actions" hidden><div data-fu-actions-mount></div></section></section></section>
 
   <section id="housePanel" class="live-section"><div class="live-placeholder"><div><strong>House Projects loading…</strong>Restoring House Fund position, reservations, room groups and paid/historical ledger.</div></div></section>
 </main>
