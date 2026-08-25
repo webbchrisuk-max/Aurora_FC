@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260825-phase2-shared-shell-7';
+  const BUILD = '20260825-phase2-shared-shell-8-market-authority';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   const NAV = Object.freeze({
@@ -36,6 +36,15 @@
       if (!NAV[target]) return;
       link.setAttribute('href', `${target}?auroraBuild=${encodeURIComponent(BUILD)}`);
     });
+  }
+
+  function loadSharedMarketPriceAuthority() {
+    if (window.AuroraMarketPriceAuthority || [...document.scripts].some(script => String(script.src || '').includes('squad-live-price-authority.js'))) return;
+    const script = document.createElement('script');
+    script.src = 'squad-live-price-authority.js?v=20260825-shared-market-price-authority-2';
+    script.async = false;
+    script.dataset.auroraSharedMarketAuthority = '1';
+    document.head.appendChild(script);
   }
 
   function loadPhase2IncomeProjection() {
@@ -111,6 +120,7 @@
   });
 
   stampInternalNavigation();
+  loadSharedMarketPriceAuthority();
   loadPhase2IncomeProjection();
   loadIncomeExactCostAuthority();
   loadIncomeBrokerCashTruthGuard();
@@ -125,6 +135,7 @@
     dataConnected: false,
     sessionEnabled: false,
     dynamicLoading: true,
+    marketPriceAuthority: true,
     coreProbe: true,
     platformProbe: true,
     syncManagerProbe: true,
@@ -141,6 +152,7 @@
     detail: {
       build: BUILD,
       navigation: 'native-html-versioned',
+      marketPriceAuthority: true,
       firebaseReadProbe: true,
       clubCommandProbe: true,
       legacyCloudRuntime: 'RETIRED',
