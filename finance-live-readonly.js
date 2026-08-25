@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260825-finance-live-readonly-payday-engine-2';
+  const BUILD = '20260825-finance-live-readonly-payday-engine-3';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   let blockedWrites = 0;
@@ -72,7 +72,7 @@
     const recon=qa('.reconcile-grid > div');text(recon[0]?.querySelector('strong'),money(c.safeSurplus));text(recon[1]?.querySelector('strong'),money(missionAmount));text(recon[1]?.querySelector('span'),mission?String(mission.status||'MISSION').replaceAll('_',' '):'No active mission');const difference=Number((c.safeSurplus-missionAmount).toFixed(2));text(recon[2]?.querySelector('strong'),`${difference<0?'− ':''}${money(Math.abs(difference))}`);text(recon[2]?.querySelector('span'),mission?(Math.abs(difference)<.005?'Forecast matches released mission':difference>0?'Next forecast is above current mission':'Current mission is above next forecast'):'No released mission to compare');
     text(q('.finance-version-pill'),'LIVE DATA • PAYDAY READY');
     document.documentElement.dataset.financeLiveReadonly='active';
-    window.AuroraFinanceLiveReadonly=Object.freeze({build:BUILD,ready:true,blockedWrites,blockedUpdates,runtimeErrors:[...runtimeErrors],values:{openingCash:Number(normalized.openingCash||0),wagesReceived:Number(normalized.wagesReceived||0),commitments:Number(c.commitments||0),protectedCash:Number(normalized.protectedCash||0),safeSurplus:Number(c.safeSurplus||0),holdingPotBalance:hpBalance}});
+    window.AuroraFinanceLiveReadonly=Object.freeze({build:BUILD,ready:true,blockedWrites,blockedUpdates,runtimeErrors:[...runtimeErrors],values:{openingCash:Number(normalized.openingCash||0),wagesReceived:Number(normalized.wagesReceived||0),commitments:Number(c.commitments||0),protectedCash:Number(normalized.protectedCash||0),safeSurplus:Number(c.safeSurplus||0),holdingPotBalance:hpBalance,holdingSpendBeforePayday:Number(auto.holdingSpendBeforePayday||0),holdingProjectedBalanceAtPayday:Number(auto.holdingProjectedBalanceAtPayday||0),holdingPotTopUp:Number(auto.holdingTopUp||0)}});
     reportStatus();
   }
 
@@ -84,7 +84,7 @@
       if(!rawState())throw new Error('FINANCE_STATE_NOT_FOUND');
       installReadonlyAuroraFacade();
       await loadIsolated('/Aurora_FC/finance-funding.js?v=20260825-payday-engine-restore-1');
-      await loadIsolated('/Aurora_FC/finance.js?v=20260825-payday-engine-restore-1');
+      await loadIsolated('/Aurora_FC/finance.js?v=20260825-payday-engine-restore-2');
       ready=true;render();
       window.addEventListener('pageshow',render);window.addEventListener('focus',render);window.addEventListener('storage',event=>{if(event.key===STATE_KEY||event.key===BACKUP_KEY)render()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')render()});
     }catch(error){recordError(error)}
