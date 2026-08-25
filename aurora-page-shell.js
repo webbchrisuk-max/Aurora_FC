@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260825-phase2-shared-shell-8-market-authority';
+  const BUILD = '20260825-phase2-shared-shell-9-market-authority';
   const currentFile = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
   const NAV = Object.freeze({
@@ -39,11 +39,12 @@
   }
 
   function loadSharedMarketPriceAuthority() {
-    if (window.AuroraMarketPriceAuthority || [...document.scripts].some(script => String(script.src || '').includes('squad-live-price-authority.js'))) return;
+    if (window.__AuroraMarketPriceAuthority === '20260825-shared-market-price-authority-3') return;
+    if (document.querySelector('script[data-aurora-shared-market-authority="3"]')) return;
     const script = document.createElement('script');
-    script.src = 'squad-live-price-authority.js?v=20260825-shared-market-price-authority-2';
+    script.src = 'squad-live-price-authority.js?v=20260825-shared-market-price-authority-3';
     script.async = false;
-    script.dataset.auroraSharedMarketAuthority = '1';
+    script.dataset.auroraSharedMarketAuthority = '3';
     document.head.appendChild(script);
   }
 
