@@ -1,6 +1,7 @@
 (() => {
   'use strict';
 
+  const BUILD = '20260826-scouting-auto-select-single-approval-1';
   const money = value => new Intl.NumberFormat('en-GB', {
     style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2
   }).format(Number(value || 0));
@@ -11,19 +12,42 @@
   const upper = value => String(value || '').trim().toUpperCase();
   const missionIsUsable = mission => !!mission && !['COMPLETE','CANCELLED'].includes(upper(mission.status)) && Number(mission.budget || 0) > 0;
 
+  function pickCountForBudget(budget) {
+    const value = Math.max(0, Number(budget || 0));
+    if (value < 500) return 1;
+    if (value < 1000) return 2;
+    if (value < 2000) return 3;
+    if (value < 3500) return 4;
+    return 5;
+  }
+
+  function signature(plan) {
+    if (!plan) return '';
+    return JSON.stringify({
+      missionId: plan.missionId || null,
+      budget: round2(plan.budget),
+      strategy: plan.strategy || 'sustainable',
+      allocations: (plan.allocations || []).map(row => [row.ticker, round2(row.amount), round2(row.expectedAnnualIncome)])
+    });
+  }
+
   function buildPlan(state) {
     const aurora = window.AuroraClean;
     if (!aurora) return null;
     const mission = state.transfer?.mission;
     const budget = missionIsUsable(mission) ? round2(Math.max(0, Number(mission.budget || 0))) : 0;
     const strategy = state.scouting?.strategy === 'maximum' ? 'maximum' : 'sustainable';
-    const rows = aurora.scoutingRankings(state).filter(row => row.approved && Number(row.yieldPct) > 0);
+    const eligible = aurora.scoutingRankings(state).filter(row => Number(row.yieldPct) > 0);
+    const targetCount = budget > 0 ? Math.min(pickCountForBudget(budget), eligible.length) : 0;
+    const rows = eligible.slice(0, targetCount);
 
     if (!budget || !rows.length) {
       return {
-        budget, strategy, approvedCount: rows.length, allocated: 0, projectedAnnualIncome: 0,
+        build: BUILD,
+        budget, strategy, selectedCount: rows.length, targetCount, allocated: 0, projectedAnnualIncome: 0,
         allocations: [], missionId: missionIsUsable(mission) ? mission.id : null,
-        authority: missionIsUsable(mission) ? 'Finance Stage 6' : 'WAITING FOR FINANCE STAGE 6'
+        authority: missionIsUsable(mission) ? 'Finance Stage 6' : 'WAITING FOR FINANCE STAGE 6',
+        status: 'WAITING'
       };
     }
 
@@ -60,7 +84,8 @@
       }
     }
 
-    const allocations = items.filter(row => row.amount > 0.004).map(row => ({
+    const allocations = items.filter(row => row.amount > 0.004).map((row,index) => ({
+      selectionRank: index + 1,
       ticker: row.ticker,
       name: row.name,
       yieldPct: Number(row.yieldPct),
@@ -78,47 +103,58 @@
     }
     allocated = round2(allocations.reduce((sum, row) => sum + row.amount, 0));
 
-    return {
+    const proposal = {
+      build: BUILD,
       budget,
       strategy,
-      approvedCount: rows.length,
+      selectedCount: allocations.length,
+      targetCount,
       allocated,
       projectedAnnualIncome: round2(allocations.reduce((sum, row) => sum + row.expectedAnnualIncome, 0)),
       allocations,
       missionId: mission.id,
       authority: 'Finance Stage 6',
+      status: 'PROPOSED',
       calculatedAt: new Date().toISOString()
     };
+    proposal.signature = signature(proposal);
+
+    const existing = state.scouting?.allocationPlan;
+    if (existing?.status === 'APPROVED' && existing.signature && existing.signature === proposal.signature) {
+      proposal.status = 'APPROVED';
+      proposal.approvedAt = existing.approvedAt || null;
+    }
+    return proposal;
   }
 
   function render(plan) {
     if (!plan) return;
     const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
     const rows = document.getElementById('scoutingAllocationRows');
-    setText('scoutingApprovedCount', String(plan.approvedCount));
+    const approve = document.getElementById('scoutingApprovePlan');
+    setText('scoutingApprovedCount', String(plan.selectedCount || 0));
     setText('scoutingAllocatedBudget', money(plan.allocated));
     setText('scoutingProjectedIncome', money(plan.projectedAnnualIncome));
+    setText('scoutingPlanStatus', plan.status === 'APPROVED' ? 'APPROVED FOR TRANSFER' : plan.allocations.length ? 'PROPOSED · REVIEW REQUIRED' : 'WAITING');
     setText('scoutingAllocationNote', plan.allocations.length
-      ? `${plan.strategy === 'maximum' ? 'Maximum Income' : 'Sustainable Income'} optimiser · ${plan.allocations.length} allocation(s) · Finance Stage 6 mission ${plan.missionId}.`
+      ? `${plan.strategy === 'maximum' ? 'Maximum Income' : 'Sustainable Income'} automatically selected ${plan.allocations.length} best payday opportunity${plan.allocations.length === 1 ? '' : 'ies'} for ${money(plan.budget)}. Review the proposal, then approve the whole plan once.`
       : plan.budget > 0
-        ? 'Approve one or more ranked candidates to build the payday allocation.'
+        ? 'No eligible ranked opportunities are available for the released mission.'
         : 'Waiting for Finance Stage 6 to release an investment mission.');
     if (rows) {
       rows.innerHTML = plan.allocations.length
-        ? plan.allocations.map((row, index) => `<li><strong>#${index + 1} ${esc(row.ticker)}</strong> — ${money(row.amount)} — ${row.yieldPct.toFixed(2)}% yield — projected annual income ${money(row.expectedAnnualIncome)}</li>`).join('')
-        : `<li>${plan.budget > 0 ? 'No allocation yet.' : 'No Finance mission released yet.'}</li>`;
+        ? plan.allocations.map(row => `<li><strong>#${row.selectionRank} ${esc(row.ticker)}</strong> — ${money(row.amount)} — score ${Number(row.score).toFixed(1)} — ${Number(row.yieldPct).toFixed(2)}% yield — projected annual income ${money(row.expectedAnnualIncome)}</li>`).join('')
+        : `<li>${plan.budget > 0 ? 'No payday proposal yet.' : 'No Finance mission released yet.'}</li>`;
+    }
+    if (approve) {
+      approve.disabled = !plan.allocations.length || plan.status === 'APPROVED';
+      approve.textContent = plan.status === 'APPROVED' ? 'Payday Plan Approved ✓' : 'Approve Payday Plan';
     }
   }
 
   function samePlan(a, b) {
     if (!a || !b) return false;
-    const clean = plan => JSON.stringify({
-      budget: plan.budget, strategy: plan.strategy, approvedCount: plan.approvedCount,
-      allocated: plan.allocated, projectedAnnualIncome: plan.projectedAnnualIncome,
-      missionId: plan.missionId || null, authority: plan.authority || '',
-      allocations: (plan.allocations || []).map(row => [row.ticker, row.amount, row.expectedAnnualIncome])
-    });
-    return clean(a) === clean(b);
+    return signature(a) === signature(b) && String(a.status || '') === String(b.status || '') && String(a.approvedAt || '') === String(b.approvedAt || '');
   }
 
   let writing = false;
@@ -130,21 +166,31 @@
     render(plan);
     if (!samePlan(state.scouting?.allocationPlan, plan)) {
       writing = true;
-      aurora.updateState(next => {
-        next.scouting.allocationPlan = plan;
-      });
+      aurora.updateState(next => { next.scouting.allocationPlan = plan; });
       writing = false;
     }
   }
 
+  function approvePlan() {
+    const aurora = window.AuroraClean;
+    if (!aurora) return;
+    aurora.updateState(state => {
+      const current = buildPlan(state);
+      if (!current?.allocations?.length || current.status === 'WAITING') return;
+      current.status = 'APPROVED';
+      current.approvedAt = new Date().toISOString();
+      state.scouting.allocationPlan = current;
+      state.transfer.route = null;
+    });
+    refresh();
+  }
+
   function boot() {
-    if (!window.AuroraClean) {
-      setTimeout(boot, 50);
-      return;
-    }
+    if (!window.AuroraClean) { setTimeout(boot, 50); return; }
+    document.getElementById('scoutingApprovePlan')?.addEventListener('click', approvePlan);
     refresh();
     window.addEventListener('aurora-clean:state', refresh);
-    window.AuroraScoutingAllocation = Object.freeze({buildPlan, refresh});
+    window.AuroraScoutingAllocation = Object.freeze({BUILD,buildPlan,refresh,approvePlan,pickCountForBudget});
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
