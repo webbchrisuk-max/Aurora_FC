@@ -1,131 +1,54 @@
 (() => {
   'use strict';
 
-  const BUILD='20260826-transfer-approved-scouting-plan-1';
-  const money = value => new Intl.NumberFormat('en-GB', {
-    style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2
-  }).format(Number(value || 0));
-  const round2 = value => Number(Number(value || 0).toFixed(2));
-  const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'
-  }[ch]));
-  const upper = value => String(value || '').trim().toUpperCase();
-  const hash=value=>{let h=2166136261;for(const c of String(value||'')){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,'0')};
+  const BUILD='20260826-transfer-approved-plan-plus-broker-cash-2';
+  const CASH_CACHE='aurora-clean:transfer-broker-cash:v1';
+  const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(v||0));
+  const round=v=>Number(Math.max(0,Number(v||0)).toFixed(2));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch]));
+  const upper=v=>String(v||'').trim().toUpperCase();
+  const hash=v=>{let h=2166136261;for(const c of String(v||'')){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,'0')};
+  let cash=null;
+  function readCache(){try{return JSON.parse(localStorage.getItem(CASH_CACHE)||'null')?.snapshot||null}catch(_){return null}}
+  function writeCache(v){try{localStorage.setItem(CASH_CACHE,JSON.stringify({savedAt:new Date().toISOString(),snapshot:v}))}catch(_){}}
 
-  function scaledPlan(state) {
-    const mission = state.transfer?.mission;
-    const source = state.scouting?.allocationPlan;
-    if (!mission || !source || upper(source.status) !== 'APPROVED' || !Array.isArray(source.allocations) || !source.allocations.length) return null;
-    if (String(source.missionId || '') !== String(mission.id || '')) return null;
-    const missionBudget = round2(Math.max(0, Number(mission.budget || 0)));
-    const sourceBudget = round2(Math.max(0, Number(source.budget || source.allocated || 0)));
-    if (!missionBudget || !sourceBudget) return null;
-
-    const factor = missionBudget / sourceBudget;
-    const allocations = source.allocations.map((row,index) => ({
-      legId: `LEG-${hash(`${mission.id}|${index}|${row.ticker}|${row.amount}`)}`,
-      ticker: row.ticker,
-      name: row.name,
-      yieldPct: Number(row.yieldPct || 0),
-      score: Number(row.score || 0),
-      selectionRank: Number(row.selectionRank || index + 1),
-      amount: round2(Number(row.amount || 0) * factor)
-    })).filter(row => row.ticker && row.amount > 0);
-
-    let allocated = round2(allocations.reduce((sum,row)=>sum+row.amount,0));
-    const delta = round2(missionBudget - allocated);
-    if (allocations.length && Math.abs(delta) >= 0.01) allocations[0].amount = round2(allocations[0].amount + delta);
-    allocations.forEach(row => { row.expectedAnnualIncome = round2(row.amount * row.yieldPct / 100); });
-    allocated = round2(allocations.reduce((sum,row)=>sum+row.amount,0));
-
-    return {
-      build: BUILD,
-      budget: missionBudget,
-      strategy: source.strategy || state.scouting?.strategy || 'sustainable',
-      sourcePlanStatus: source.status,
-      sourcePlanApprovedAt: source.approvedAt || null,
-      allocations,
-      allocated,
-      expectedAnnualIncome: round2(allocations.reduce((sum,row)=>sum+row.expectedAnnualIncome,0))
-    };
+  function financePlan(state){
+    const mission=state.transfer?.mission,source=state.scouting?.allocationPlan;
+    if(!mission||!source||upper(source.status)!=='APPROVED'||!Array.isArray(source.allocations)||!source.allocations.length)return null;
+    if(String(source.missionId||'')!==String(mission.id||''))return null;
+    const budget=round(mission.budget),sourceBudget=round(source.budget||source.allocated);if(!budget||!sourceBudget)return null;
+    const factor=budget/sourceBudget;
+    const allocations=source.allocations.map((r,i)=>({legId:`LEG-${hash(`${mission.id}|FINANCE|${i}|${r.ticker}|${r.amount}`)}`,ticker:r.ticker,name:r.name,yieldPct:Number(r.yieldPct||0),score:Number(r.score||0),selectionRank:Number(r.selectionRank||i+1),amount:round(Number(r.amount||0)*factor),fundingSource:'FINANCE'})).filter(r=>r.ticker&&r.amount>0);
+    let allocated=round(allocations.reduce((s,r)=>s+r.amount,0)),delta=round(budget-allocated);if(allocations.length&&Math.abs(delta)>=.01)allocations[0].amount=round(allocations[0].amount+delta);
+    allocations.forEach(r=>r.expectedAnnualIncome=round(r.amount*r.yieldPct/100));allocated=round(allocations.reduce((s,r)=>s+r.amount,0));
+    return{budget,strategy:source.strategy||state.scouting?.strategy||'sustainable',approvedAt:source.approvedAt||null,allocations,allocated,expectedAnnualIncome:round(allocations.reduce((s,r)=>s+r.expectedAnnualIncome,0))};
   }
 
-  function render() {
-    const aurora = window.AuroraClean;
-    if (!aurora) return;
-    const state = aurora.readState();
-    const mission = state.transfer?.mission;
-    const source = state.scouting?.allocationPlan;
-    const route = state.transfer?.route;
-    const preview = scaledPlan(state);
-    const setText = (id,value) => { const el=document.getElementById(id); if(el) el.textContent=value; };
-    const rows = document.getElementById('transferStage2Rows');
-    const build = document.getElementById('transferStage2Build');
-    const lock = document.getElementById('transferStage2Lock');
+  function cashBalances(){return{IG:round(cash?.balances?.IG),T212:round(cash?.balances?.T212)}}
+  function distributeCash(account,amount,base,missionId){
+    const total=round(amount);if(!(total>0)||!base.length)return[];const demand=base.reduce((s,r)=>s+r.amount,0)||1;let used=0;
+    return base.map((r,i)=>{const a=i===base.length-1?round(total-used):round(total*(r.amount/demand));used=round(used+a);return{legId:`LEG-${hash(`${missionId}|BROKER_CASH|${account}|${i}|${r.ticker}|${a}`)}`,ticker:r.ticker,name:r.name,yieldPct:r.yieldPct,score:r.score,selectionRank:r.selectionRank,amount:a,expectedAnnualIncome:round(a*r.yieldPct/100),fundingSource:'BROKER_CASH',lockedAccount:account}}).filter(r=>r.amount>0);
+  }
+  function fundedPlan(state){const f=financePlan(state);if(!f)return null;const b=cashBalances(),mission=state.transfer?.mission;const extra=[...distributeCash('IG',b.IG,f.allocations,mission.id),...distributeCash('T212',b.T212,f.allocations,mission.id)];const brokerCashTotal=round(extra.reduce((s,r)=>s+r.amount,0));return{...f,brokerCashAllocations:extra,brokerCash:b,brokerCashTotal,totalBuyingPower:round(f.budget+brokerCashTotal),totalExpectedAnnualIncome:round(f.expectedAnnualIncome+extra.reduce((s,r)=>s+r.expectedAnnualIncome,0))}}
 
-    setText('transferStage2Mission', mission ? `${mission.status} · ${money(mission.budget)}` : 'No Finance mission');
-    if (route?.allocations?.length) {
-      setText('transferStage2RouteStatus', route.locked ? 'LOCKED' : 'READY');
-      if (rows) rows.innerHTML = route.allocations.map(row => `<li><strong>${esc(row.ticker)}</strong> — ${money(row.amount)} — projected annual income ${money(row.expectedAnnualIncome)}${row.legId?` — ${esc(row.legId)}`:''}</li>`).join('');
-    } else if (preview?.allocations?.length) {
-      setText('transferStage2RouteStatus', 'APPROVED SCOUTING PLAN READY');
-      if (rows) rows.innerHTML = preview.allocations.map(row => `<li><strong>#${row.selectionRank} ${esc(row.ticker)}</strong> — ${money(row.amount)} — projected annual income ${money(row.expectedAnnualIncome)}</li>`).join('');
-    } else if (mission && source?.allocations?.length && upper(source.status) !== 'APPROVED') {
-      setText('transferStage2RouteStatus', 'WAITING FOR PAYDAY PLAN APPROVAL');
-      if (rows) rows.innerHTML = '<li>Scouting has built a proposal. Approve the whole payday plan in Scouting before Transfer can route it.</li>';
-    } else {
-      setText('transferStage2RouteStatus', mission ? 'WAITING FOR SCOUTING PLAN' : 'WAITING FOR FINANCE');
-      if (rows) rows.innerHTML = '<li>No approved Scouting payday plan available yet.</li>';
-    }
+  async function refreshCash(){const client=window.AuroraData2Client;if(!client?.post){cash=readCache();render();return}try{const r=await client.post('brokerCashSnapshot',{});if(!r?.balances)throw new Error('Incomplete broker cash snapshot');cash=r;writeCache(r)}catch(_){cash=readCache()}render()}
 
-    if (build) build.disabled = !mission || !['DRAFT','READY'].includes(upper(mission.status)) || !preview?.allocations?.length || !!route?.locked;
-    if (lock) lock.disabled = !route?.allocations?.length || !!route?.locked;
+  function render(){
+    const A=window.AuroraClean;if(!A)return;const state=A.readState(),mission=state.transfer?.mission,source=state.scouting?.allocationPlan,route=state.transfer?.route,preview=fundedPlan(state),set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v},rows=document.getElementById('transferStage2Rows'),build=document.getElementById('transferStage2Build'),lock=document.getElementById('transferStage2Lock');
+    const b=cashBalances();set('transferCashIG',money(b.IG));set('transferCashT212',money(b.T212));set('transferBuyingPower',money(preview?.totalBuyingPower||mission?.budget||0));
+    set('transferStage2Mission',mission?`${mission.status} · Finance ${money(mission.budget)}`:'No Finance mission');
+    if(route?.allocations?.length){const all=[...(route.allocations||[]),...(route.brokerCashAllocations||[])];set('transferStage2RouteStatus',route.locked?'LOCKED':'READY');if(rows)rows.innerHTML=all.map(r=>`<li><strong>${esc(r.ticker)}</strong> — ${money(r.amount)} — ${r.fundingSource==='BROKER_CASH'?`${esc(r.lockedAccount==='IG'?'IG ISA':'Trading 212 ISA')} CASH`:'FINANCE'} — projected annual income ${money(r.expectedAnnualIncome)}</li>`).join('');}
+    else if(preview?.allocations?.length){set('transferStage2RouteStatus','APPROVED PLAN + BROKER CASH READY');if(rows)rows.innerHTML=[...preview.allocations,...preview.brokerCashAllocations].map(r=>`<li><strong>#${r.selectionRank} ${esc(r.ticker)}</strong> — ${money(r.amount)} — ${r.fundingSource==='BROKER_CASH'?`${esc(r.lockedAccount==='IG'?'IG ISA':'Trading 212 ISA')} existing cash`:'new Finance money'}</li>`).join('');}
+    else if(mission&&source?.allocations?.length&&upper(source.status)!=='APPROVED'){set('transferStage2RouteStatus','WAITING FOR PAYDAY PLAN APPROVAL');if(rows)rows.innerHTML='<li>Approve the whole payday plan in Scouting first.</li>';}
+    else{set('transferStage2RouteStatus',mission?'WAITING FOR SCOUTING PLAN':'WAITING FOR FINANCE');if(rows)rows.innerHTML='<li>No approved Scouting payday plan available yet.</li>';}
+    if(build)build.disabled=!mission||!['DRAFT','READY'].includes(upper(mission.status))||!preview?.allocations?.length||!!route?.locked;if(lock)lock.disabled=!route?.allocations?.length||!!route?.locked;
   }
 
-  function bind() {
-    const aurora = window.AuroraClean;
-    if (!aurora) return false;
-    document.getElementById('transferStage2Build')?.addEventListener('click', () => {
-      aurora.updateState(state => {
-        const plan = scaledPlan(state);
-        if (!plan?.allocations?.length || !state.transfer?.mission) return;
-        state.transfer.route = {
-          id: `ROUTE-${Date.now()}`,
-          missionId: state.transfer.mission.id,
-          strategy: plan.strategy,
-          allocationAuthority: 'Approved Scouting Payday Plan',
-          scoutingPlanApprovedAt: plan.sourcePlanApprovedAt,
-          allocations: plan.allocations,
-          allocated: plan.allocated,
-          expectedAnnualIncome: plan.expectedAnnualIncome,
-          locked: false,
-          createdAt: new Date().toISOString()
-        };
-        state.transfer.mission.status = 'READY';
-        state.transfer.mission.updatedAt = new Date().toISOString();
-      });
-      render();
-    });
-
-    document.getElementById('transferStage2Lock')?.addEventListener('click', () => {
-      aurora.updateState(state => {
-        if (!state.transfer?.route?.allocations?.length || !state.transfer?.mission) return;
-        state.transfer.route.locked = true;
-        state.transfer.route.lockedAt = new Date().toISOString();
-        state.transfer.mission.status = 'LOCKED';
-        state.transfer.mission.updatedAt = new Date().toISOString();
-      });
-      render();
-    });
-
-    window.addEventListener('aurora-clean:state', render);
-    window.addEventListener('storage', event => { if (event.key === 'aurora-clean:state:v1') render(); });
-    render();
-    window.AuroraTransferStage2 = Object.freeze({BUILD,scaledPlan,render});
-    return true;
+  function bind(){const A=window.AuroraClean;if(!A)return false;
+    document.getElementById('transferRefreshCash')?.addEventListener('click',refreshCash);
+    document.getElementById('transferStage2Build')?.addEventListener('click',()=>{A.updateState(state=>{const p=fundedPlan(state);if(!p?.allocations?.length||!state.transfer?.mission)return;state.transfer.route={id:`ROUTE-${Date.now()}`,missionId:state.transfer.mission.id,strategy:p.strategy,allocationAuthority:'Approved Scouting Payday Plan + Broker Cash Authority',scoutingPlanApprovedAt:p.approvedAt,allocations:p.allocations,brokerCashAllocations:p.brokerCashAllocations,financeAllocated:p.allocated,brokerCashPlanned:p.brokerCash,brokerCashAllocated:p.brokerCashTotal,totalAllocated:p.totalBuyingPower,expectedAnnualIncome:p.totalExpectedAnnualIncome,locked:false,createdAt:new Date().toISOString()};state.transfer.mission.status='READY';state.transfer.mission.updatedAt=new Date().toISOString();});render()});
+    document.getElementById('transferStage2Lock')?.addEventListener('click',()=>{A.updateState(state=>{if(!state.transfer?.route?.allocations?.length||!state.transfer?.mission)return;state.transfer.route.locked=true;state.transfer.route.lockedAt=new Date().toISOString();state.transfer.mission.status='LOCKED';state.transfer.mission.updatedAt=new Date().toISOString();});render()});
+    window.addEventListener('aurora-clean:state',render);render();cash=readCache();refreshCash();window.AuroraTransferStage2=Object.freeze({BUILD,financePlan,fundedPlan,refreshCash,render});return true;
   }
-
-  function boot() { if (!bind()) setTimeout(boot, 50); }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
-  else boot();
+  function boot(){if(!bind())setTimeout(boot,50)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
