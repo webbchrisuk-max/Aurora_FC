@@ -4,8 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Aurora Clean — Finance Department</title>
-  <link rel="stylesheet" href="aurora.css?v=20260826-clean-finance-stage1-1">
-  <script src="aurora.js?v=20260826-clean-rebuild-6-squad-income-order" defer></script>
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-finance-stage2-1">
+  <script src="aurora.js?v=20260826-clean-rebuild-8-scouting-runtime-refresh" defer></script>
+  <script src="finance-bills.js?v=20260826-clean-finance-stage2-bills-2" defer></script>
 </head>
 <body data-page="finance">
 <nav id="auroraNav"></nav><hr>
@@ -14,15 +15,15 @@
   <div>
     <p class="eyebrow finance-eyebrow">AURORA CITY FC · FINANCE DEPARTMENT</p>
     <h1>Payday Control</h1>
-    <p class="department-lead">Finance is the starting point. Cash is proved here before any money can move into an investment mission.</p>
+    <p class="department-lead">Finance is the starting point. Cash and recurring obligations are proved here before any investment mission can be released.</p>
   </div>
-  <span class="stage-badge">STAGE 1 OF 6</span>
+  <span class="stage-badge">STAGE 2 OF 6</span>
 </header>
 
 <section class="finance-stage-track" aria-label="Finance rebuild stages">
-  <article class="finance-stage active"><span>1</span><strong>Cash Truth</strong><small>Current</small></article>
-  <article class="finance-stage"><span>2</span><strong>Bills</strong><small>Next</small></article>
-  <article class="finance-stage"><span>3</span><strong>Holding Pot</strong><small>Pending</small></article>
+  <article class="finance-stage"><span>1</span><strong>Cash Truth</strong><small>Passed</small></article>
+  <article class="finance-stage active"><span>2</span><strong>Bills</strong><small>Current</small></article>
+  <article class="finance-stage"><span>3</span><strong>Holding Pot</strong><small>Next</small></article>
   <article class="finance-stage"><span>4</span><strong>Pot Funding</strong><small>Pending</small></article>
   <article class="finance-stage"><span>5</span><strong>Payday Decision</strong><small>Pending</small></article>
   <article class="finance-stage"><span>6</span><strong>Mission Release</strong><small>Pending</small></article>
@@ -32,9 +33,9 @@
   <div class="section-heading">
     <div>
       <p class="eyebrow finance-eyebrow">STAGE 1 · CASH TRUTH</p>
-      <h2>Prove the payday money first</h2>
+      <h2>Proved payday cash</h2>
     </div>
-    <p>Nothing is released to Transfer until this calculation is safe.</p>
+    <p>Stage 1 remains visible so every later Finance calculation can be audited back to the original cash position.</p>
   </div>
 
   <div class="finance-form-grid">
@@ -52,7 +53,7 @@
     </label>
     <label>Combined Commitments — temporary
       <input id="financeCommitments" type="number" min="0" step="0.01" inputmode="decimal">
-      <small>Stages 2–4 will replace this with automatic Bills, Holding Pot and Pot funding.</small>
+      <small>This stays temporary until Stages 2–4 are fully proved and replace it.</small>
     </label>
     <label>Protected Cash
       <input id="financeProtected" type="number" min="0" step="0.01" inputmode="decimal">
@@ -62,7 +63,7 @@
 
   <div class="finance-actions">
     <button id="financeUseActualPay" type="button">Use Actual Pay as Available Cash</button>
-    <button id="financeCalculate" type="button" class="finance-primary">Calculate Stage 1</button>
+    <button id="financeCalculate" type="button" class="finance-primary">Recalculate Stage 1</button>
   </div>
 </section>
 
@@ -73,31 +74,95 @@
     <small>Actual wages minus expected wages.</small>
   </article>
   <article class="finance-result-card">
-    <span>TOTAL RESERVED</span>
+    <span>STAGE 1 RESERVED</span>
     <strong id="financeReservedTotal">£0.00</strong>
-    <small>Current commitments plus protected cash.</small>
+    <small>Temporary combined commitments plus protected cash.</small>
   </article>
   <article class="finance-result-card finance-safe-card">
-    <span>MAXIMUM SAFE RELEASE</span>
+    <span>STAGE 1 SAFE RELEASE</span>
     <strong id="financeSafeRelease">£0.00</strong>
-    <small>This must never exceed the cash left after protection.</small>
+    <small>Provisional until Stages 2–4 replace the temporary commitment.</small>
+  </article>
+</section>
+
+<section class="department-section finance-control">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow finance-eyebrow">STAGE 2 · BILLS</p>
+      <h2>Prove every recurring obligation</h2>
+    </div>
+    <p>Finance projects the next 28-day cycle and the full 13-pay year using the same recurrence rules as the proven Finance engine.</p>
+  </div>
+
+  <div class="finance-form-grid">
+    <label>Payday Date
+      <input id="financePaydayDate" type="date">
+      <small>The next 28-day bill cycle starts from this payday.</small>
+    </label>
+    <label>Bill Window
+      <strong id="financeBillWindow">—</strong>
+      <small>Payday through the day before the next payday.</small>
+    </label>
+  </div>
+
+  <div class="finance-actions">
+    <button id="financeImportBills" type="button">Import Live Aurora Bills</button>
+    <button id="financeRecalculateBills" type="button" class="finance-primary">Recalculate Bills</button>
+  </div>
+  <p id="financeBillImportStatus">Stage 2 has not imported live bills yet.</p>
+</section>
+
+<section class="scouting-control-grid" aria-label="Stage 2 bill totals">
+  <article class="scouting-control-card">
+    <span>ACTIVE BILLS</span>
+    <strong id="financeBillCount">0</strong>
+    <small>Included, unpaid and non-archived obligations.</small>
+  </article>
+  <article class="scouting-control-card">
+    <span>CURRENT ACCOUNT · NEXT CYCLE</span>
+    <strong id="financeCurrentAccountDue">£0.00</strong>
+    <small>Direct cash obligations due before the following payday.</small>
+  </article>
+  <article class="scouting-control-card">
+    <span>HOLDING POT · 13-PAY YEAR</span>
+    <strong id="financeHoldingAnnual">£0.00</strong>
+    <small>Total recurring Holding Pot bill requirement over 364 days.</small>
+  </article>
+</section>
+
+<section class="finance-result-grid" aria-label="Holding Pot bill handoff">
+  <article class="finance-result-card finance-safe-card">
+    <span>BASE HOLDING POT FUNDING / PAYDAY</span>
+    <strong id="financeHoldingPerPayday">£0.00</strong>
+    <small>Annual Holding Pot bill requirement ÷ 13. Stage 3 will add any safety top-up.</small>
   </article>
 </section>
 
 <section class="department-section finance-breakdown">
   <div class="section-heading">
     <div>
-      <p class="eyebrow finance-eyebrow">AUDIT TRAIL</p>
-      <h2>Stage 1 calculation</h2>
+      <p class="eyebrow finance-eyebrow">NEXT PAYDAY CYCLE</p>
+      <h2>Projected bill occurrences</h2>
     </div>
-    <p>This breakdown will become more detailed as each Finance stage is activated.</p>
+    <p>Overdue bills stay visible. Undated recurring bills are estimated rather than silently ignored.</p>
+  </div>
+  <ul id="financeStage2BillRows"><li>No bill data loaded.</li></ul>
+</section>
+
+<section class="department-section finance-breakdown">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow finance-eyebrow">AUDIT TRAIL</p>
+      <h2>Current Stage 1 calculation</h2>
+    </div>
+    <p>This remains provisional until the real Bills, Holding Pot and Pot Funding totals replace the temporary combined commitment.</p>
   </div>
   <ul id="financePlanBreakdown"></ul>
 </section>
 
 <section class="finance-next-stage">
-  <strong>Next: Stage 2 — Bills</strong>
-  <p>We will replace the temporary combined commitment with real bill occurrences and funding-source logic before touching the Holding Pot.</p>
+  <strong>Next: Stage 3 — Holding Pot</strong>
+  <p>Once the Stage 2 bill totals are verified, the next stage will calculate the projected Holding Pot balance at payday and the one-cycle safety top-up.</p>
 </section>
 
 </body>
