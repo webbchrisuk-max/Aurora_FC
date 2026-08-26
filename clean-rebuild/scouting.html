@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="aurora.css?v=20260826-clean-scouting-stage1-3">
   <script src="aurora.js?v=20260826-clean-rebuild-9-mission-authority" defer></script>
   <script src="scouting-universe.js?v=20260826-clean-universe-3-deploy-retry" defer></script>
-  <script src="scouting-allocation.js?v=20260826-clean-allocation-stage6-authority-1" defer></script>
+  <script src="scouting-allocation.js?v=20260826-scouting-auto-select-single-approval-1" defer></script>
 </head>
 <body data-page="scouting">
 <nav id="auroraNav"></nav><hr>
@@ -16,9 +16,9 @@
   <div>
     <p class="eyebrow scouting-eyebrow">AURORA CITY FC · SCOUTING CENTRE</p>
     <h1>Payday Scouting</h1>
-    <p class="department-lead">Finance releases the official investment mission. Scouting ranks the best opportunities across Aurora's wider stock universe, then optimises how the approved shortlist should use that released budget.</p>
+    <p class="department-lead">Finance releases the official investment mission. Scouting ranks Aurora's wider stock universe, automatically selects the best payday opportunities for that budget, and builds one proposed plan for your final approval.</p>
   </div>
-  <span class="stage-badge scouting-stage-badge">STAGE 1 + 2 · RANK & ALLOCATE</span>
+  <span class="stage-badge scouting-stage-badge">STAGE 1 + 2 · RANK · SELECT · ALLOCATE</span>
 </header>
 
 <section class="scouting-control-grid">
@@ -43,7 +43,7 @@
   <div class="section-heading">
     <div>
       <p class="eyebrow scouting-eyebrow">STRATEGY</p>
-      <h2>How should Aurora rank the shortlist?</h2>
+      <h2>How should Aurora rank the opportunity pool?</h2>
     </div>
     <p id="scoutingStrategyNote">Sustainable balances income with concentration and diversification.</p>
   </div>
@@ -89,13 +89,13 @@
 <section class="department-section scouting-ranking-section">
   <div class="section-heading">
     <div>
-      <p class="eyebrow scouting-eyebrow">STAGE 1 · RANKED SHORTLIST</p>
+      <p class="eyebrow scouting-eyebrow">STAGE 1 · RANKED UNIVERSE</p>
       <h2>Best payday opportunities</h2>
     </div>
-    <p>Approve the candidates you are happy for Aurora to use. Stage 2 will then decide the amount for each approved pick.</p>
+    <p>Aurora ranks the full universe automatically. Candidate buttons are optional review markers only; they do not control the payday allocation.</p>
   </div>
   <div class="scouting-table-head" aria-hidden="true">
-    <span>Rank / Candidate</span><span>Yield</span><span>Income on Budget</span><span>Score</span><span>Decision</span>
+    <span>Rank / Candidate</span><span>Yield</span><span>Income on Budget</span><span>Score</span><span>Review</span>
   </div>
   <ul id="scoutingRows" class="scouting-ranking-list"></ul>
 </section>
@@ -103,31 +103,33 @@
 <section class="department-section scouting-ranking-section">
   <div class="section-heading">
     <div>
-      <p class="eyebrow scouting-eyebrow">STAGE 2 · PAYDAY ALLOCATION</p>
-      <h2>Optimised use of the Finance mission</h2>
+      <p class="eyebrow scouting-eyebrow">STAGE 2 · AUTOMATIC PAYDAY PLAN</p>
+      <h2>Proposed use of the Finance mission</h2>
     </div>
     <p id="scoutingAllocationNote">Waiting for Finance Stage 6 to release an investment mission.</p>
   </div>
 
   <div class="scouting-control-grid">
     <article class="scouting-control-card">
-      <span>APPROVED PICKS</span>
+      <span>AUTO-SELECTED PICKS</span>
       <strong id="scoutingApprovedCount">0</strong>
-      <small>Candidates allowed into the payday plan</small>
+      <small>Aurora chooses the strongest opportunities for the available budget</small>
     </article>
     <article class="scouting-control-card">
       <span>ALLOCATED BUDGET</span>
       <strong id="scoutingAllocatedBudget">£0.00</strong>
-      <small>Released Finance money assigned by the optimiser</small>
+      <small>Full released Finance mission assigned by the optimiser</small>
     </article>
     <article class="scouting-control-card scouting-top-card">
       <span>PROJECTED EXTRA INCOME</span>
       <strong id="scoutingProjectedIncome">£0.00</strong>
-      <small>Estimated annual income from this payday allocation</small>
+      <small>Estimated annual income from the proposed payday allocation</small>
     </article>
   </div>
 
+  <p>Plan status: <strong id="scoutingPlanStatus">WAITING</strong></p>
   <ul id="scoutingAllocationRows"><li>No Finance mission released yet.</li></ul>
+  <div class="finance-actions"><button id="scoutingApprovePlan" type="button" class="finance-primary" disabled>Approve Payday Plan</button></div>
 </section>
 
 </body>
