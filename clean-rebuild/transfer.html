@@ -1,13 +1,22 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aurora Clean — Transfer</title><link rel="stylesheet" href="aurora.css?v=20260826-clean-shell-1"><script src="aurora.js?v=20260826-clean-rebuild-4-shared-navigation" defer></script></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Aurora Clean — Transfer</title>
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-shell-1">
+  <script src="aurora.js?v=20260826-clean-rebuild-8-scouting-runtime-refresh" defer></script>
+  <script src="transfer-stage2.js?v=20260826-transfer-stage2-1" defer></script>
+</head>
 <body data-page="transfer">
 <nav id="auroraNav"></nav><hr>
 <h1>Transfer</h1>
-<p>Mission: <strong id="transferMission">No Finance mission</strong></p>
-<p>Route Status: <strong id="transferRouteStatus">WAITING</strong></p>
-<button id="transferBuild" type="button">Build Allocation Preview</button>
-<button id="transferLock" type="button">Lock Route</button>
-<h2>Allocations</h2>
-<ul id="transferRows"></ul>
-</body></html>
+<p>Finance mission: <strong id="transferStage2Mission">No Finance mission</strong></p>
+<p>Route status: <strong id="transferStage2RouteStatus">WAITING</strong></p>
+<p>Transfer now consumes the Scouting payday optimiser. It no longer creates an equal split of approved candidates.</p>
+<button id="transferStage2Build" type="button">Build Scouting Allocation Route</button>
+<button id="transferStage2Lock" type="button">Lock Route</button>
+<h2>Optimised Allocations</h2>
+<ul id="transferStage2Rows"><li>No optimiser allocation available yet.</li></ul>
+</body>
+</html>
