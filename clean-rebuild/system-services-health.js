@@ -1,11 +1,11 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260826-system-services-health-3-broker-cash';
+  const BUILD = '20260826-system-services-health-4-market-prices';
   const $ = id => document.getElementById(id);
   const arr = v => Array.isArray(v) ? v : [];
   const upper = v => String(v || '').trim().toUpperCase();
-  const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch]));
   const money = v => new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(v)||0);
   const when = value => {if (!value) return 'Never';const d = new Date(value);return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});};
   const ageHours = value => {const t = new Date(value || 0).getTime();return Number.isFinite(t) && t > 0 ? (Date.now() - t) / 3600000 : Infinity;};
@@ -33,6 +33,19 @@
 
       try {const health = await client.health();rows.push(row('AuroraData 2 backend reachable', health?.connected === true || health?.ok !== false, health?.spreadsheetId ? `Spreadsheet ${health.spreadsheetId}` : 'Backend responded'));}
       catch (error) {rows.push(row('AuroraData 2 backend reachable', false, error?.message || error));}
+
+      try {
+        const authority=window.AuroraMarketPriceAuthority||window.AuroraSquadLivePriceAuthority;
+        if(authority?.refresh)await authority.refresh('system-health');
+        rows.push(row('Live market-price authority loaded',!!authority,authority?`${authority.source||'price authority'} · ${authority.quoteCount||0} quote(s)`:'Market price authority unavailable'));
+        const A=window.AuroraClean;
+        if(A?.importRealHoldings)A.importRealHoldings();
+        const holdings=arr(A?.readState?.()?.squad?.holdings).filter(h=>!['SOLD','ARCHIVED','CLOSED','EXITED'].includes(upper(h.status))&&Number(h.shares)>0);
+        const priced=holdings.filter(h=>Number(h.livePriceGbp)>0);
+        const market=holdings.reduce((s,h)=>s+Math.max(0,Number(h.marketValueGbp)||(Number(h.shares)||0)*(Number(h.livePriceGbp)||0)),0);
+        rows.push(row('Active holdings have live prices',holdings.length===0||priced.length===holdings.length,holdings.length?`${priced.length}/${holdings.length} active position(s) priced`:'No active holdings to price',holdings.length>0&&priced.length<holdings.length));
+        rows.push(row('Portfolio market value calculable',Number.isFinite(market)&&market>=0,`Current active market value ${money(market)}`));
+      } catch(error){rows.push(row('Live market-price authority loaded',false,error?.message||error));}
 
       let snapshot = null;
       try {
