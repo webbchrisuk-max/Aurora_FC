@@ -135,7 +135,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 a{color:#76d0ff}
 body>p,body>ul,body>h1,body>h2,body>label,body>button{width:100%}
 
-/* Clean Squad Hub */
+/* Shared department pieces */
 .department-hero{
   margin-top:8px;
   padding:28px;
@@ -143,16 +143,6 @@ body>p,body>ul,body>h1,body>h2,body>label,body>button{width:100%}
   border-radius:24px;
   background:linear-gradient(135deg,#0d1a2b 0%,#10243a 55%,#0b1827 100%);
   box-shadow:0 22px 60px rgba(0,0,0,.22);
-}
-.squad-hero{
-  display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
-  gap:24px;
-  border-color:#245073;
-  background:
-    radial-gradient(circle at 84% 18%,rgba(51,185,255,.12),transparent 30%),
-    linear-gradient(135deg,#0c1727 0%,#10243a 58%,#0a1828 100%);
 }
 .department-hero h1{margin:4px 0 10px!important}
 .department-lead{max-width:760px;margin:0;color:#b4c7da;font-size:1.03rem}
@@ -163,18 +153,22 @@ body>p,body>ul,body>h1,body>h2,body>label,body>button{width:100%}
   font-weight:900;
   letter-spacing:.16em;
 }
-.squad-hero button{width:auto;min-width:190px;margin:0!important;background:#1b4d6d;border-color:#337ba4}
-.squad-status{
-  display:flex;
-  justify-content:space-between;
-  gap:18px;
-  margin-top:14px;
-  padding:14px 18px;
+.department-section{
+  margin-top:22px;
+  padding:22px;
   border:1px solid var(--line);
-  border-radius:14px;
-  background:rgba(13,25,41,.72);
+  border-radius:22px;
+  background:rgba(10,21,36,.72);
 }
-.squad-status p{margin:0;font-size:.88rem}
+.section-heading{
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:22px;
+  margin-bottom:14px;
+}
+.section-heading h2{margin:4px 0 0!important;font-size:1.45rem}
+.section-heading>p{max-width:480px;margin:0;text-align:right;font-size:.9rem}
 .kpi-grid{
   display:grid;
   grid-template-columns:minmax(220px,.7fr) minmax(0,1.7fr);
@@ -197,22 +191,30 @@ body>p,body>ul,body>h1,body>h2,body>label,body>button{width:100%}
   letter-spacing:.12em;
 }
 .kpi-card strong{display:block;font-size:clamp(1.05rem,2vw,1.5rem);line-height:1.3}
-.department-section{
-  margin-top:22px;
-  padding:22px;
-  border:1px solid var(--line);
-  border-radius:22px;
-  background:rgba(10,21,36,.72);
-}
-.section-heading{
+
+/* Clean Squad Hub */
+.squad-hero{
   display:flex;
-  align-items:end;
+  align-items:flex-end;
   justify-content:space-between;
-  gap:22px;
-  margin-bottom:14px;
+  gap:24px;
+  border-color:#245073;
+  background:
+    radial-gradient(circle at 84% 18%,rgba(51,185,255,.12),transparent 30%),
+    linear-gradient(135deg,#0c1727 0%,#10243a 58%,#0a1828 100%);
 }
-.section-heading h2{margin:4px 0 0!important;font-size:1.45rem}
-.section-heading>p{max-width:480px;margin:0;text-align:right;font-size:.9rem}
+.squad-hero button{width:auto;min-width:190px;margin:0!important;background:#1b4d6d;border-color:#337ba4}
+.squad-status{
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+  margin-top:14px;
+  padding:14px 18px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(13,25,41,.72);
+}
+.squad-status p{margin:0;font-size:.88rem}
 .squad-holding-list{
   list-style:none;
   margin:0;
@@ -272,6 +274,113 @@ body>p,body>ul,body>h1,body>h2,body>label,body>button{width:100%}
 }
 .holding-metrics strong{display:block;font-size:.9rem;line-height:1.25}
 
+/* Clean Finance Department */
+.finance-hero{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:24px;
+  border-color:#3d5f47;
+  background:
+    radial-gradient(circle at 86% 14%,rgba(70,211,154,.12),transparent 30%),
+    linear-gradient(135deg,#0b1820 0%,#10261f 58%,#0a171c 100%);
+}
+.finance-eyebrow{color:#71e0aa}
+.stage-badge{
+  flex:0 0 auto;
+  padding:8px 11px;
+  border:1px solid #3a6a51;
+  border-radius:999px;
+  background:#123225;
+  color:#a8f0c8;
+  font-size:.72rem;
+  font-weight:900;
+  letter-spacing:.1em;
+}
+.finance-stage-track{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:10px;
+  margin-top:14px;
+}
+.finance-stage{
+  min-width:0;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:#0d1928;
+}
+.finance-stage span{
+  display:grid;
+  place-items:center;
+  width:26px;
+  height:26px;
+  margin-bottom:10px;
+  border-radius:50%;
+  background:#17263a;
+  color:#8194aa;
+  font-size:.75rem;
+  font-weight:900;
+}
+.finance-stage strong{display:block;font-size:.84rem}
+.finance-stage small{display:block;margin-top:4px;color:#72869d;font-size:.7rem}
+.finance-stage.active{border-color:#3a7659;background:#10251d}
+.finance-stage.active span{background:#1f5d40;color:#d8ffea}
+.finance-stage.active small{color:#71e0aa}
+.finance-control{border-color:#284b3a}
+.finance-form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px 18px;
+}
+.finance-form-grid label{
+  margin:0!important;
+  padding:16px;
+  border:1px solid #20374a;
+  border-radius:15px;
+  background:#0d1928;
+}
+.finance-form-grid input{width:100%;max-width:none}
+.finance-form-grid small{display:block;margin-top:7px;color:#74899f;font-weight:500;line-height:1.35}
+.finance-actions{display:flex;gap:12px;margin-top:18px}
+.finance-actions button{width:auto;margin:0!important}
+.finance-primary{background:#1f5d40;border-color:#347959}
+.finance-primary:hover{background:#286c4c}
+.finance-result-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-top:18px;
+}
+.finance-result-card{
+  min-height:140px;
+  padding:20px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:linear-gradient(180deg,#0f1d2d,#0b1725);
+}
+.finance-result-card>span{
+  display:block;
+  margin-bottom:10px;
+  color:#8095aa;
+  font-size:.7rem;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.finance-result-card>strong{display:block;font-size:clamp(1.45rem,3vw,2.25rem);line-height:1.1}
+.finance-result-card>small{display:block;margin-top:12px;color:#75899e}
+.finance-safe-card{border-color:#347356;background:linear-gradient(180deg,#10261e,#0c1d18)}
+.finance-safe-card>span{color:#71e0aa}
+.finance-breakdown #financePlanBreakdown{margin:0}
+.finance-next-stage{
+  margin-top:18px;
+  padding:18px 20px;
+  border:1px dashed #35516b;
+  border-radius:16px;
+  background:#0b1725;
+}
+.finance-next-stage p{margin:5px 0 0}
+
 @media (max-width:700px){
   body{padding-left:12px;padding-right:12px}
   body>nav{margin-left:-12px;margin-right:-12px;padding:10px 12px}
@@ -280,8 +389,9 @@ body>p,body>ul,body>h1,body>h2,body>label,body>button{width:100%}
   input,select{width:100%}
   button{width:100%}
   .department-hero{padding:20px}
-  .squad-hero{align-items:stretch;flex-direction:column}
+  .squad-hero,.finance-hero{align-items:stretch;flex-direction:column}
   .squad-hero button{width:100%}
+  .stage-badge{align-self:flex-start}
   .squad-status{flex-direction:column;gap:6px}
   .kpi-grid{grid-template-columns:1fr}
   .section-heading{align-items:flex-start;flex-direction:column;gap:6px}
@@ -290,6 +400,14 @@ body>p,body>ul,body>h1,body>h2,body>label,body>button{width:100%}
   .holding-head{gap:10px}
   .holding-metrics{grid-template-columns:1fr 1fr}
   .holding-metric:last-child{grid-column:1 / -1}
+  .finance-stage-track{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .finance-form-grid{grid-template-columns:1fr}
+  .finance-actions{flex-direction:column}
+  .finance-actions button{width:100%}
+  .finance-result-grid{grid-template-columns:1fr}
+}
+@media (min-width:701px) and (max-width:1000px){
+  .finance-stage-track{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media (min-width:900px){
   body{padding-left:28px;padding-right:28px}
