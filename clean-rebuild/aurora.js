@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260826-clean-rebuild-4-shared-navigation';
+  const BUILD = '20260826-clean-rebuild-5-squad-cards';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -343,7 +343,7 @@
     setText('squadCount',`${rows.length} account position(s)`);
     setText('squadSource',state.squad.importedAt?`Source: live Aurora browser state • imported ${new Date(state.squad.importedAt).toLocaleString('en-GB')}`:'Source: clean rebuild only');
     setText('squadTotals',`Book ${money(totalBook)} • Market ${money(totalValue)} • Annual income ${money(totalIncome)}`);
-    setHtml('squadRows',rows.length?rows.map(row=>`<li>${esc(row.ticker)} — ${esc(row.name)} — ${esc(row.account||'Unspecified')} — ${num(row.shares).toFixed(4)} shares — book ${money(row.bookCostGbp)} — annual income ${money(holdingAnnualIncome(row))}</li>`).join(''):'<li>No holdings yet.</li>');
+    setHtml('squadRows',rows.length?rows.map(row=>`<li class="holding-card"><div class="holding-head"><div><span class="holding-ticker">${esc(row.ticker)}</span><strong class="holding-name">${esc(row.name)}</strong></div><span class="holding-broker">${esc(row.account||'Unspecified')}</span></div><div class="holding-metrics"><div><span>SHARES</span><strong>${num(row.shares).toFixed(4)}</strong></div><div><span>BOOK VALUE</span><strong>${money(row.bookCostGbp)}</strong></div><div><span>ANNUAL INCOME</span><strong>${money(holdingAnnualIncome(row))}</strong></div></div></li>`).join(''):'<li>No holdings yet.</li>');
   }
 
   function bindSquad() {
