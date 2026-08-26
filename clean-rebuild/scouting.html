@@ -4,8 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Aurora Clean — Scouting Centre</title>
-  <link rel="stylesheet" href="aurora.css?v=20260826-clean-scouting-stage1-2">
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-scouting-stage1-3">
   <script src="aurora.js?v=20260826-clean-rebuild-8-scouting-runtime-refresh" defer></script>
+  <script src="scouting-universe.js?v=20260826-clean-universe-1" defer></script>
 </head>
 <body data-page="scouting">
 <nav id="auroraNav"></nav><hr>
@@ -14,7 +15,7 @@
   <div>
     <p class="eyebrow scouting-eyebrow">AURORA CITY FC · SCOUTING CENTRE</p>
     <h1>Payday Scouting</h1>
-    <p class="department-lead">Finance proves how much can be invested. Scouting ranks the best places to deploy that exact payday budget.</p>
+    <p class="department-lead">Finance proves how much can be invested. Scouting ranks the best opportunities across Aurora's wider stock universe, using the current Squad as portfolio context.</p>
   </div>
   <span class="stage-badge scouting-stage-badge">STAGE 1 · RANKING</span>
 </header>
@@ -33,7 +34,7 @@
   <article class="scouting-control-card scouting-top-card">
     <span>CURRENT TOP PICK</span>
     <strong id="scoutingTopPick">Waiting for candidates</strong>
-    <small id="scoutingTopPickDetail">Seed the current squad or add an external candidate.</small>
+    <small id="scoutingTopPickDetail">Loading the Aurora universe.</small>
   </article>
 </section>
 
@@ -56,18 +57,24 @@
 <section class="department-section scouting-universe-section">
   <div class="section-heading">
     <div>
-      <p class="eyebrow scouting-eyebrow">CANDIDATE UNIVERSE</p>
-      <h2>Shares Aurora is allowed to consider</h2>
+      <p class="eyebrow scouting-eyebrow">AURORA UNIVERSE</p>
+      <h2>Full opportunity pool</h2>
     </div>
-    <p>Current holdings can be seeded automatically. External shares can be added manually without changing the Squad.</p>
+    <p>Watchlist, Global Watchlist and AuroraScout are merged by ticker. Current holdings stay in the comparison for concentration checks.</p>
   </div>
+
   <div class="scouting-actions">
-    <button id="scoutingSeedSquad" type="button">Seed Current Squad</button>
-    <span id="scoutingSeedStatus">No squad seed run yet.</span>
+    <button id="scoutingRefreshUniverse" type="button">Refresh Aurora Universe</button>
+    <span id="scoutingUniverseStatus">Loading Aurora universe…</span>
+  </div>
+
+  <div class="scouting-actions">
+    <button id="scoutingSeedSquad" type="button">Add Current Squad</button>
+    <span id="scoutingSeedStatus">Current holdings can also be added directly to the candidate pool.</span>
   </div>
 
   <details class="scouting-add-candidate">
-    <summary>Add External Candidate</summary>
+    <summary>Add External Candidate Manually</summary>
     <div class="scouting-form-grid">
       <label>Ticker <input id="candidateTicker" autocomplete="off"></label>
       <label>Name <input id="candidateName" autocomplete="off"></label>
@@ -84,7 +91,7 @@
       <p class="eyebrow scouting-eyebrow">RANKED SHORTLIST</p>
       <h2>Best payday opportunities</h2>
     </div>
-    <p>Stage 1 ranks candidates only. Stage 2 will optimise how the Finance budget is split between approved picks.</p>
+    <p>Stage 1 ranks the full universe. Stage 2 will optimise how the Finance budget is split between approved picks.</p>
   </div>
   <div class="scouting-table-head" aria-hidden="true">
     <span>Rank / Candidate</span><span>Yield</span><span>Income on Budget</span><span>Score</span><span>Decision</span>
