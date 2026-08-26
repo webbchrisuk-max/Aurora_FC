@@ -1,12 +1,12 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260826-clean-rebuild-6-squad-income-order';
+  const BUILD = '20260826-clean-rebuild-7-scouting-ranking';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
   const DEFAULT_STATE = {
-    version: 3,
+    version: 4,
     finance: {
       expectedWages: 2600,
       wagesReceived: 2600,
@@ -21,7 +21,7 @@
       lastPlan: null,
       paydayHistory: []
     },
-    scouting: { strategy: 'sustainable', candidates: [] },
+    scouting: { strategy: 'sustainable', candidates: [], seededAt: null },
     transfer: { mission: null, route: null },
     registration: { receipts: [] },
     squad: { holdings: [], importedAt: null, source: 'CLEAN' },
@@ -66,7 +66,7 @@
     next.income = {...clone(DEFAULT_STATE.income), ...(source.income || {})};
     next.income.dividends = Array.isArray(source.income?.dividends) ? source.income.dividends : [];
     next.matchReport = {...clone(DEFAULT_STATE.matchReport), ...(source.matchReport || {})};
-    next.version = 3;
+    next.version = 4;
     return next;
   }
 
@@ -336,27 +336,131 @@
     });
   }
 
+  function aggregateSquadByTicker(state) {
+    const map = new Map();
+    (state.squad?.holdings || []).forEach(row => {
+      const ticker = upper(row?.ticker);
+      if (!ticker) return;
+      const current = map.get(ticker) || {ticker,name:String(row?.name||ticker),sector:String(row?.sector||''),bookCostGbp:0,marketValueGbp:0,annualIncomeGbp:0};
+      current.bookCostGbp += Math.max(0,num(row?.bookCostGbp));
+      current.marketValueGbp += Math.max(0,num(row?.marketValueGbp || (num(row?.shares)*num(row?.livePriceGbp))));
+      current.annualIncomeGbp += holdingAnnualIncome(row);
+      if (!current.sector && row?.sector) current.sector = String(row.sector);
+      map.set(ticker,current);
+    });
+    return [...map.values()];
+  }
+
+  function seedScoutingFromSquad() {
+    updateState(state => {
+      const aggregates = aggregateSquadByTicker(state);
+      aggregates.forEach(row => {
+        const yieldPct = row.bookCostGbp > 0 ? (row.annualIncomeGbp / row.bookCostGbp) * 100 : 0;
+        const existing = state.scouting.candidates.find(candidate => upper(candidate.ticker) === row.ticker);
+        const next = {
+          id: existing?.id || `SCOUT-${row.ticker}`,
+          ticker: row.ticker,
+          name: row.name || row.ticker,
+          sector: row.sector || existing?.sector || '',
+          yieldPct: Number(yieldPct.toFixed(4)),
+          source: 'SQUAD',
+          approved: !!existing?.approved,
+          updatedAt: isoNow()
+        };
+        if (existing) Object.assign(existing,next); else state.scouting.candidates.push(next);
+      });
+      state.scouting.seededAt = isoNow();
+    });
+  }
+
+  function scoutingRankings(state) {
+    const budget = safeRelease(state.finance);
+    const portfolioRows = aggregateSquadByTicker(state);
+    const portfolioBook = portfolioRows.reduce((sum,row)=>sum+row.bookCostGbp,0);
+    const sectorBook = new Map();
+    portfolioRows.forEach(row => {
+      const sector = String(row.sector||'').trim();
+      if (sector) sectorBook.set(sector,(sectorBook.get(sector)||0)+row.bookCostGbp);
+    });
+    const strategy = state.scouting.strategy === 'maximum' ? 'maximum' : 'sustainable';
+    return (state.scouting.candidates || []).filter(row=>upper(row.ticker)).map(row => {
+      const ticker = upper(row.ticker);
+      const held = portfolioRows.find(item=>item.ticker===ticker);
+      const yieldPct = Math.max(0,num(row.yieldPct));
+      const exposurePct = portfolioBook > 0 && held ? (held.bookCostGbp/portfolioBook)*100 : 0;
+      const sector = String(row.sector||held?.sector||'').trim();
+      const sectorExposurePct = portfolioBook > 0 && sector ? ((sectorBook.get(sector)||0)/portfolioBook)*100 : 0;
+      const yieldScore = Math.min(100,(yieldPct/12)*100);
+      const concentrationScore = held ? Math.max(0,100-(exposurePct*3.25)) : 100;
+      const diversificationScore = sector ? Math.max(0,100-(sectorExposurePct*2.4)) : (held ? 45 : 70);
+      const sourceScore = row.source === 'SQUAD' ? 100 : 75;
+      const score = strategy === 'maximum'
+        ? (yieldScore*.82)+(concentrationScore*.10)+(diversificationScore*.05)+(sourceScore*.03)
+        : (yieldScore*.55)+(concentrationScore*.20)+(diversificationScore*.15)+(sourceScore*.10);
+      const expectedAnnualIncome = budget * yieldPct / 100;
+      return {
+        ...row,ticker,sector,yieldPct,exposurePct,sectorExposurePct,
+        expectedAnnualIncome:Number(expectedAnnualIncome.toFixed(2)),
+        score:Number(score.toFixed(1)),held:!!held
+      };
+    }).sort((a,b)=>b.score-a.score || b.expectedAnnualIncome-a.expectedAnnualIncome || a.ticker.localeCompare(b.ticker));
+  }
+
   function renderScouting() {
     const state=readState();
-    if(byId('scoutingStrategy'))byId('scoutingStrategy').value=state.scouting.strategy;
-    const rows=state.scouting.candidates||[];
-    setHtml('scoutingRows', rows.length ? rows.map((row,index)=>`<li>${esc(row.ticker)} — ${esc(row.name)} — Yield ${num(row.yieldPct).toFixed(2)}% — ${row.approved?'APPROVED':'WATCH'} <button data-approve="${index}">${row.approved?'Unapprove':'Approve'}</button></li>`).join('') : '<li>No candidates yet.</li>');
-    document.querySelectorAll('[data-approve]').forEach(button=>button.addEventListener('click',()=>{
-      const index=Number(button.dataset.approve);
-      updateState(next=>{next.scouting.candidates[index].approved=!next.scouting.candidates[index].approved;});
-      renderScouting();
-    }));
+    const strategy=state.scouting.strategy==='maximum'?'maximum':'sustainable';
+    if(byId('scoutingStrategy'))byId('scoutingStrategy').value=strategy;
+    const budget=safeRelease(state.finance);
+    const rows=scoutingRankings(state);
+    setText('scoutingBudget',money(budget));
+    setText('scoutingUniverseCount',String(rows.length));
+    setText('scoutingStrategyNote',strategy==='maximum'?'Maximum Income heavily rewards immediate forward yield while still applying a small concentration check.':'Sustainable balances forward income with current holding concentration and diversification.');
+    if(rows.length){
+      const top=rows[0];
+      setText('scoutingTopPick',`${top.ticker} · ${top.score.toFixed(1)}`);
+      setText('scoutingTopPickDetail',`${top.yieldPct.toFixed(2)}% yield · ${money(top.expectedAnnualIncome)} estimated annual income if the full payday budget went here.`);
+    }else{
+      setText('scoutingTopPick','Waiting for candidates');
+      setText('scoutingTopPickDetail','Seed the current squad or add an external candidate.');
+    }
+    setText('scoutingSeedStatus',state.scouting.seededAt?`Squad universe last seeded ${new Date(state.scouting.seededAt).toLocaleString('en-GB')}.`:'No squad seed run yet.');
+    setHtml('scoutingRows',rows.length?rows.map((row,index)=>`<li class="scouting-rank-card${index===0?' top-pick':''}"><div class="scouting-rank-main"><span class="scouting-rank-number">#${index+1}</span><div><strong>${esc(row.ticker)} · ${esc(row.name||row.ticker)}</strong><small>${esc(row.source==='SQUAD'?'Current holding':'External candidate')}${row.sector?` · ${esc(row.sector)}`:''}${row.held?` · ${row.exposurePct.toFixed(1)}% current book exposure`:''}</small></div></div><div class="scouting-rank-metric"><span>YIELD</span><strong>${row.yieldPct.toFixed(2)}%</strong></div><div class="scouting-rank-metric"><span>INCOME ON ${money(budget)}</span><strong>${money(row.expectedAnnualIncome)}</strong></div><div class="scouting-rank-metric"><span>SCORE</span><strong>${row.score.toFixed(1)}</strong></div><div class="scouting-rank-actions"><button type="button" data-approve-scout="${esc(row.id||row.ticker)}">${row.approved?'Approved ✓':'Approve'}</button><button type="button" class="secondary" data-remove-scout="${esc(row.id||row.ticker)}">Remove</button></div></li>`).join(''):'<li class="scouting-empty">No candidates yet. Seed the current Squad to build the first ranked universe.</li>');
   }
 
   function bindScouting() {
-    byId('scoutingStrategy')?.addEventListener('change',event=>updateState(state=>{state.scouting.strategy=event.target.value;}));
+    byId('scoutingStrategy')?.addEventListener('change',event=>{
+      updateState(state=>{state.scouting.strategy=event.target.value==='maximum'?'maximum':'sustainable';});
+      renderScouting();
+    });
+    byId('scoutingSeedSquad')?.addEventListener('click',()=>{
+      seedScoutingFromSquad();
+      renderScouting();
+    });
     byId('addCandidate')?.addEventListener('click',()=>{
-      const ticker=String(byId('candidateTicker')?.value||'').trim().toUpperCase();
+      const ticker=upper(byId('candidateTicker')?.value);
       const name=String(byId('candidateName')?.value||'').trim();
       const yieldPct=Math.max(0,num(byId('candidateYield')?.value));
-      if(!ticker)return;
-      updateState(state=>state.scouting.candidates.push({ticker,name:name||ticker,yieldPct,approved:false}));
-      ['candidateTicker','candidateName','candidateYield'].forEach(id=>{if(byId(id))byId(id).value='';});
+      const sector=String(byId('candidateSector')?.value||'').trim();
+      if(!ticker||yieldPct<=0)return;
+      updateState(state=>{
+        const existing=state.scouting.candidates.find(row=>upper(row.ticker)===ticker);
+        const next={id:existing?.id||uid('SCOUT'),ticker,name:name||existing?.name||ticker,sector:sector||existing?.sector||'',yieldPct:Number(yieldPct.toFixed(4)),source:'MANUAL',approved:!!existing?.approved,updatedAt:isoNow()};
+        if(existing)Object.assign(existing,next);else state.scouting.candidates.push(next);
+      });
+      ['candidateTicker','candidateName','candidateYield','candidateSector'].forEach(id=>{if(byId(id))byId(id).value='';});
+      renderScouting();
+    });
+    byId('scoutingRows')?.addEventListener('click',event=>{
+      const approve=event.target.closest('[data-approve-scout]');
+      const remove=event.target.closest('[data-remove-scout]');
+      if(!approve&&!remove)return;
+      const key=String((approve||remove).dataset.approveScout||(approve||remove).dataset.removeScout||'');
+      updateState(state=>{
+        const index=state.scouting.candidates.findIndex(row=>String(row.id||row.ticker)===key);
+        if(index<0)return;
+        if(approve)state.scouting.candidates[index].approved=!state.scouting.candidates[index].approved;
+        if(remove)state.scouting.candidates.splice(index,1);
+      });
       renderScouting();
     });
   }
@@ -367,7 +471,7 @@
     const approved=state.scouting.candidates.filter(row=>row.approved);
     if(!approved.length||!(mission.budget>0))return[];
     const each=mission.budget/approved.length;
-    const allocations=approved.map(row=>({ticker:row.ticker,name:row.name,yieldPct:row.yieldPct,amount:Number(each.toFixed(2)),expectedAnnualIncome:Number((each*row.yieldPct/100).toFixed(2))}));
+    const allocations=approved.map(row=>({ticker:row.ticker,name:row.name,yieldPct:row.yieldPct,amount:Number(each.toFixed(2)),expectedAnnualIncome:Number((each*num(row.yieldPct)/100).toFixed(2))}));
     const allocated=allocations.reduce((sum,row)=>sum+row.amount,0),delta=round2(mission.budget-allocated);
     if(allocations.length&&delta)allocations[allocations.length-1].amount=round2(allocations[allocations.length-1].amount+delta);
     return allocations;
@@ -424,13 +528,9 @@
         route.allocations.forEach(row=>{
           state.registration.receipts.push({id:uid('RECEIPT'),ticker:row.ticker,name:row.name,amount:row.amount,registeredAt:isoNow()});
           const existing=state.squad.holdings.find(h=>h.ticker===row.ticker&&String(h.account||'')==='Clean Test');
-          const assumedPrice=1,shares=row.amount/assumedPrice,annualDpsGbp=row.yieldPct/100;
-          if(existing){
-            existing.shares+=shares;
-            existing.bookCostGbp+=row.amount;
-          } else {
-            state.squad.holdings.push({account:'Clean Test',ticker:row.ticker,name:row.name,shares,bookCostGbp:row.amount,avgCostGbp:1,livePriceGbp:1,marketValueGbp:row.amount,annualDpsGbp,annualIncomeGbp:shares*annualDpsGbp,status:'ACTIVE'});
-          }
+          const assumedPrice=1,shares=row.amount/assumedPrice,annualDpsGbp=num(row.yieldPct)/100;
+          if(existing){existing.shares+=shares;existing.bookCostGbp+=row.amount;}
+          else state.squad.holdings.push({account:'Clean Test',ticker:row.ticker,name:row.name,shares,bookCostGbp:row.amount,avgCostGbp:1,livePriceGbp:1,marketValueGbp:row.amount,annualDpsGbp,annualIncomeGbp:shares*annualDpsGbp,status:'ACTIVE'});
         });
         state.transfer.mission.status='COMPLETE';
         state.transfer.mission.updatedAt=isoNow();
@@ -469,9 +569,7 @@
 
   function bindIncome() {
     byId('addDividend')?.addEventListener('click',()=>{
-      const ticker=String(byId('dividendTicker')?.value||'').trim().toUpperCase();
-      const payDate=String(byId('dividendDate')?.value||'').trim();
-      const amount=Math.max(0,num(byId('dividendAmount')?.value));
+      const ticker=upper(byId('dividendTicker')?.value),payDate=String(byId('dividendDate')?.value||'').trim(),amount=Math.max(0,num(byId('dividendAmount')?.value));
       if(!ticker||!payDate)return;
       updateState(state=>state.income.dividends.push({ticker,payDate,amount}));
       renderIncome();
@@ -512,6 +610,7 @@
       ['Finance calculation valid',Number.isFinite(f.safeSurplus)&&f.safeSurplus>=0],
       ['Finance mission budget safe',!state.transfer.mission?.financeSnapshot||num(state.transfer.mission.budget)<=num(state.transfer.mission.financeSnapshot.safeSurplus)+0.005],
       ['Scouting present',!!state.scouting],
+      ['Scouting ranking valid',scoutingRankings(state).every((row,index,rows)=>Number.isFinite(row.score)&&(index===0||rows[index-1].score>=row.score))],
       ['Transfer present',!!state.transfer],
       ['Registration present',!!state.registration],
       ['Squad present',!!state.squad],
@@ -534,7 +633,7 @@
     handlers[0]?.();
     window.addEventListener('aurora-clean:state',handlers[0]);
     window.addEventListener('storage',event=>{if(event.key===STATE_KEY)handlers[0]?.();});
-    window.AuroraClean=Object.freeze({BUILD,STATE_KEY,readState,writeState,updateState,safeRelease,financeSummary,annualIncome,importRealHoldings});
+    window.AuroraClean=Object.freeze({BUILD,STATE_KEY,readState,writeState,updateState,safeRelease,financeSummary,annualIncome,importRealHoldings,scoutingRankings,seedScoutingFromSquad});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
