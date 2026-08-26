@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Aurora Clean — Finance Department</title>
-  <link rel="stylesheet" href="aurora.css?v=20260826-clean-finance-stage5-1">
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-finance-stage5-2">
   <script src="aurora.js?v=20260826-clean-rebuild-8-scouting-runtime-refresh" defer></script>
-  <script src="finance-bills.js?v=20260826-clean-finance-stage5-decision-1" defer></script>
+  <script src="finance-engine.js?v=20260826-clean-finance-snapshots-1" defer></script>
 </head>
 <body data-page="finance">
 <nav id="auroraNav"></nav><hr>
@@ -30,7 +30,7 @@
 </section>
 
 <section class="department-section finance-control">
-  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 1 · CASH TRUTH</p><h2>Proved payday cash</h2></div><p>The temporary Combined Commitments control has been retired. Stage 5 now owns the live safe-release decision.</p></div>
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 1 · CASH TRUTH</p><h2>Proved payday cash</h2></div><p>Stage 1 provides the cash inputs. Later stages keep their own proved snapshots until you explicitly recalculate them.</p></div>
   <div class="finance-form-grid">
     <label>Expected Wages<input id="financeExpectedWages" type="number" min="0" step="0.01" inputmode="decimal"><small>What payday was expected to pay.</small></label>
     <label>Wages Received<input id="financeWagesReceived" type="number" min="0" step="0.01" inputmode="decimal"><small>The actual wage payment received.</small></label>
@@ -47,7 +47,7 @@
     <label>Bill Window<strong id="financeBillWindow">—</strong><small>Payday through the day before the next payday.</small></label>
   </div>
   <div class="finance-actions"><button id="financeImportBills" type="button">Import Live Aurora Bills</button><button id="financeRecalculateBills" type="button" class="finance-primary">Recalculate Bills</button></div>
-  <p id="financeBillImportStatus">Stage 2 has not imported live bills yet.</p>
+  <p id="financeBillImportStatus">Stage 2 uses a frozen proved snapshot.</p>
 </section>
 <section class="scouting-control-grid" aria-label="Stage 2 bill totals">
   <article class="scouting-control-card"><span>ACTIVE BILLS</span><strong id="financeBillCount">0</strong><small>Included, unpaid and non-archived obligations.</small></article>
@@ -57,9 +57,9 @@
 <section class="finance-result-grid"><article class="finance-result-card finance-safe-card"><span>BASE HOLDING POT FUNDING / PAYDAY</span><strong id="financeHoldingPerPayday">£0.00</strong><small>Annual Holding Pot requirement ÷ 13.</small></article></section>
 
 <section class="department-section finance-control">
-  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 3 · HOLDING POT</p><h2>Protect the next bill cycle</h2></div><p>Uses projected payday balance, the base 13-pay contribution and only the safety top-up actually required.</p></div>
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 3 · HOLDING POT</p><h2>Protect the next bill cycle</h2></div><p>Stage 3 is frozen when calculated. Stage 5 consumes this result instead of recalculating it.</p></div>
   <div class="finance-actions"><button id="financeImportHoldingPot" type="button">Import Live Holding Pot</button><button id="financeRecalculateHolding" type="button" class="finance-primary">Recalculate Holding Pot</button></div>
-  <p id="financeHoldingImportStatus">Stage 3 has not imported the live Holding Pot yet.</p>
+  <p id="financeHoldingImportStatus">Stage 3 uses a frozen proved snapshot.</p>
 </section>
 <section class="scouting-control-grid" aria-label="Holding Pot position before payday">
   <article class="scouting-control-card"><span>CURRENT HOLDING POT</span><strong id="financeHoldingBalanceStage3">£0.00</strong><small>Balance now.</small></article>
@@ -79,9 +79,9 @@
 <section class="finance-result-grid"><article class="finance-result-card"><span>PRE-PAYDAY SHORTFALL</span><strong id="financeHoldingPrePaydayShortfall">£0.00</strong></article><article class="finance-result-card"><span>TARGET HEADROOM</span><strong id="financeHoldingHeadroom">£0.00</strong></article></section>
 
 <section class="department-section finance-control">
-  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 4 · POT FUNDING</p><h2>Fund goals in the correct order</h2></div><p>Required/deadline funding first; optional money is capped at £300 with Payday Rollover first.</p></div>
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 4 · POT FUNDING</p><h2>Fund goals in the correct order</h2></div><p>Stage 4 is also frozen when calculated so its plan cannot move underneath Stage 5.</p></div>
   <div class="finance-actions"><button id="financeImportPots" type="button">Import Live Aurora Pots</button><button id="financeRecalculatePots" type="button" class="finance-primary">Recalculate Pot Funding</button></div>
-  <p id="financePotImportStatus">Stage 4 has not imported the live goal pots yet.</p>
+  <p id="financePotImportStatus">Stage 4 uses a frozen proved snapshot.</p>
 </section>
 <section class="scouting-control-grid">
   <article class="scouting-control-card"><span>ACTIVE POTS</span><strong id="financePotCount">0</strong></article>
@@ -96,13 +96,13 @@
 <section class="scouting-control-grid"><article class="scouting-control-card scouting-top-card"><span>TOTAL STAGE 4 POT FUNDING</span><strong id="financePotTotal">£0.00</strong><small>Holding Pot excluded to prevent double-counting.</small></article></section>
 
 <section class="department-section finance-control">
-  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 5 · PAYDAY DECISION</p><h2>Definitive Maximum Safe Release</h2></div><p>This is now the Finance authority. It uses only the proved Stage 1–4 inputs; the old temporary commitment is not part of this calculation.</p></div>
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 5 · PAYDAY DECISION</p><h2>Definitive Maximum Safe Release</h2></div><p>Stage 5 consumes the frozen Stage 2, Stage 3 and Stage 4 snapshots. It does not solve those stages again.</p></div>
   <div class="finance-actions"><button id="financeRecalculateDecision" type="button" class="finance-primary">Recalculate Payday Decision</button></div>
 </section>
 
 <section class="scouting-control-grid" aria-label="Stage 5 payday decision inputs">
   <article class="scouting-control-card"><span>AVAILABLE PAYDAY CASH</span><strong id="financeDecisionCash">£0.00</strong><small>Stage 1 cash available.</small></article>
-  <article class="scouting-control-card"><span>PROVED COMMITMENTS</span><strong id="financeDecisionCommitments">£0.00</strong><small>Bills + Holding Pot base + safety top-up + Stage 4 pots.</small></article>
+  <article class="scouting-control-card"><span>PROVED COMMITMENTS</span><strong id="financeDecisionCommitments">£0.00</strong><small>Bills + frozen Holding Pot base/top-up + frozen Stage 4 pots.</small></article>
   <article class="scouting-control-card"><span>PROTECTED CASH</span><strong id="financeDecisionProtected">£0.00</strong><small>Cash that must remain untouched.</small></article>
 </section>
 
@@ -117,10 +117,10 @@
 <section class="scouting-control-grid" aria-label="Stage 5 result">
   <article class="scouting-control-card scouting-top-card"><span>MAXIMUM SAFE RELEASE</span><strong id="financeDecisionSafeRelease">£0.00</strong><small>The definitive Finance amount available for Stage 6.</small></article>
 </section>
-<p id="financeDecisionStage1Comparison">Stage 1 comparison unavailable.</p>
+<p id="financeDecisionStage1Comparison">Stage 5 not calculated yet.</p>
 
 <section class="department-section finance-breakdown">
-  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 5 AUDIT</p><h2>Where every pound goes</h2></div><p>This replaces the old temporary Combined Commitments calculation.</p></div>
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 5 AUDIT</p><h2>Where every pound goes</h2></div><p>This is the final authority before Mission Release.</p></div>
   <ul id="financeStage5DecisionRows"><li>No Stage 5 decision loaded.</li></ul>
 </section>
 
@@ -128,7 +128,7 @@
 <section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">BEFORE PAYDAY</p><h2>Projected Holding Pot spend</h2></div></div><ul id="financeStage3PrePaydayRows"><li>No Holding Pot projection loaded.</li></ul></section>
 <section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">NEXT PAYDAY CYCLE</p><h2>Projected bill occurrences</h2></div></div><ul id="financeStage2BillRows"><li>No bill data loaded.</li></ul></section>
 
-<section class="finance-next-stage"><strong>Next: Stage 6 — Mission Release</strong><p>Once the Stage 5 Maximum Safe Release is verified, Finance can release that exact approved amount into the investment mission.</p></section>
+<section class="finance-next-stage"><strong>Next: Stage 6 — Mission Release</strong><p>After the frozen Stage 5 result is verified, Finance can release that exact amount into the investment mission.</p></section>
 
 </body>
 </html>
