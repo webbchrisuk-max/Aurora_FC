@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD = '20260823-system-health-browser-sync-authority-2';
+  const BUILD = '20260826-system-health-readonly-sync-adapter-1';
 
   const makeStatus = () => {
     const s = window.AuroraBrowserSync?.status?.();
@@ -43,34 +43,27 @@
   function installSyncManagerReadAdapter() {
     const manager = window.AuroraSyncManager;
     if (!manager || typeof manager.status !== 'function') return false;
-    if (window.__AuroraSystemHealthSyncStatusSource) return true;
-
-    const sourceStatus = manager.status.bind(manager);
-    window.__AuroraSystemHealthSyncStatusSource = sourceStatus;
-
-    const wrappedStatus = () => {
-      const base = sourceStatus() || {};
-      const browser = window.AuroraBrowserSync?.status?.() || {};
-      const browserItem = {
-        status: browser.lastError ? 'ERROR' : (browser.signedIn && browser.cloudExists ? 'CONNECTED' : 'CHECK'),
-        lastError: browser.lastError || '',
-        lastSuccessAt: browser.lastSyncAt || browser.cloudSavedAt || browser.lastUploadAt || browser.lastDownloadAt || null
-      };
-      return {
-        ...base,
-        detail: {
-          ...(base.detail || {}),
-          browserSync: browserItem
+    if (!window.AuroraSystemHealthSyncStatus) {
+      window.AuroraSystemHealthSyncStatus = Object.freeze({
+        status() {
+          const base = manager.status?.() || {};
+          const browser = window.AuroraBrowserSync?.status?.() || {};
+          const browserItem = {
+            status: browser.lastError ? 'ERROR' : (browser.signedIn && browser.cloudExists ? 'CONNECTED' : 'CHECK'),
+            lastError: browser.lastError || '',
+            lastSuccessAt: browser.lastSyncAt || browser.cloudSavedAt || browser.lastUploadAt || browser.lastDownloadAt || null
+          };
+          return {
+            ...base,
+            detail: {
+              ...(base.detail || {}),
+              browserSync: browserItem
+            }
+          };
         }
-      };
-    };
-
-    try {
-      manager.status = wrappedStatus;
-      return manager.status === wrappedStatus;
-    } catch (_) {
-      return false;
+      });
     }
+    return true;
   }
 
   function relabel() {
@@ -108,7 +101,7 @@
     }, 50);
   }
 
-  window.AuroraSystemHealthBrowserSyncAuthority = Object.freeze({build:BUILD,ready:true});
+  window.AuroraSystemHealthBrowserSyncAuthority = Object.freeze({build:BUILD,ready:true,readOnly:true,mutatesSyncManager:false});
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
   else boot();
 })();
