@@ -1,15 +1,96 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aurora Clean — Scouting</title><link rel="stylesheet" href="aurora.css?v=20260826-clean-shell-1"><script src="aurora.js?v=20260826-clean-rebuild-4-shared-navigation" defer></script></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Aurora Clean — Scouting Centre</title>
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-scouting-stage1-1">
+  <script src="aurora.js?v=20260826-clean-rebuild-7-scouting-ranking" defer></script>
+</head>
 <body data-page="scouting">
 <nav id="auroraNav"></nav><hr>
-<h1>Scouting</h1>
-<label>Strategy <select id="scoutingStrategy"><option value="sustainable">Sustainable</option><option value="maximum">Maximum Income</option></select></label>
-<h2>Add Candidate</h2>
-<label>Ticker <input id="candidateTicker"></label><br>
-<label>Name <input id="candidateName"></label><br>
-<label>Yield % <input id="candidateYield" type="number" step="0.01"></label><br>
-<button id="addCandidate" type="button">Add Candidate</button>
-<h2>Candidates</h2>
-<ul id="scoutingRows"></ul>
-</body></html>
+
+<header class="department-hero scouting-hero">
+  <div>
+    <p class="eyebrow scouting-eyebrow">AURORA CITY FC · SCOUTING CENTRE</p>
+    <h1>Payday Scouting</h1>
+    <p class="department-lead">Finance proves how much can be invested. Scouting ranks the best places to deploy that exact payday budget.</p>
+  </div>
+  <span class="stage-badge scouting-stage-badge">STAGE 1 · RANKING</span>
+</header>
+
+<section class="scouting-control-grid">
+  <article class="scouting-control-card">
+    <span>FINANCE PAYDAY BUDGET</span>
+    <strong id="scoutingBudget">£0.00</strong>
+    <small>Current maximum safe release</small>
+  </article>
+  <article class="scouting-control-card">
+    <span>CANDIDATE UNIVERSE</span>
+    <strong id="scoutingUniverseCount">0</strong>
+    <small>Unique shares available to rank</small>
+  </article>
+  <article class="scouting-control-card scouting-top-card">
+    <span>CURRENT TOP PICK</span>
+    <strong id="scoutingTopPick">Waiting for candidates</strong>
+    <small id="scoutingTopPickDetail">Seed the current squad or add an external candidate.</small>
+  </article>
+</section>
+
+<section class="department-section scouting-strategy-section">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow scouting-eyebrow">STRATEGY</p>
+      <h2>How should Aurora rank the shortlist?</h2>
+    </div>
+    <p id="scoutingStrategyNote">Sustainable balances income with concentration and diversification.</p>
+  </div>
+  <label class="scouting-strategy-control">Scouting Strategy
+    <select id="scoutingStrategy">
+      <option value="sustainable">Sustainable Income</option>
+      <option value="maximum">Maximum Income</option>
+    </select>
+  </label>
+</section>
+
+<section class="department-section scouting-universe-section">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow scouting-eyebrow">CANDIDATE UNIVERSE</p>
+      <h2>Shares Aurora is allowed to consider</h2>
+    </div>
+    <p>Current holdings can be seeded automatically. External shares can be added manually without changing the Squad.</p>
+  </div>
+  <div class="scouting-actions">
+    <button id="scoutingSeedSquad" type="button">Seed Current Squad</button>
+    <span id="scoutingSeedStatus">No squad seed run yet.</span>
+  </div>
+
+  <details class="scouting-add-candidate">
+    <summary>Add External Candidate</summary>
+    <div class="scouting-form-grid">
+      <label>Ticker <input id="candidateTicker" autocomplete="off"></label>
+      <label>Name <input id="candidateName" autocomplete="off"></label>
+      <label>Forward Yield % <input id="candidateYield" type="number" min="0" step="0.01"></label>
+      <label>Sector <input id="candidateSector" autocomplete="off" placeholder="Optional"></label>
+    </div>
+    <button id="addCandidate" type="button">Add / Update Candidate</button>
+  </details>
+</section>
+
+<section class="department-section scouting-ranking-section">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow scouting-eyebrow">RANKED SHORTLIST</p>
+      <h2>Best payday opportunities</h2>
+    </div>
+    <p>Stage 1 ranks candidates only. Stage 2 will optimise how the Finance budget is split between approved picks.</p>
+  </div>
+  <div class="scouting-table-head" aria-hidden="true">
+    <span>Rank / Candidate</span><span>Yield</span><span>Income on Budget</span><span>Score</span><span>Decision</span>
+  </div>
+  <ul id="scoutingRows" class="scouting-ranking-list"></ul>
+</section>
+
+</body>
+</html>
