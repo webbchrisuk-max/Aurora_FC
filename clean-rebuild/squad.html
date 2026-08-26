@@ -1,13 +1,50 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aurora Clean — Squad</title><link rel="stylesheet" href="aurora.css?v=20260826-clean-shell-1"><script src="aurora.js?v=20260826-clean-rebuild-4-shared-navigation" defer></script></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Aurora Clean — Squad Hub</title>
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-squad-1">
+  <script src="aurora.js?v=20260826-clean-rebuild-4-shared-navigation" defer></script>
+</head>
 <body data-page="squad">
 <nav id="auroraNav"></nav><hr>
-<h1>Squad</h1>
-<p><button id="squadImportReal" type="button">Import Real Aurora Holdings</button></p>
-<p id="squadImportStatus">Use the button once to copy the current live Aurora holdings into the clean rebuild.</p>
-<p id="squadSource">Source: clean rebuild only</p>
-<p id="squadCount">0 account position(s)</p>
-<p id="squadTotals">Book £0.00 • Market £0.00 • Annual income £0.00</p>
-<ul id="squadRows"></ul>
-</body></html>
+
+<header class="department-hero squad-hero">
+  <div>
+    <p class="eyebrow">AURORA CITY FC · FIRST TEAM</p>
+    <h1>Squad Hub</h1>
+    <p class="department-lead">One clean view of every active account position, portfolio value and forward income contribution.</p>
+  </div>
+  <button id="squadImportReal" type="button">Refresh Live Holdings</button>
+</header>
+
+<section class="squad-status" aria-label="Squad data status">
+  <p id="squadImportStatus">Live holdings are stored in the clean Aurora state.</p>
+  <p id="squadSource">Source: clean rebuild only</p>
+</section>
+
+<section class="kpi-grid squad-kpis" aria-label="Squad summary">
+  <article class="kpi-card">
+    <span>ACTIVE POSITIONS</span>
+    <strong id="squadCount">0 account position(s)</strong>
+  </article>
+  <article class="kpi-card kpi-card-wide">
+    <span>PORTFOLIO & INCOME</span>
+    <strong id="squadTotals">Book £0.00 • Market £0.00 • Annual income £0.00</strong>
+  </article>
+</section>
+
+<section class="department-section squad-register">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">PLAYER REGISTER</p>
+      <h2>Active Holdings</h2>
+    </div>
+    <p>Every broker position remains separate so account ownership stays visible.</p>
+  </div>
+  <ul id="squadRows" class="squad-holding-list"></ul>
+</section>
+
+</body>
+</html>
