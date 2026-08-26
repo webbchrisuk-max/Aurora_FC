@@ -3,60 +3,102 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Aurora Clean — Finance</title>
-  <link rel="stylesheet" href="aurora.css?v=20260826-clean-shell-1">
-  <script src="aurora.js?v=20260826-clean-rebuild-4-shared-navigation" defer></script>
+  <title>Aurora Clean — Finance Department</title>
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-finance-stage1-1">
+  <script src="aurora.js?v=20260826-clean-rebuild-6-squad-income-order" defer></script>
 </head>
 <body data-page="finance">
 <nav id="auroraNav"></nav><hr>
 
-<h1>Finance</h1>
-<p>Finance owns payday cash, commitments, protection, pots and mission release.</p>
+<header class="department-hero finance-hero">
+  <div>
+    <p class="eyebrow finance-eyebrow">AURORA CITY FC · FINANCE DEPARTMENT</p>
+    <h1>Payday Control</h1>
+    <p class="department-lead">Finance is the starting point. Cash is proved here before any money can move into an investment mission.</p>
+  </div>
+  <span class="stage-badge">STAGE 1 OF 6</span>
+</header>
 
-<h2>1. Payday cash truth</h2>
-<label>Expected Wages <input id="financeExpectedWages" type="number" min="0" step="0.01"></label><br>
-<label>Wages Received <input id="financeWagesReceived" type="number" min="0" step="0.01"></label>
-<button id="financeUseActualPay" type="button">Use Actual Pay as Available Cash</button><br>
-<p>Wage Difference: <strong id="financeWageDifference">£0.00</strong></p>
-<label>Available Cash <input id="financeAvailable" type="number" min="0" step="0.01"></label><br>
-<label>Other Commitments <input id="financeCommitments" type="number" min="0" step="0.01"></label><br>
-<label>Protected Cash <input id="financeProtected" type="number" min="0" step="0.01"></label>
+<section class="finance-stage-track" aria-label="Finance rebuild stages">
+  <article class="finance-stage active"><span>1</span><strong>Cash Truth</strong><small>Current</small></article>
+  <article class="finance-stage"><span>2</span><strong>Bills</strong><small>Next</small></article>
+  <article class="finance-stage"><span>3</span><strong>Holding Pot</strong><small>Pending</small></article>
+  <article class="finance-stage"><span>4</span><strong>Pot Funding</strong><small>Pending</small></article>
+  <article class="finance-stage"><span>5</span><strong>Payday Decision</strong><small>Pending</small></article>
+  <article class="finance-stage"><span>6</span><strong>Mission Release</strong><small>Pending</small></article>
+</section>
 
-<h2>2. Bills due</h2>
-<label>Bill Name <input id="financeBillName" type="text"></label><br>
-<label>Amount <input id="financeBillAmount" type="number" min="0" step="0.01"></label><br>
-<label>Due Date <input id="financeBillDate" type="date"></label>
-<button id="financeAddBill" type="button">Add Bill</button>
-<p>Active Bills Due: <strong id="financeBillsDue">£0.00</strong></p>
-<ul id="financeBillsRows"><li>No bills added.</li></ul>
+<section class="department-section finance-control">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow finance-eyebrow">STAGE 1 · CASH TRUTH</p>
+      <h2>Prove the payday money first</h2>
+    </div>
+    <p>Nothing is released to Transfer until this calculation is safe.</p>
+  </div>
 
-<h2>3. Holding Pot</h2>
-<label>Holding Pot Balance <input id="financeHoldingBalance" type="number" min="0" step="0.01"></label><br>
-<label>Holding Pot Required Target <input id="financeHoldingTarget" type="number" min="0" step="0.01"></label>
-<p>Required Top-up: <strong id="financeHoldingTopUp">£0.00</strong></p>
+  <div class="finance-form-grid">
+    <label>Expected Wages
+      <input id="financeExpectedWages" type="number" min="0" step="0.01" inputmode="decimal">
+      <small>What payday was expected to pay.</small>
+    </label>
+    <label>Wages Received
+      <input id="financeWagesReceived" type="number" min="0" step="0.01" inputmode="decimal">
+      <small>The actual wage payment received.</small>
+    </label>
+    <label>Cash Available on Payday
+      <input id="financeAvailable" type="number" min="0" step="0.01" inputmode="decimal">
+      <small>Cash Finance is allowed to make decisions from.</small>
+    </label>
+    <label>Combined Commitments — temporary
+      <input id="financeCommitments" type="number" min="0" step="0.01" inputmode="decimal">
+      <small>Stages 2–4 will replace this with automatic Bills, Holding Pot and Pot funding.</small>
+    </label>
+    <label>Protected Cash
+      <input id="financeProtected" type="number" min="0" step="0.01" inputmode="decimal">
+      <small>Cash that must remain untouched after payday planning.</small>
+    </label>
+  </div>
 
-<h2>4. Goal pots</h2>
-<label>Pot Name <input id="financePotName" type="text"></label><br>
-<label>Current Balance <input id="financePotBalance" type="number" min="0" step="0.01"></label><br>
-<label>Target <input id="financePotTarget" type="number" min="0" step="0.01"></label><br>
-<label>Fund This Payday <input id="financePotContribution" type="number" min="0" step="0.01"></label>
-<button id="financeAddPot" type="button">Add Pot</button>
-<p>Goal Pot Funding Due: <strong id="financePotsDue">£0.00</strong></p>
-<ul id="financePotsRows"><li>No goal pots added.</li></ul>
+  <div class="finance-actions">
+    <button id="financeUseActualPay" type="button">Use Actual Pay as Available Cash</button>
+    <button id="financeCalculate" type="button" class="finance-primary">Calculate Stage 1</button>
+  </div>
+</section>
 
-<h2>5. Payday plan</h2>
-<button id="financeCalculate" type="button">Calculate Payday Plan</button>
-<p>Total Reserved Before Investing: <strong id="financeReservedTotal">£0.00</strong></p>
-<p>Safe Release: <strong id="financeSafeRelease">£0.00</strong></p>
-<ul id="financePlanBreakdown"></ul>
+<section class="finance-result-grid" aria-label="Stage 1 payday result">
+  <article class="finance-result-card">
+    <span>WAGE DIFFERENCE</span>
+    <strong id="financeWageDifference">£0.00</strong>
+    <small>Actual wages minus expected wages.</small>
+  </article>
+  <article class="finance-result-card">
+    <span>TOTAL RESERVED</span>
+    <strong id="financeReservedTotal">£0.00</strong>
+    <small>Current commitments plus protected cash.</small>
+  </article>
+  <article class="finance-result-card finance-safe-card">
+    <span>MAXIMUM SAFE RELEASE</span>
+    <strong id="financeSafeRelease">£0.00</strong>
+    <small>This must never exceed the cash left after protection.</small>
+  </article>
+</section>
 
-<h2>6. Investment mission</h2>
-<label>Release Amount <input id="financeReleaseAmount" type="number" min="0" step="0.01"></label><br>
-<button id="financeRelease" type="button">Release Mission to Transfer</button>
-<button id="financeCancelMission" type="button">Cancel Draft Mission</button>
-<p id="financeMissionGuard"></p>
-<p>Mission: <strong id="financeMissionStatus">No active mission</strong></p>
+<section class="department-section finance-breakdown">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow finance-eyebrow">AUDIT TRAIL</p>
+      <h2>Stage 1 calculation</h2>
+    </div>
+    <p>This breakdown will become more detailed as each Finance stage is activated.</p>
+  </div>
+  <ul id="financePlanBreakdown"></ul>
+</section>
 
-<p><a href="transfer.html">Open Transfer →</a></p>
+<section class="finance-next-stage">
+  <strong>Next: Stage 2 — Bills</strong>
+  <p>We will replace the temporary combined commitment with real bill occurrences and funding-source logic before touching the Holding Pot.</p>
+</section>
+
 </body>
 </html>
