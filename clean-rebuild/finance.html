@@ -1,15 +1,61 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aurora Clean — Finance</title><script src="aurora.js" defer></script></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Aurora Clean — Finance</title>
+  <script src="aurora.js" defer></script>
+</head>
 <body data-page="finance">
 <nav id="auroraNav"></nav><hr>
+
 <h1>Finance</h1>
-<p>Plain test page. Finance owns cash and mission release.</p>
-<label>Available Cash <input id="financeAvailable" type="number" step="0.01"></label><br>
-<label>Commitments <input id="financeCommitments" type="number" step="0.01"></label><br>
-<label>Protected Cash <input id="financeProtected" type="number" step="0.01"></label><br>
-<button id="financeCalculate" type="button">Calculate Safe Release</button>
+<p>Finance owns payday cash, commitments, protection, pots and mission release.</p>
+
+<h2>1. Payday cash truth</h2>
+<label>Expected Wages <input id="financeExpectedWages" type="number" min="0" step="0.01"></label><br>
+<label>Wages Received <input id="financeWagesReceived" type="number" min="0" step="0.01"></label>
+<button id="financeUseActualPay" type="button">Use Actual Pay as Available Cash</button><br>
+<p>Wage Difference: <strong id="financeWageDifference">£0.00</strong></p>
+<label>Available Cash <input id="financeAvailable" type="number" min="0" step="0.01"></label><br>
+<label>Other Commitments <input id="financeCommitments" type="number" min="0" step="0.01"></label><br>
+<label>Protected Cash <input id="financeProtected" type="number" min="0" step="0.01"></label>
+
+<h2>2. Bills due</h2>
+<label>Bill Name <input id="financeBillName" type="text"></label><br>
+<label>Amount <input id="financeBillAmount" type="number" min="0" step="0.01"></label><br>
+<label>Due Date <input id="financeBillDate" type="date"></label>
+<button id="financeAddBill" type="button">Add Bill</button>
+<p>Active Bills Due: <strong id="financeBillsDue">£0.00</strong></p>
+<ul id="financeBillsRows"><li>No bills added.</li></ul>
+
+<h2>3. Holding Pot</h2>
+<label>Holding Pot Balance <input id="financeHoldingBalance" type="number" min="0" step="0.01"></label><br>
+<label>Holding Pot Required Target <input id="financeHoldingTarget" type="number" min="0" step="0.01"></label>
+<p>Required Top-up: <strong id="financeHoldingTopUp">£0.00</strong></p>
+
+<h2>4. Goal pots</h2>
+<label>Pot Name <input id="financePotName" type="text"></label><br>
+<label>Current Balance <input id="financePotBalance" type="number" min="0" step="0.01"></label><br>
+<label>Target <input id="financePotTarget" type="number" min="0" step="0.01"></label><br>
+<label>Fund This Payday <input id="financePotContribution" type="number" min="0" step="0.01"></label>
+<button id="financeAddPot" type="button">Add Pot</button>
+<p>Goal Pot Funding Due: <strong id="financePotsDue">£0.00</strong></p>
+<ul id="financePotsRows"><li>No goal pots added.</li></ul>
+
+<h2>5. Payday plan</h2>
+<button id="financeCalculate" type="button">Calculate Payday Plan</button>
+<p>Total Reserved Before Investing: <strong id="financeReservedTotal">£0.00</strong></p>
 <p>Safe Release: <strong id="financeSafeRelease">£0.00</strong></p>
+<ul id="financePlanBreakdown"></ul>
+
+<h2>6. Investment mission</h2>
+<label>Release Amount <input id="financeReleaseAmount" type="number" min="0" step="0.01"></label><br>
 <button id="financeRelease" type="button">Release Mission to Transfer</button>
+<button id="financeCancelMission" type="button">Cancel Draft Mission</button>
+<p id="financeMissionGuard"></p>
 <p>Mission: <strong id="financeMissionStatus">No active mission</strong></p>
-</body></html>
+
+<p><a href="transfer.html">Open Transfer →</a></p>
+</body>
+</html>
