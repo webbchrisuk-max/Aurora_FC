@@ -9,6 +9,7 @@
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[ch]));
   const upper = value => String(value || '').trim().toUpperCase();
+  const hash=value=>{let h=2166136261;for(const c of String(value||'')){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,'0')};
 
   function scaledPlan(state) {
     const mission = state.transfer?.mission;
@@ -19,7 +20,8 @@
     if (!missionBudget || !sourceBudget) return null;
 
     const factor = missionBudget / sourceBudget;
-    const allocations = source.allocations.map(row => ({
+    const allocations = source.allocations.map((row,index) => ({
+      legId: `LEG-${hash(`${mission.id}|${index}|${row.ticker}|${row.amount}`)}`,
       ticker: row.ticker,
       name: row.name,
       yieldPct: Number(row.yieldPct || 0),
@@ -30,9 +32,7 @@
     let allocated = round2(allocations.reduce((sum,row)=>sum+row.amount,0));
     const delta = round2(missionBudget - allocated);
     if (allocations.length && Math.abs(delta) >= 0.01) allocations[0].amount = round2(allocations[0].amount + delta);
-    allocations.forEach(row => {
-      row.expectedAnnualIncome = round2(row.amount * row.yieldPct / 100);
-    });
+    allocations.forEach(row => { row.expectedAnnualIncome = round2(row.amount * row.yieldPct / 100); });
     allocated = round2(allocations.reduce((sum,row)=>sum+row.amount,0));
 
     return {
@@ -51,17 +51,15 @@
     const mission = state.transfer?.mission;
     const route = state.transfer?.route;
     const preview = scaledPlan(state);
-
     const setText = (id,value) => { const el=document.getElementById(id); if(el) el.textContent=value; };
     const rows = document.getElementById('transferStage2Rows');
     const build = document.getElementById('transferStage2Build');
     const lock = document.getElementById('transferStage2Lock');
 
     setText('transferStage2Mission', mission ? `${mission.status} · ${money(mission.budget)}` : 'No Finance mission');
-
     if (route?.allocations?.length) {
       setText('transferStage2RouteStatus', route.locked ? 'LOCKED' : 'READY');
-      if (rows) rows.innerHTML = route.allocations.map(row => `<li><strong>${esc(row.ticker)}</strong> — ${money(row.amount)} — projected annual income ${money(row.expectedAnnualIncome)}</li>`).join('');
+      if (rows) rows.innerHTML = route.allocations.map(row => `<li><strong>${esc(row.ticker)}</strong> — ${money(row.amount)} — projected annual income ${money(row.expectedAnnualIncome)}${row.legId?` — ${esc(row.legId)}`:''}</li>`).join('');
     } else if (preview?.allocations?.length) {
       setText('transferStage2RouteStatus', 'SCOUTING OPTIMISER READY');
       if (rows) rows.innerHTML = preview.allocations.map(row => `<li><strong>${esc(row.ticker)}</strong> — ${money(row.amount)} — projected annual income ${money(row.expectedAnnualIncome)}</li>`).join('');
@@ -77,7 +75,6 @@
   function bind() {
     const aurora = window.AuroraClean;
     if (!aurora) return false;
-
     document.getElementById('transferStage2Build')?.addEventListener('click', () => {
       aurora.updateState(state => {
         const plan = scaledPlan(state);
@@ -88,6 +85,8 @@
           strategy: plan.strategy,
           allocationAuthority: 'Scouting Optimiser',
           allocations: plan.allocations,
+          allocated: plan.allocated,
+          expectedAnnualIncome: plan.expectedAnnualIncome,
           locked: false,
           createdAt: new Date().toISOString()
         };
@@ -109,18 +108,13 @@
     });
 
     window.addEventListener('aurora-clean:state', render);
-    window.addEventListener('storage', event => {
-      if (event.key === 'aurora-clean:state:v1') render();
-    });
+    window.addEventListener('storage', event => { if (event.key === 'aurora-clean:state:v1') render(); });
     render();
     window.AuroraTransferStage2 = Object.freeze({scaledPlan, render});
     return true;
   }
 
-  function boot() {
-    if (!bind()) setTimeout(boot, 50);
-  }
-
+  function boot() { if (!bind()) setTimeout(boot, 50); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
   else boot();
 })();
