@@ -1,11 +1,69 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aurora Clean — Registration</title><link rel="stylesheet" href="aurora.css?v=20260826-clean-shell-1"><script src="aurora.js?v=20260826-clean-rebuild-4-shared-navigation" defer></script></head>
-<body data-page="registration">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Aurora Clean — Registration Desk</title>
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-registration-real-1">
+  <script src="aurora.js?v=20260826-clean-rebuild-9-single-mission-authority" defer></script>
+  <script src="../aurora-data2-client.js?v=20260826-clean-registration-real-1" defer></script>
+  <script src="registration-engine.js?v=20260826-clean-registration-real-1" defer></script>
+</head>
+<body data-page="registration-real">
 <nav id="auroraNav"></nav><hr>
-<h1>Registration</h1>
-<p>Status: <strong id="registrationStatus">Checking…</strong></p>
-<ul id="registrationRows"></ul>
-<button id="registerRoute" type="button">Register Locked Route</button>
-<p id="registrationReceipts">0 receipt(s) recorded</p>
-</body></html>
+
+<header class="department-hero registration-hero">
+  <div>
+    <p class="eyebrow">AURORA CITY FC · REGISTRATION DESK</p>
+    <h1>Broker Execution</h1>
+    <p class="department-lead">Transfer freezes what Aurora intends to buy. Registration records exactly what the broker actually executed, then settles confirmed receipts into Squad.</p>
+  </div>
+  <span class="stage-badge">EXECUTION · RECEIPT · SETTLEMENT</span>
+</header>
+
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">LOCKED ROUTE</p><h2>Mission received from Transfer</h2></div><p id="regMission">Waiting for locked mission.</p></div>
+  <p>Status: <strong id="registrationStatus">Checking…</strong></p>
+  <ul id="registrationRows" class="reg-real-route"><li>Waiting for locked route.</li></ul>
+  <p id="registrationReceipts">0 receipt(s) recorded for this mission</p>
+</section>
+
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">AURORADATA 2</p><h2>Registration connection</h2></div><div><strong id="regConnection">CHECKING</strong><p id="regConnectionDetail">The private token stays in this browser only.</p></div></div>
+  <div class="finance-form-grid">
+    <label>Apps Script Web-App URL<input id="regEndpoint" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec"><small>Leave blank if this browser is already connected.</small></label>
+    <label>Private Token<input id="regToken" type="password" autocomplete="new-password" placeholder="Stored locally only"><small>Never written to GitHub.</small></label>
+  </div>
+  <div class="finance-actions"><button id="regSaveConnection" type="button">Save Connection</button><button id="regCheckConnection" type="button">Check Connection</button></div>
+</section>
+
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">BROKER REALITY</p><h2>Confirm one locked purchase leg</h2></div><p>Enter the broker confirmation exactly. This creates a receipt only; Squad remains unchanged until every leg is confirmed.</p></div>
+  <div class="finance-form-grid reg-execution-form">
+    <label>Locked Purchase Leg<select id="regLeg"></select><small>One transaction per locked allocation.</small></label>
+    <label>Ticker<input id="regTicker" readonly></label>
+    <label>Planned Allocation £<input id="regPlanned" readonly></label>
+    <label>Broker Account<select id="regAccount"><option value="">Choose broker…</option><option>IG ISA</option><option>Trading 212 ISA</option></select></label>
+    <label>Trade Date<input id="regTradeDate" type="date"></label>
+    <label>Shares Bought<input id="regShares" type="number" min="0" step="0.000001" inputmode="decimal"></label>
+    <label>Execution Price<input id="regPrice" type="number" min="0" step="0.000001" inputmode="decimal"></label>
+    <label>Price Unit<select id="regPriceUnit"><option value="GBP">GBP per share</option><option value="PENCE">Pence per share</option></select></label>
+    <label>Currency<input id="regCurrency" value="GBP" maxlength="3" autocomplete="off"></label>
+    <label>FX Rate to GBP<input id="regFx" type="number" min="0" step="0.000001" value="1" inputmode="decimal"></label>
+    <label>Fees (native currency)<input id="regFees" type="number" min="0" step="0.01" value="0" inputmode="decimal"></label>
+  </div>
+  <div class="scouting-control-grid">
+    <article class="scouting-control-card"><span>ACTUAL GBP COST</span><strong id="regActualCost">£0.00</strong><small>Shares × execution price + fees, converted to GBP.</small></article>
+    <article class="scouting-control-card"><span>VS LOCKED ALLOCATION</span><strong id="regVariance">£0.00</strong><small>Execution difference from this route leg.</small></article>
+    <article class="scouting-control-card scouting-top-card"><span>MISSION CASH REMAINING</span><strong id="regRemaining">£0.00</strong><small>Hard Finance Stage 6 ceiling.</small></article>
+  </div>
+  <div class="finance-actions"><button id="regConfirm" type="button" class="finance-primary">Confirm Selected Execution</button></div>
+</section>
+
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">MISSION SETTLEMENT</p><h2>Promote confirmed receipts into Squad</h2></div><p>Settlement unlocks only when every frozen route leg has a backend-confirmed receipt. It is duplicate-safe and marks the mission complete.</p></div>
+  <div class="finance-actions"><button id="regSettle" type="button" class="finance-primary" disabled>Settle Confirmed Mission into Squad</button></div>
+</section>
+
+</body>
+</html>
