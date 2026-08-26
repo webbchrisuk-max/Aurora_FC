@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260826-clean-income-dividend-settlement-2';
+  const BUILD='20260826-clean-income-portfolio-value-3';
   const CACHE_KEY='aurora-clean:income-snapshot:v1';
   const CASH_CACHE_KEY='aurora-clean:broker-cash-snapshot:v1';
   const $=id=>document.getElementById(id);
@@ -9,7 +9,7 @@
   const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
   const round=v=>Number(num(v).toFixed(2));
   const upper=v=>String(v||'').trim().toUpperCase();
-  const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch]));
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
   const accountCode=v=>{const s=upper(v);if(s==='IG'||s.includes('IG ISA'))return'IG';if(s==='T212'||s.includes('212'))return'T212';return''};
   const accountLabel=v=>accountCode(v)==='IG'?'IG ISA':accountCode(v)==='T212'?'Trading 212 ISA':String(v||'—');
@@ -46,9 +46,22 @@
   }
 
   function squadMetrics(state){
-    const holdings=arr(state.squad?.holdings).filter(h=>upper(h.status||'ACTIVE')!=='ARCHIVED');
-    const rows=holdings.map(h=>({ticker:upper(h.ticker),name:String(h.name||h.ticker||''),account:String(h.account||''),shares:Math.max(0,num(h.shares)),annual:Math.max(0,num(h.annualIncomeGbp||num(h.shares)*num(h.annualDpsGbp))),book:Math.max(0,num(h.bookCostGbp))})).filter(r=>r.ticker&&r.annual>0).sort((a,b)=>b.annual-a.annual);
-    const annual=round(rows.reduce((s,r)=>s+r.annual,0));return{rows,annual,monthly:round(annual/12)};
+    const holdings=arr(state.squad?.holdings).filter(h=>!['ARCHIVED','SOLD','CLOSED','EXITED'].includes(upper(h.status||'ACTIVE'))&&num(h.shares)>0);
+    const all=holdings.map(h=>{
+      const shares=Math.max(0,num(h.shares));
+      const book=Math.max(0,num(h.bookCostGbp));
+      const live=Math.max(0,num(h.livePriceGbp??h.priceGbp));
+      const market=Math.max(0,num(h.marketValueGbp)||(shares*live));
+      const annual=Math.max(0,num(h.annualIncomeGbp||shares*num(h.annualDpsGbp)));
+      return{ticker:upper(h.ticker),name:String(h.name||h.ticker||''),account:String(h.account||''),shares,annual,book,market,pnl:market-book};
+    }).filter(r=>r.ticker);
+    const rows=all.filter(r=>r.annual>0).sort((a,b)=>b.annual-a.annual);
+    const annual=round(all.reduce((s,r)=>s+r.annual,0));
+    const book=round(all.reduce((s,r)=>s+r.book,0));
+    const market=round(all.reduce((s,r)=>s+r.market,0));
+    const pnl=round(market-book);
+    const pnlPct=book>0?(pnl/book)*100:0;
+    return{rows,annual,monthly:round(annual/12),book,market,pnl,pnlPct,positions:all.length};
   }
   function snapshotRows(snapshot){const map=new Map();arr(snapshot?.dividends).forEach(raw=>{const e=normaliseDividend(raw);if(e.ticker)map.set(e.id,e)});return[...map.values()]}
   function futureRows(snapshot){const start=today();return snapshotRows(snapshot).filter(e=>e.payDate&&e.payDate>=start&&!/ARCHIVED|CANCELLED|CANCELED|MISSED|PAID/.test(e.status)).sort((a,b)=>a.payDate-b.payDate||b.expectedAmount-a.expectedAmount)}
@@ -86,11 +99,12 @@
     const A=window.AuroraClean;if(!A)return;
     const state=A.readState(),metrics=squadMetrics(state),rows=futureRows(currentSnapshot),next=rows[0]||null;
     const in30=round(rows.filter(r=>r.payDate-today()<=30*86400000).reduce((s,r)=>s+r.expectedAmount,0)),in90=round(rows.filter(r=>r.payDate-today()<=90*86400000).reduce((s,r)=>s+r.expectedAmount,0));
+    set('incomeMarketValue',money(metrics.market));set('incomeBookValue',money(metrics.book));set('incomePortfolioPnl',`${metrics.pnl>=0?'+':''}${money(metrics.pnl)}`);set('incomePortfolioPnlPct',`${metrics.pnlPct>=0?'+':''}${metrics.pnlPct.toFixed(2)}%`);
     set('incomeAnnual',money(metrics.annual));set('incomeMonthly',money(metrics.monthly));set('incomeNextPayment',next?money(next.expectedAmount):'—');set('incomeNextPaymentMeta',next?`${next.ticker} · ${displayDate(next.payDate)}`:'No future dated payment in AuroraData 2');set('incomeNext90',money(in90));set('incomeNext30',money(in30));
     set('incomeConnection',source==='LIVE'?'CONNECTED':source==='CACHE'?'CACHED':'CHECK CONNECTION');set('incomeConnectionDetail',source==='LIVE'?`${rows.length} upcoming dividend event(s) loaded from AuroraData 2.`:source==='CACHE'?'Showing the last verified AuroraData 2 dividend snapshot.':'AuroraData 2 dividend snapshot unavailable. Forward income still comes from Squad.');
     const list=$('incomeUpcomingRows');if(list)list.innerHTML=rows.length?rows.map((r,i)=>`<li><strong>#${i+1} ${esc(r.ticker)} · ${money(r.expectedAmount)}</strong> — ${esc(accountLabel(r.account))} — pay ${esc(displayDate(r.payDate))}${r.exDate?` · ex ${esc(displayDate(r.exDate))}`:''} — ${r.sharesEligible>0?`${r.sharesEligible.toLocaleString('en-GB',{maximumFractionDigits:6})} eligible shares`:'eligibility locks at/after ex-date'} — ${esc(r.status)} <button type="button" data-record-dividend="${esc(r.id)}">Record Received</button></li>`).join(''):'<li>No future dated dividends currently supplied by AuroraData 2.</li>';
     const runway=monthlyRunway(rows,12),monthHost=$('incomeMonthlyRunway');if(monthHost)monthHost.innerHTML=runway.map(m=>`<li><strong>${esc(m.date.toLocaleDateString('en-GB',{month:'long',year:'numeric'}))}</strong> — ${money(m.total)} — ${m.count} dated payment${m.count===1?'':'s'}</li>`).join('');
-    const producers=$('incomeProducerRows');if(producers)producers.innerHTML=metrics.rows.length?metrics.rows.map((r,i)=>`<li><strong>#${i+1} ${esc(r.ticker)} · ${money(r.annual)}/yr</strong> — ${esc(accountLabel(r.account))} — ${money(r.annual/12)}/month average — ${r.shares.toLocaleString('en-GB',{maximumFractionDigits:6})} shares</li>`).join(''):'<li>No confirmed Squad income yet.</li>';
+    const producers=$('incomeProducerRows');if(producers)producers.innerHTML=metrics.rows.length?metrics.rows.map((r,i)=>`<li><strong>#${i+1} ${esc(r.ticker)} · ${money(r.annual)}/yr</strong> — ${esc(accountLabel(r.account))} — ${money(r.annual/12)}/month average — market ${money(r.market)} — ${r.shares.toLocaleString('en-GB',{maximumFractionDigits:6})} shares</li>`).join(''):'<li>No confirmed Squad income yet.</li>';
     populateSettlement(currentSnapshot);
   }
 
