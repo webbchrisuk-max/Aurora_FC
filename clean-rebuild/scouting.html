@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aurora Clean — Scouting</title><script src="aurora.js" defer></script></head>
+<body data-page="scouting">
+<nav id="auroraNav"></nav><hr>
+<h1>Scouting</h1>
+<label>Strategy <select id="scoutingStrategy"><option value="sustainable">Sustainable</option><option value="maximum">Maximum Income</option></select></label>
+<h2>Add Candidate</h2>
+<label>Ticker <input id="candidateTicker"></label><br>
+<label>Name <input id="candidateName"></label><br>
+<label>Yield % <input id="candidateYield" type="number" step="0.01"></label><br>
+<button id="addCandidate" type="button">Add Candidate</button>
+<h2>Candidates</h2>
+<ul id="scoutingRows"></ul>
+</body></html>
