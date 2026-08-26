@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Aurora Clean — Finance Department</title>
-  <link rel="stylesheet" href="aurora.css?v=20260826-clean-finance-stage4-1">
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-finance-stage5-1">
   <script src="aurora.js?v=20260826-clean-rebuild-8-scouting-runtime-refresh" defer></script>
-  <script src="finance-bills.js?v=20260826-clean-finance-stage4-pots-1" defer></script>
+  <script src="finance-bills.js?v=20260826-clean-finance-stage5-decision-1" defer></script>
 </head>
 <body data-page="finance">
 <nav id="auroraNav"></nav><hr>
@@ -15,110 +15,120 @@
   <div>
     <p class="eyebrow finance-eyebrow">AURORA CITY FC · FINANCE DEPARTMENT</p>
     <h1>Payday Control</h1>
-    <p class="department-lead">Finance proves cash, bills, Holding Pot protection and goal-pot funding before any investment mission can be released.</p>
+    <p class="department-lead">Finance now combines proved cash, bills, Holding Pot protection and goal-pot funding into one definitive payday decision.</p>
   </div>
-  <span class="stage-badge">STAGE 4 OF 6</span>
+  <span class="stage-badge">STAGE 5 OF 6</span>
 </header>
 
 <section class="finance-stage-track" aria-label="Finance rebuild stages">
   <article class="finance-stage"><span>1</span><strong>Cash Truth</strong><small>Passed</small></article>
   <article class="finance-stage"><span>2</span><strong>Bills</strong><small>Passed</small></article>
   <article class="finance-stage"><span>3</span><strong>Holding Pot</strong><small>Passed</small></article>
-  <article class="finance-stage active"><span>4</span><strong>Pot Funding</strong><small>Current</small></article>
-  <article class="finance-stage"><span>5</span><strong>Payday Decision</strong><small>Next</small></article>
-  <article class="finance-stage"><span>6</span><strong>Mission Release</strong><small>Pending</small></article>
+  <article class="finance-stage"><span>4</span><strong>Pot Funding</strong><small>Passed</small></article>
+  <article class="finance-stage active"><span>5</span><strong>Payday Decision</strong><small>Current</small></article>
+  <article class="finance-stage"><span>6</span><strong>Mission Release</strong><small>Next</small></article>
 </section>
 
 <section class="department-section finance-control">
-  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 1 · CASH TRUTH</p><h2>Proved payday cash</h2></div><p>Stage 1 stays visible so the later stages can always be audited back to the original cash position.</p></div>
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 1 · CASH TRUTH</p><h2>Proved payday cash</h2></div><p>The temporary Combined Commitments control has been retired. Stage 5 now owns the live safe-release decision.</p></div>
   <div class="finance-form-grid">
     <label>Expected Wages<input id="financeExpectedWages" type="number" min="0" step="0.01" inputmode="decimal"><small>What payday was expected to pay.</small></label>
     <label>Wages Received<input id="financeWagesReceived" type="number" min="0" step="0.01" inputmode="decimal"><small>The actual wage payment received.</small></label>
     <label>Cash Available on Payday<input id="financeAvailable" type="number" min="0" step="0.01" inputmode="decimal"><small>Cash Finance is allowed to make decisions from.</small></label>
-    <label>Combined Commitments — temporary<input id="financeCommitments" type="number" min="0" step="0.01" inputmode="decimal"><small>Stage 5 will now replace this using the proved Stage 2–4 totals.</small></label>
     <label>Protected Cash<input id="financeProtected" type="number" min="0" step="0.01" inputmode="decimal"><small>Cash that must remain untouched after payday planning.</small></label>
   </div>
-  <div class="finance-actions"><button id="financeUseActualPay" type="button">Use Actual Pay as Available Cash</button><button id="financeCalculate" type="button" class="finance-primary">Recalculate Stage 1</button></div>
-</section>
-
-<section class="finance-result-grid" aria-label="Stage 1 payday result">
-  <article class="finance-result-card"><span>WAGE DIFFERENCE</span><strong id="financeWageDifference">£0.00</strong><small>Actual wages minus expected wages.</small></article>
-  <article class="finance-result-card"><span>STAGE 1 RESERVED</span><strong id="financeReservedTotal">£0.00</strong><small>Temporary combined commitments plus protected cash.</small></article>
-  <article class="finance-result-card finance-safe-card"><span>STAGE 1 SAFE RELEASE</span><strong id="financeSafeRelease">£0.00</strong><small>Still provisional until Stage 5 replaces the temporary commitment.</small></article>
+  <div class="finance-actions"><button id="financeUseActualPay" type="button">Use Actual Pay as Available Cash</button><button id="financeCalculate" type="button" class="finance-primary">Update Cash Truth</button></div>
 </section>
 
 <section class="department-section finance-control">
-  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 2 · BILLS</p><h2>Proved recurring obligations</h2></div><p>Finance projects the next 28-day cycle and the full 13-pay year using the proven recurrence rules.</p></div>
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 2 · BILLS</p><h2>Proved recurring obligations</h2></div><p>Next-cycle Current Account bills and the full 13-pay Holding Pot requirement.</p></div>
   <div class="finance-form-grid">
-    <label>Payday Date<input id="financePaydayDate" type="date"><small>The next 28-day bill cycle starts from this payday.</small></label>
+    <label>Payday Date<input id="financePaydayDate" type="date"><small>The 28-day cycle starts from this payday.</small></label>
     <label>Bill Window<strong id="financeBillWindow">—</strong><small>Payday through the day before the next payday.</small></label>
   </div>
   <div class="finance-actions"><button id="financeImportBills" type="button">Import Live Aurora Bills</button><button id="financeRecalculateBills" type="button" class="finance-primary">Recalculate Bills</button></div>
   <p id="financeBillImportStatus">Stage 2 has not imported live bills yet.</p>
 </section>
-
 <section class="scouting-control-grid" aria-label="Stage 2 bill totals">
   <article class="scouting-control-card"><span>ACTIVE BILLS</span><strong id="financeBillCount">0</strong><small>Included, unpaid and non-archived obligations.</small></article>
-  <article class="scouting-control-card"><span>CURRENT ACCOUNT · NEXT CYCLE</span><strong id="financeCurrentAccountDue">£0.00</strong><small>Direct cash obligations due before the following payday.</small></article>
+  <article class="scouting-control-card"><span>CURRENT ACCOUNT · NEXT CYCLE</span><strong id="financeCurrentAccountDue">£0.00</strong><small>Direct cash obligations before the following payday.</small></article>
   <article class="scouting-control-card"><span>HOLDING POT · 13-PAY YEAR</span><strong id="financeHoldingAnnual">£0.00</strong><small>Total recurring Holding Pot requirement over 364 days.</small></article>
 </section>
 <section class="finance-result-grid"><article class="finance-result-card finance-safe-card"><span>BASE HOLDING POT FUNDING / PAYDAY</span><strong id="financeHoldingPerPayday">£0.00</strong><small>Annual Holding Pot requirement ÷ 13.</small></article></section>
 
 <section class="department-section finance-control">
-  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 3 · HOLDING POT</p><h2>Protect the next bill cycle</h2></div><p>Stage 3 works from the real Holding Pot balance and Stage 2 bill occurrences. The safety target covers one 28-day cycle.</p></div>
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 3 · HOLDING POT</p><h2>Protect the next bill cycle</h2></div><p>Uses projected payday balance, the base 13-pay contribution and only the safety top-up actually required.</p></div>
   <div class="finance-actions"><button id="financeImportHoldingPot" type="button">Import Live Holding Pot</button><button id="financeRecalculateHolding" type="button" class="finance-primary">Recalculate Holding Pot</button></div>
   <p id="financeHoldingImportStatus">Stage 3 has not imported the live Holding Pot yet.</p>
 </section>
-
 <section class="scouting-control-grid" aria-label="Holding Pot position before payday">
-  <article class="scouting-control-card"><span>CURRENT HOLDING POT</span><strong id="financeHoldingBalanceStage3">£0.00</strong><small>Balance now, before bills due ahead of payday.</small></article>
-  <article class="scouting-control-card"><span>SPEND BEFORE PAYDAY</span><strong id="financeHoldingSpendBeforePayday">£0.00</strong><small>Holding Pot bills expected between now and payday.</small></article>
-  <article class="scouting-control-card"><span>PROJECTED PAYDAY BALANCE</span><strong id="financeHoldingProjectedPayday">£0.00</strong><small>Current balance minus projected pre-payday spend.</small></article>
+  <article class="scouting-control-card"><span>CURRENT HOLDING POT</span><strong id="financeHoldingBalanceStage3">£0.00</strong><small>Balance now.</small></article>
+  <article class="scouting-control-card"><span>SPEND BEFORE PAYDAY</span><strong id="financeHoldingSpendBeforePayday">£0.00</strong><small>Holding Pot spend expected before payday.</small></article>
+  <article class="scouting-control-card"><span>PROJECTED PAYDAY BALANCE</span><strong id="financeHoldingProjectedPayday">£0.00</strong><small>Current balance minus pre-payday spend.</small></article>
 </section>
-<section class="finance-result-grid" aria-label="Holding Pot funding calculation">
-  <article class="finance-result-card"><span>BASE 13-PAY CONTRIBUTION</span><strong id="financeHoldingBaseContribution">£0.00</strong><small>The Stage 2 annual requirement divided by 13.</small></article>
-  <article class="finance-result-card"><span>ONE-CYCLE DYNAMIC TARGET</span><strong id="financeHoldingDynamicTarget">£0.00</strong><small>Greater of configured floor or next-cycle bill requirement.</small></article>
-  <article class="finance-result-card finance-safe-card"><span>SAFETY TOP-UP</span><strong id="financeHoldingTopUpStage3">£0.00</strong><small>Only the shortfall after projected balance and base contribution.</small></article>
+<section class="finance-result-grid">
+  <article class="finance-result-card"><span>BASE 13-PAY CONTRIBUTION</span><strong id="financeHoldingBaseContribution">£0.00</strong><small>Stage 2 annual requirement ÷ 13.</small></article>
+  <article class="finance-result-card"><span>ONE-CYCLE DYNAMIC TARGET</span><strong id="financeHoldingDynamicTarget">£0.00</strong><small>Greater of configured floor or next-cycle bills.</small></article>
+  <article class="finance-result-card finance-safe-card"><span>SAFETY TOP-UP</span><strong id="financeHoldingTopUpStage3">£0.00</strong><small>Only the remaining shortfall.</small></article>
 </section>
 <section class="scouting-control-grid">
-  <article class="scouting-control-card"><span>NEXT-CYCLE BILL REQUIREMENT</span><strong id="financeHoldingCycleRequired">£0.00</strong><small>Holding Pot bill occurrences from payday to next payday.</small></article>
-  <article class="scouting-control-card"><span>CONFIGURED FLOOR</span><strong id="financeHoldingFloor">£0.00</strong><small>Existing minimum Holding Pot target, if configured.</small></article>
+  <article class="scouting-control-card"><span>NEXT-CYCLE BILL REQUIREMENT</span><strong id="financeHoldingCycleRequired">£0.00</strong><small>Holding Pot bills from payday to payday.</small></article>
+  <article class="scouting-control-card"><span>CONFIGURED FLOOR</span><strong id="financeHoldingFloor">£0.00</strong><small>Minimum target if configured.</small></article>
   <article class="scouting-control-card scouting-top-card"><span>HOLDING POT AFTER FUNDING</span><strong id="financeHoldingAfterFunding">£0.00</strong><small>Projected balance + base contribution + safety top-up.</small></article>
 </section>
-<section class="finance-result-grid"><article class="finance-result-card"><span>PRE-PAYDAY SHORTFALL</span><strong id="financeHoldingPrePaydayShortfall">£0.00</strong><small>Spend before payday above the current Holding Pot balance.</small></article><article class="finance-result-card"><span>TARGET HEADROOM</span><strong id="financeHoldingHeadroom">£0.00</strong><small>Amount above the one-cycle target after funding.</small></article></section>
+<section class="finance-result-grid"><article class="finance-result-card"><span>PRE-PAYDAY SHORTFALL</span><strong id="financeHoldingPrePaydayShortfall">£0.00</strong></article><article class="finance-result-card"><span>TARGET HEADROOM</span><strong id="financeHoldingHeadroom">£0.00</strong></article></section>
 
 <section class="department-section finance-control">
-  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 4 · POT FUNDING</p><h2>Fund goals in the correct order</h2></div><p>Required/deadline funding is protected first. The optional allowance is capped at £300, with Payday Rollover taking up to £100 before other priority pots.</p></div>
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 4 · POT FUNDING</p><h2>Fund goals in the correct order</h2></div><p>Required/deadline funding first; optional money is capped at £300 with Payday Rollover first.</p></div>
   <div class="finance-actions"><button id="financeImportPots" type="button">Import Live Aurora Pots</button><button id="financeRecalculatePots" type="button" class="finance-primary">Recalculate Pot Funding</button></div>
   <p id="financePotImportStatus">Stage 4 has not imported the live goal pots yet.</p>
 </section>
-
-<section class="scouting-control-grid" aria-label="Stage 4 pot funding inputs">
-  <article class="scouting-control-card"><span>ACTIVE POTS</span><strong id="financePotCount">0</strong><small>All non-archived pots, including pots excluded from normal goal funding.</small></article>
-  <article class="scouting-control-card"><span>WAGE DIFFERENCE</span><strong id="financePotWageDifference">£0.00</strong><small>Only positive wage difference can create the optional pot allowance.</small></article>
+<section class="scouting-control-grid">
+  <article class="scouting-control-card"><span>ACTIVE POTS</span><strong id="financePotCount">0</strong></article>
+  <article class="scouting-control-card"><span>WAGE DIFFERENCE</span><strong id="financePotWageDifference">£0.00</strong></article>
   <article class="scouting-control-card"><span>OPTIONAL ALLOWANCE</span><strong id="financePotOptionalBudget">£0.00</strong><small>Positive wage difference capped at £300.</small></article>
 </section>
+<section class="finance-result-grid">
+  <article class="finance-result-card"><span>REQUIRED / DEADLINE POTS</span><strong id="financePotRequired">£0.00</strong></article>
+  <article class="finance-result-card"><span>PAYDAY ROLLOVER</span><strong id="financePotRollover">£0.00</strong></article>
+  <article class="finance-result-card"><span>OPTIONAL PRIORITY POTS</span><strong id="financePotOptionalPriority">£0.00</strong></article>
+</section>
+<section class="scouting-control-grid"><article class="scouting-control-card scouting-top-card"><span>TOTAL STAGE 4 POT FUNDING</span><strong id="financePotTotal">£0.00</strong><small>Holding Pot excluded to prevent double-counting.</small></article></section>
 
-<section class="finance-result-grid" aria-label="Stage 4 funding order">
-  <article class="finance-result-card"><span>REQUIRED / DEADLINE POTS</span><strong id="financePotRequired">£0.00</strong><small>Required pace or manual minimum. This sits outside the optional cap.</small></article>
-  <article class="finance-result-card"><span>PAYDAY ROLLOVER</span><strong id="financePotRollover">£0.00</strong><small>Up to £100 toward the £350 rollover target, taken first from optional allowance.</small></article>
-  <article class="finance-result-card"><span>OPTIONAL PRIORITY POTS</span><strong id="financePotOptionalPriority">£0.00</strong><small>Remaining optional allowance routed by P1 → P2 → P3 priority.</small></article>
+<section class="department-section finance-control">
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 5 · PAYDAY DECISION</p><h2>Definitive Maximum Safe Release</h2></div><p>This is now the Finance authority. It uses only the proved Stage 1–4 inputs; the old temporary commitment is not part of this calculation.</p></div>
+  <div class="finance-actions"><button id="financeRecalculateDecision" type="button" class="finance-primary">Recalculate Payday Decision</button></div>
 </section>
 
-<section class="scouting-control-grid" aria-label="Stage 4 total">
-  <article class="scouting-control-card scouting-top-card"><span>TOTAL STAGE 4 POT FUNDING</span><strong id="financePotTotal">£0.00</strong><small>Required funding + rollover + optional priority funding. Holding Pot is excluded to prevent double-counting.</small></article>
+<section class="scouting-control-grid" aria-label="Stage 5 payday decision inputs">
+  <article class="scouting-control-card"><span>AVAILABLE PAYDAY CASH</span><strong id="financeDecisionCash">£0.00</strong><small>Stage 1 cash available.</small></article>
+  <article class="scouting-control-card"><span>PROVED COMMITMENTS</span><strong id="financeDecisionCommitments">£0.00</strong><small>Bills + Holding Pot base + safety top-up + Stage 4 pots.</small></article>
+  <article class="scouting-control-card"><span>PROTECTED CASH</span><strong id="financeDecisionProtected">£0.00</strong><small>Cash that must remain untouched.</small></article>
 </section>
+
+<section class="finance-result-grid" aria-label="Stage 5 components">
+  <article class="finance-result-card"><span>CURRENT ACCOUNT BILLS</span><strong id="financeDecisionBills">£0.00</strong></article>
+  <article class="finance-result-card"><span>BASE HOLDING POT</span><strong id="financeDecisionHoldingBase">£0.00</strong></article>
+  <article class="finance-result-card"><span>HOLDING POT TOP-UP</span><strong id="financeDecisionHoldingTopUp">£0.00</strong></article>
+  <article class="finance-result-card"><span>STAGE 4 POT FUNDING</span><strong id="financeDecisionPots">£0.00</strong></article>
+  <article class="finance-result-card"><span>TOTAL RESERVED</span><strong id="financeDecisionReserved">£0.00</strong></article>
+</section>
+
+<section class="scouting-control-grid" aria-label="Stage 5 result">
+  <article class="scouting-control-card scouting-top-card"><span>MAXIMUM SAFE RELEASE</span><strong id="financeDecisionSafeRelease">£0.00</strong><small>The definitive Finance amount available for Stage 6.</small></article>
+</section>
+<p id="financeDecisionStage1Comparison">Stage 1 comparison unavailable.</p>
 
 <section class="department-section finance-breakdown">
-  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">POT FUNDING PLAN</p><h2>Where Stage 4 money goes</h2></div><p>Each row shows the amount and the rule that caused it to be funded.</p></div>
-  <ul id="financeStage4PotRows"><li>No Stage 4 pot plan loaded.</li></ul>
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 5 AUDIT</p><h2>Where every pound goes</h2></div><p>This replaces the old temporary Combined Commitments calculation.</p></div>
+  <ul id="financeStage5DecisionRows"><li>No Stage 5 decision loaded.</li></ul>
 </section>
 
-<section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">BEFORE PAYDAY</p><h2>Projected Holding Pot spend</h2></div><p>This is why Stage 3 uses projected payday balance rather than today's visible balance.</p></div><ul id="financeStage3PrePaydayRows"><li>No Holding Pot projection loaded.</li></ul></section>
-<section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">NEXT PAYDAY CYCLE</p><h2>Projected bill occurrences</h2></div><p>Overdue bills stay visible. Undated recurring bills are estimated rather than ignored.</p></div><ul id="financeStage2BillRows"><li>No bill data loaded.</li></ul></section>
-<section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">AUDIT TRAIL</p><h2>Current Stage 1 calculation</h2></div><p>Stage 5 will replace the temporary combined commitment using the real Stage 2–4 outputs.</p></div><ul id="financePlanBreakdown"></ul></section>
+<section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">POT FUNDING PLAN</p><h2>Where Stage 4 money goes</h2></div></div><ul id="financeStage4PotRows"><li>No Stage 4 pot plan loaded.</li></ul></section>
+<section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">BEFORE PAYDAY</p><h2>Projected Holding Pot spend</h2></div></div><ul id="financeStage3PrePaydayRows"><li>No Holding Pot projection loaded.</li></ul></section>
+<section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">NEXT PAYDAY CYCLE</p><h2>Projected bill occurrences</h2></div></div><ul id="financeStage2BillRows"><li>No bill data loaded.</li></ul></section>
 
-<section class="finance-next-stage"><strong>Next: Stage 5 — Payday Decision</strong><p>Stage 5 will combine Current Account bills + base Holding Pot contribution + Holding Pot safety top-up + Stage 4 pot funding + protected cash to calculate the definitive maximum safe release.</p></section>
+<section class="finance-next-stage"><strong>Next: Stage 6 — Mission Release</strong><p>Once the Stage 5 Maximum Safe Release is verified, Finance can release that exact approved amount into the investment mission.</p></section>
 
 </body>
 </html>
