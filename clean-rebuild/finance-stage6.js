@@ -2,6 +2,7 @@
   'use strict';
 
   const STAGE1_SRC='finance-stage1.js?v=20260826-clean-finance-stage1-owner-1';
+  const AUTO_REFRESH_SRC='finance-auto-refresh.js?v=20260826-clean-finance-auto-refresh-1';
   const money = value => new Intl.NumberFormat('en-GB', {
     style:'currency', currency:'GBP', minimumFractionDigits:2, maximumFractionDigits:2
   }).format(Number(value || 0));
@@ -13,6 +14,11 @@
   function loadStage1(){
     if(window.AuroraFinanceStage1||[...document.scripts].some(s=>String(s.src||'').includes('finance-stage1.js')))return;
     const script=document.createElement('script');script.src=STAGE1_SRC;script.defer=true;document.head.appendChild(script);
+  }
+
+  function loadAutoRefresh(){
+    if(window.AuroraFinanceAutoRefresh||[...document.scripts].some(s=>String(s.src||'').includes('finance-auto-refresh.js')))return;
+    const script=document.createElement('script');script.src=AUTO_REFRESH_SRC;script.defer=true;document.head.appendChild(script);
   }
 
   function cashTruthMatches(state,decision){
@@ -89,6 +95,6 @@
     window.addEventListener('aurora-clean:state', render);render();window.AuroraFinanceStage6=Object.freeze({releaseMission,render,cashTruthMatches});return true;
   }
 
-  function boot(){loadStage1();if(!bind())setTimeout(boot,50);}
+  function boot(){loadStage1();loadAutoRefresh();if(!bind())setTimeout(boot,50);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
