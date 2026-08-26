@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260826-clean-squad-market-view-1';
+  const BUILD='20260826-clean-squad-market-view-2-single-refresh-owner';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
@@ -62,9 +62,10 @@
 
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,60);return}
-    $('squadImportReal')?.addEventListener('click',()=>refreshLive('manual'));
+    const btn=$('squadImportReal');
+    if(btn&&!btn.dataset.squadRefreshBound){btn.dataset.squadRefreshBound='true';btn.addEventListener('click',()=>refreshLive('manual'));}
     window.addEventListener('aurora-clean:state',render);
-    window.addEventListener('aurora:market-prices',()=>setTimeout(()=>refreshLive('market-price-event'),30));
+    window.addEventListener('aurora:market-prices',render);
     render();
     setTimeout(()=>refreshLive('squad-startup'),250);
     window.AuroraCleanSquad=Object.freeze({BUILD,render,refreshLive,metrics});
