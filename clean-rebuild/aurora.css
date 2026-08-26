@@ -258,14 +258,13 @@ body>p,body>ul,body>h1,body>h2,body>label,body>button{width:100%}
 .holding-metrics{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:8px;
-  padding-top:12px;
+  gap:12px;
+  padding-top:14px;
   border-top:1px solid #1d3046;
 }
-.holding-metrics div{min-width:0}
+.holding-metric{min-width:0;display:flex;flex-direction:column;gap:8px}
 .holding-metrics span{
   display:block;
-  margin-bottom:4px;
   color:#7189a4;
   font-size:.64rem;
   font-weight:900;
@@ -290,7 +289,7 @@ body>p,body>ul,body>h1,body>h2,body>label,body>button{width:100%}
   .squad-holding-list{grid-template-columns:1fr}
   .holding-head{gap:10px}
   .holding-metrics{grid-template-columns:1fr 1fr}
-  .holding-metrics div:last-child{grid-column:1 / -1}
+  .holding-metric:last-child{grid-column:1 / -1}
 }
 @media (min-width:900px){
   body{padding-left:28px;padding-right:28px}
