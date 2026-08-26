@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260826-finance-overhaul-bootstrap-10';
+  const BUILD = '20260826-finance-overhaul-bootstrap-11';
   const currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
   if (currentFile !== 'finance.html') return;
 
@@ -52,6 +52,9 @@
       loadScript(`finance-house-projects.js?v=${BUILD}`, 'finance-house-projects.js'),
       loadScript(`finance-live-finalize.js?v=${BUILD}`, 'finance-live-finalize.js')
     ]);
+    await waitFor(() => window.AuroraFinanceHouseProjects?.ready, 5000);
+    await loadScript(`finance-house-baseline.js?v=${BUILD}`, 'finance-house-baseline.js');
+    await waitFor(() => window.AuroraFinanceHouseBaseline?.ready, 5000);
     await waitFor(() => window.AuroraFinancePotsBillsReadonly?.ready, 5000);
     await loadScript(`finance-pots-bills-actions.js?v=${BUILD}`, 'finance-pots-bills-actions.js');
     await waitFor(() => window.AuroraFinancePotsBillsActions?.ready, 5000);
@@ -69,6 +72,6 @@
   window.AuroraStage4ELiveFinanceRoute = Object.freeze({
     build:BUILD,target:'/Aurora_FC/finance.html',deterministicBootstrap:true,financeWriteProtection:true,browserAutoSync:false,
     paydayPreview:true,paydaySave:true,protectedBills:true,potsBillsReadonly:true,potsBillsActions:true,potsBillsCanonical:true,
-    houseProjects:true,operationsOverhaul:true,missionRelease:true
+    houseProjects:true,houseBaseline:true,operationsOverhaul:true,missionRelease:true
   });
 })();
