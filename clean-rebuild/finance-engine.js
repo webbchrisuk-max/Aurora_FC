@@ -28,32 +28,32 @@
   }
 
   function readLive(){for(const key of LIVE_KEYS){try{const s=JSON.parse(localStorage.getItem(key)||'null');if(s?.finance)return{key,finance:s.finance}}catch(_){}}return{key:'',finance:null}}
+  function liveHolding(){const live=readLive(),pot=(live.finance?.pots||[]).find(p=>!p?.archived&&isHolding(p?.name));return pot?{key:live.key,balance:round(pot.balance),target:round(pot.target)}:null}
   function normaliseBill(r,i){return{id:String(r?.id||`BILL-${i+1}`),name:String(r?.name||`Bill ${i+1}`),amount:round(r?.amount),due:String(r?.due||r?.dueDate||'').slice(0,10),frequency:String(r?.frequency||'monthly'),fundingSource:String(r?.fundingSource||'Holding Pot'),included:r?.included!==false,paid:!!r?.paid,archived:!!r?.archived}}
   function normalisePot(r,i){return{id:String(r?.id||`POT-${i+1}`),name:String(r?.name||`Pot ${i+1}`),balance:round(r?.balance),target:round(r?.target),spent:round(r?.spent),goalMode:String(r?.goalMode||''),deadline:String(r?.deadline||r?.completeBy||r?.targetDate||'').slice(0,10),fundingOverride:round(r?.fundingOverride),priority:[1,2,3].includes(Number(r?.priority))?Number(r.priority):2,archived:!!r?.archived,note:String(r?.note||'')}}
 
   function calcBills(state){
     const bills=(state.finance?.bills||[]).filter(b=>!b.archived&&b.included!==false&&!b.paid&&num(b.amount)>0);
-    const payday=parseDate(state.finance?.paydayDate)||new Date();payday.setHours(12,0,0,0);const next=addDays(payday,28),yearEnd=addDays(payday,364);
+    const payday=parseDate(state.finance?.paydayDate)||new Date();payday.setHours(12,0,0,0);const next=addDays(payday,PAY_CYCLE_DAYS),yearEnd=addDays(payday,PAY_CYCLE_DAYS*PAYDAYS_PER_YEAR);
     const cycle=[];bills.forEach(b=>cycle.push(...occurrences(b,payday,next)));
     const current=cycle.filter(o=>norm(o.fundingSource)==='current account'),holdingBills=bills.filter(b=>isHolding(b.fundingSource)),holdingCycle=cycle.filter(o=>isHolding(o.fundingSource)),annual=[];holdingBills.forEach(b=>annual.push(...occurrences(b,payday,yearEnd)));
-    return{payday:iso(payday),nextPayday:iso(next),billCount:bills.length,currentAccountDue:round(current.reduce((s,o)=>s+o.amount,0)),holdingCycleRequired:round(holdingCycle.reduce((s,o)=>s+o.amount,0)),annualHoldingTotal:round(annual.reduce((s,o)=>s+o.amount,0)),holdingPerPayday:round(annual.reduce((s,o)=>s+o.amount,0)/13),cycle,holdingCycle,holdingBills,calculatedAt:new Date().toISOString()};
+    return{payday:iso(payday),nextPayday:iso(next),billCount:bills.length,currentAccountDue:round(current.reduce((s,o)=>s+o.amount,0)),holdingCycleRequired:round(holdingCycle.reduce((s,o)=>s+o.amount,0)),annualHoldingTotal:round(annual.reduce((s,o)=>s+o.amount,0)),holdingPerPayday:round(annual.reduce((s,o)=>s+o.amount,0)/PAYDAYS_PER_YEAR),cycle,holdingCycle,holdingBills,calculatedAt:new Date().toISOString()};
   }
 
   function calcHolding(state,bills){
-    const payday=parseDate(bills.payday),next=parseDate(bills.nextPayday),today=new Date();today.setHours(12,0,0,0);const pre=[];
+    const payday=parseDate(bills.payday),today=new Date();today.setHours(12,0,0,0);const pre=[];
     if(payday&&payday>today)(bills.holdingBills||[]).forEach(b=>pre.push(...occurrences(b,today,payday)));
     const currentBalance=round(state.finance?.holdingPotBalance),spendBeforePayday=round(pre.reduce((s,o)=>s+o.amount,0)),projectedPaydayBalance=round(Math.max(0,currentBalance-spendBeforePayday)),baseContribution=round(bills.holdingPerPayday),minimumFloor=round(state.finance?.holdingPotTarget),cycleRequired=round(bills.holdingCycleRequired),dynamicTarget=round(Math.max(minimumFloor,cycleRequired)),projectedBeforeTopUp=round(projectedPaydayBalance+baseContribution),safetyTopUp=round(Math.max(0,dynamicTarget-projectedBeforeTopUp)),afterFunding=round(projectedBeforeTopUp+safetyTopUp);
     return{currentBalance,spendBeforePayday,projectedPaydayBalance,prePaydayShortfall:round(Math.max(0,spendBeforePayday-currentBalance)),baseContribution,minimumFloor,cycleRequired,calculatedTarget:cycleRequired,dynamicTarget,safetyTopUp,projectedBeforeTopUp,afterFunding,headroom:round(afterFunding-dynamicTarget),prePayday:pre,calculatedAt:new Date().toISOString()};
   }
 
   const funded=p=>p?.goalMode==='funded-progress'?num(p.balance)+num(p.spent):num(p.balance),gap=p=>Math.max(0,num(p.target)-funded(p));
-  function deadline(p,payday){const g=gap(p),d=parseDate(p.deadline),pd=parseDate(payday);if(!d||!pd||g<=.009)return{has:!!d,required:0,paydays:0};const diff=d-pd,cycles=Math.floor(diff/(28*86400000)),paydays=diff>=0?Math.max(1,cycles+1):0;return{has:true,required:paydays>0?g/paydays:g,paydays}}
+  function deadline(p,payday){const g=gap(p),d=parseDate(p.deadline),pd=parseDate(payday);if(!d||!pd||g<=.009)return{has:!!d,required:0,paydays:0};const diff=d-pd,cycles=Math.floor(diff/(PAY_CYCLE_DAYS*86400000)),paydays=diff>=0?Math.max(1,cycles+1):0;return{has:true,required:paydays>0?g/paydays:g,paydays}}
   function calcPots(state){
     const pots=(state.finance?.pots||[]).filter(p=>!p.archived),expected=num(state.finance?.expectedWages),received=num(state.finance?.wagesReceived),wageDifference=round(received-expected),optionalBudget=round(Math.min(Math.max(0,wageDifference),OPTIONAL_CAP)),alloc=new Map(),payday=state.finance?.paydayDate||'';
     const rollover=pots.find(p=>isRollover(p.name)),rolloverGap=round(Math.max(0,ROLLOVER_TARGET-num(rollover?.balance))),rolloverContribution=rollover?round(Math.min(optionalBudget,ROLLOVER_MAX,rolloverGap)):0;
     const candidates=pots.filter(p=>{const n=norm(p.name);return gap(p)>.009&&!isRollover(p.name)&&n!=='holding pot'&&n!=='spending pot'&&n!=='ig trading'}).map(p=>({pot:p,gap:gap(p),priority:p.priority||2,deadline:deadline(p,payday)}));
-    let requiredFunding=0;
-    candidates.forEach(r=>{const deadlineNeed=r.deadline.has?Math.min(r.gap,Math.max(0,r.deadline.required)):0,manual=Math.min(r.gap,num(r.pot.fundingOverride)),required=Math.min(r.gap,Math.max(deadlineNeed,manual));if(required>.009){alloc.set(r.pot.id,{amount:required,required:deadlineNeed,reasons:[deadlineNeed>.009?`Required for ${r.pot.deadline} · ${r.deadline.paydays} payday(s) left · pace only`:'Manual minimum']});requiredFunding+=required}});
+    let requiredFunding=0;candidates.forEach(r=>{const dn=r.deadline.has?Math.min(r.gap,Math.max(0,r.deadline.required)):0,manual=Math.min(r.gap,num(r.pot.fundingOverride)),required=Math.min(r.gap,Math.max(dn,manual));if(required>.009){alloc.set(r.pot.id,{amount:required,required:dn,reasons:[dn>.009?`Required for ${r.pot.deadline} · ${r.deadline.paydays} payday(s) left · pace only`:'Manual minimum']});requiredFunding+=required}});
     if(rollover&&rolloverContribution>.009)alloc.set(rollover.id,{amount:rolloverContribution,required:0,reasons:[`Payday Rollover · ${money(ROLLOVER_TARGET)} target · max ${money(ROLLOVER_MAX)} per payday`]});
     let remaining=Math.max(0,optionalBudget-rolloverContribution);for(const r of candidates.filter(r=>!r.deadline.has).sort((a,b)=>a.priority-b.priority||b.gap-a.gap)){if(remaining<=.009)break;const existing=alloc.get(r.pot.id)?.amount||0,take=Math.min(remaining,Math.max(0,r.gap-existing));if(take>.009){const a=alloc.get(r.pot.id)||{amount:0,required:0,reasons:[]};a.amount+=take;a.reasons.push(`P${r.priority} priority funding`);alloc.set(r.pot.id,a);remaining-=take}}
     const rows=pots.map(p=>{const a=alloc.get(p.id);return a?{id:p.id,name:p.name,amount:round(Math.min(gap(p),a.amount)),required:round(a.required),reason:a.reasons.join(' · ')}:null}).filter(Boolean),total=round(rows.reduce((s,r)=>s+r.amount,0));
@@ -68,12 +68,16 @@
 
   function setState(mutator){window.AuroraClean.updateState(mutator)}
   function commitBills(){const state=window.AuroraClean.readState(),b=calcBills(state);setState(s=>{s.finance.stage2Bills=b;s.finance.stage3HoldingPot=null;s.finance.stage5PaydayDecision=null});return b}
-  function commitHolding(){const state=window.AuroraClean.readState(),b=state.finance?.stage2Bills;if(!b)return null;const h=calcHolding(state,b);setState(s=>{s.finance.stage3HoldingPot=h;s.finance.stage5PaydayDecision=null});return h}
+  function commitHolding(){
+    let state=window.AuroraClean.readState(),b=state.finance?.stage2Bills;if(!b)return null;
+    if(round(state.finance?.holdingPotBalance)<=0){const live=liveHolding();if(live&&live.balance>0){setState(s=>{s.finance.holdingPotBalance=live.balance;s.finance.holdingPotTarget=live.target;s.finance.holdingPotImportAt=new Date().toISOString();s.finance.holdingPotImportSource=`${live.key}:AUTO_RECOVERY`});state=window.AuroraClean.readState();}}
+    const h=calcHolding(state,b);setState(s=>{s.finance.stage3HoldingPot=h;s.finance.stage5PaydayDecision=null});return h;
+  }
   function commitPots(){const state=window.AuroraClean.readState(),p=calcPots(state);setState(s=>{s.finance.stage4PotFunding=p;s.finance.stage5PaydayDecision=null});return p}
   function commitDecision(){const state=window.AuroraClean.readState(),d=calcDecision(state,state.finance?.stage2Bills,state.finance?.stage3HoldingPot,state.finance?.stage4PotFunding);if(d)setState(s=>{s.finance.stage5PaydayDecision=d;s.finance.lastSafeRelease=d.maximumSafeRelease});return d}
 
   function importBills(){const live=readLive(),rows=live.finance?.bills||[];if(!rows.length)return'No live Aurora bills found.';setState(s=>{s.finance.bills=rows.map(normaliseBill);s.finance.billImportAt=new Date().toISOString();s.finance.billImportSource=live.key;s.finance.stage2Bills=null;s.finance.stage3HoldingPot=null;s.finance.stage5PaydayDecision=null});commitBills();return`Imported ${rows.length} live bill(s).`}
-  function importHolding(){const live=readLive(),pot=(live.finance?.pots||[]).find(p=>!p.archived&&isHolding(p.name));if(!pot)return'No live Holding Pot found.';setState(s=>{s.finance.holdingPotBalance=round(pot.balance);s.finance.holdingPotTarget=round(pot.target);s.finance.holdingPotImportAt=new Date().toISOString();s.finance.holdingPotImportSource=live.key;s.finance.stage3HoldingPot=null;s.finance.stage5PaydayDecision=null});commitHolding();return`Imported Holding Pot ${money(pot.balance)}.`}
+  function importHolding(){const live=liveHolding();if(!live)return'No live Holding Pot found.';setState(s=>{s.finance.holdingPotBalance=live.balance;s.finance.holdingPotTarget=live.target;s.finance.holdingPotImportAt=new Date().toISOString();s.finance.holdingPotImportSource=live.key;s.finance.stage3HoldingPot=null;s.finance.stage5PaydayDecision=null});commitHolding();return`Imported Holding Pot ${money(live.balance)}.`}
   function importPots(){const live=readLive(),rows=live.finance?.pots||[];if(!rows.length)return'No live Aurora pots found.';setState(s=>{s.finance.pots=rows.map(normalisePot);s.finance.potImportAt=new Date().toISOString();s.finance.potImportSource=live.key;s.finance.stage4PotFunding=null;s.finance.stage5PaydayDecision=null});commitPots();return`Imported ${rows.length} live pot(s).`}
 
   function render(){
@@ -96,7 +100,7 @@
     document.getElementById('financeImportHoldingPot')?.addEventListener('click',()=>{textStatus('financeHoldingImportStatus',importHolding());render()});
     document.getElementById('financeImportPots')?.addEventListener('click',()=>{textStatus('financePotImportStatus',importPots());render()});
     document.getElementById('financeRecalculateBills')?.addEventListener('click',()=>{commitBills();render()});
-    document.getElementById('financeRecalculateHolding')?.addEventListener('click',()=>{commitHolding();render()});
+    document.getElementById('financeRecalculateHolding')?.addEventListener('click',()=>{const h=commitHolding();textStatus('financeHoldingImportStatus',h?`Stage 3 frozen at ${money(h.currentBalance)} current balance · ${money(h.safetyTopUp)} top-up.`:'Recalculate Stage 2 first.');render()});
     document.getElementById('financeRecalculatePots')?.addEventListener('click',()=>{commitPots();render()});
     document.getElementById('financeRecalculateDecision')?.addEventListener('click',()=>{const d=commitDecision();textStatus('financeDecisionStage1Comparison',d?'Stage 5 locked to proved Stage 2–4 snapshots.':'Recalculate Stages 2, 3 and 4 first.');render()});
     document.getElementById('financePaydayDate')?.addEventListener('change',e=>{setState(s=>{s.finance.paydayDate=String(e.target.value||'').slice(0,10);s.finance.stage2Bills=null;s.finance.stage3HoldingPot=null;s.finance.stage5PaydayDecision=null});render()});
