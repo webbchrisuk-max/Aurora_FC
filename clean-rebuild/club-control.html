@@ -1,10 +1,44 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aurora Clean — Club Control</title><link rel="stylesheet" href="aurora.css?v=20260826-clean-shell-1"><script src="aurora.js?v=20260826-clean-rebuild-4-shared-navigation" defer></script></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Aurora Clean — Club Control</title>
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-payday-controller-1">
+  <script src="aurora.js?v=20260826-clean-rebuild-9-single-mission-authority" defer></script>
+  <script src="payday-cycle.js?v=20260826-payday-cycle-controller-1" defer></script>
+</head>
 <body data-page="club-control">
 <nav id="auroraNav"></nav><hr>
-<h1>Club Control</h1>
-<p>Build: <strong id="controlBuild">Loading…</strong></p>
-<p>Storage: <strong id="controlStorageKey">Loading…</strong></p>
-<button id="resetCleanState" type="button">Reset Clean Test State</button>
-</body></html>
+
+<header class="department-hero">
+  <div><p class="eyebrow">AURORA CITY FC · CLUB CONTROL</p><h1>Cycle & Archive Control</h1><p class="department-lead">Safe controls for moving from one payday to the next without touching portfolio or Finance source data.</p></div>
+  <span class="stage-badge">SAFE RESET</span>
+</header>
+
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">CURRENT PAYDAY</p><h2 id="paydayReadiness">Checking…</h2></div><p id="paydayReadinessDetail">Loading cycle state.</p></div>
+  <ul id="paydayChecklist" class="payday-checklist"><li>Loading chain status…</li></ul>
+</section>
+
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">CYCLE ACTIONS</p><h2>Close cleanly, then start again</h2></div><p>Starting a new payday never changes holdings, bills, pots, dividends or archived history.</p></div>
+  <div class="finance-actions">
+    <button id="paydayArchiveAction" type="button">Archive Completed Payday</button>
+    <button id="paydayCycleAction" type="button" class="finance-primary">Start New Payday Cycle</button>
+  </div>
+</section>
+
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">ARCHIVE</p><h2>Payday history</h2></div><p><strong id="paydayHistoryCount">0</strong> archived cycle(s)</p></div>
+  <ul id="paydayHistoryRows" class="payday-history-list"><li>No completed payday missions archived yet.</li></ul>
+</section>
+
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">SYSTEM</p><h2>Clean runtime</h2></div></div>
+  <p>Build: <strong id="controlBuild">Loading…</strong></p>
+  <p>Storage: <strong id="controlStorageKey">Loading…</strong></p>
+</section>
+
+</body>
+</html>
