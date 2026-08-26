@@ -1,6 +1,7 @@
 (() => {
   'use strict';
 
+  const BUILD='20260826-finance-window-boundaries-1';
   const PAYDAYS_PER_YEAR=13, PAY_CYCLE_DAYS=28, OPTIONAL_CAP=300, ROLLOVER_TARGET=350, ROLLOVER_MAX=100;
   const LIVE_KEYS=['aurora2:state:v1','aurora2:state:backup:lastgood'];
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
@@ -13,17 +14,39 @@
   const iso=d=>d&&!Number.isNaN(d.getTime())?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';
   const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
   const addMonths=(d,n)=>{const x=new Date(d),day=x.getDate();x.setDate(1);x.setMonth(x.getMonth()+n);x.setDate(Math.min(day,new Date(x.getFullYear(),x.getMonth()+1,0).getDate()));return x};
+  const todayAtNoon=()=>{const d=new Date();d.setHours(12,0,0,0);return d};
 
   function nextDue(date,f){const d=parseDate(date);if(!d)return'';if(f==='weekly')d.setDate(d.getDate()+7);else if(f==='4-weeks')d.setDate(d.getDate()+28);else if(f==='5-weeks')d.setDate(d.getDate()+35);else if(f==='monthly')return iso(addMonths(d,1));else if(f==='yearly')return iso(addMonths(d,12));else return date;return iso(d)}
   function undatedCount(b,s,e){const days=Math.max(1,Math.round((e-s)/86400000)),f=String(b.frequency||'one-off');if(f==='weekly')return Math.max(1,Math.ceil(days/7));if(f==='4-weeks')return Math.max(1,Math.ceil(days/28));if(f==='5-weeks')return Math.max(1,Math.ceil(days/35));if(f==='monthly')return Math.max(1,Math.round(days/30.4375));return 0}
-  function occurrences(b,s,e){
+
+  function occurrenceRow(b,amount,date,estimated,overdue){return{billId:b.id,billName:b.name,amount,date,fundingSource:b.fundingSource||'Holding Pot',frequency:String(b.frequency||'one-off'),estimated:!!estimated,overdue:!!overdue}}
+
+  function occurrences(b,s,e,options={}){
     if(!b||b.paid||b.archived||b.included===false||!s||!e||num(b.amount)<=0)return[];
-    const amount=round(b.amount),f=String(b.frequency||'one-off'),due=parseDate(b.due||b.dueDate),out=[];
-    if(!due){for(let i=0;i<undatedCount(b,s,e);i++)out.push({billId:b.id,billName:b.name,amount,date:'',fundingSource:b.fundingSource||'Holding Pot',frequency:f,estimated:true,overdue:false});return out}
-    if(f==='one-off'){if(due<e)out.push({billId:b.id,billName:b.name,amount,date:iso(due),fundingSource:b.fundingSource||'Holding Pot',frequency:f,estimated:false,overdue:due<s});return out}
+    const amount=round(b.amount),f=String(b.frequency||'one-off'),due=parseDate(b.due||b.dueDate),out=[],includeOverdue=options.includeOverdue===true,today=options.today||todayAtNoon();
+    if(!due){for(let i=0;i<undatedCount(b,s,e);i++)out.push(occurrenceRow(b,amount,'',true,false));return out}
+
+    if(f==='one-off'){
+      if(due>=s&&due<e)out.push(occurrenceRow(b,amount,iso(due),false,due<today));
+      else if(includeOverdue&&due<s&&due<today)out.push(occurrenceRow(b,amount,iso(due),false,true));
+      return out;
+    }
+
     let cursor=new Date(due),guard=0;
-    if(cursor<s){out.push({billId:b.id,billName:b.name,amount,date:iso(cursor),fundingSource:b.fundingSource||'Holding Pot',frequency:f,estimated:false,overdue:true});let n=parseDate(nextDue(iso(cursor),f));while(n&&n<s&&guard++<120){const a=parseDate(nextDue(iso(n),f));if(!a||a.getTime()===n.getTime())break;n=a}cursor=n}
-    guard=0;while(cursor&&cursor<e&&guard++<120){if(!(out.length&&out[0].overdue&&out[0].date===iso(cursor)))out.push({billId:b.id,billName:b.name,amount,date:iso(cursor),fundingSource:b.fundingSource||'Holding Pot',frequency:f,estimated:false,overdue:false});const n=parseDate(nextDue(iso(cursor),f));if(!n||n.getTime()===cursor.getTime())break;cursor=n}
+    if(cursor<s){
+      if(includeOverdue&&cursor<today)out.push(occurrenceRow(b,amount,iso(cursor),false,true));
+      let n=parseDate(nextDue(iso(cursor),f));
+      while(n&&n<s&&guard++<240){const a=parseDate(nextDue(iso(n),f));if(!a||a.getTime()===n.getTime())break;n=a}
+      cursor=n;
+    }
+
+    guard=0;
+    while(cursor&&cursor<e&&guard++<240){
+      const date=iso(cursor);
+      const duplicateOverdue=out.length&&out[0].overdue&&out[0].date===date;
+      if(!duplicateOverdue)out.push(occurrenceRow(b,amount,date,false,cursor<today));
+      const n=parseDate(nextDue(date,f));if(!n||n.getTime()===cursor.getTime())break;cursor=n;
+    }
     return out;
   }
 
@@ -34,17 +57,17 @@
 
   function calcBills(state){
     const bills=(state.finance?.bills||[]).filter(b=>!b.archived&&b.included!==false&&!b.paid&&num(b.amount)>0);
-    const payday=parseDate(state.finance?.paydayDate)||new Date();payday.setHours(12,0,0,0);const next=addDays(payday,PAY_CYCLE_DAYS),yearEnd=addDays(payday,PAY_CYCLE_DAYS*PAYDAYS_PER_YEAR);
-    const cycle=[];bills.forEach(b=>cycle.push(...occurrences(b,payday,next)));
-    const current=cycle.filter(o=>norm(o.fundingSource)==='current account'),holdingBills=bills.filter(b=>isHolding(b.fundingSource)),holdingCycle=cycle.filter(o=>isHolding(o.fundingSource)),annual=[];holdingBills.forEach(b=>annual.push(...occurrences(b,payday,yearEnd)));
-    return{payday:iso(payday),nextPayday:iso(next),billCount:bills.length,currentAccountDue:round(current.reduce((s,o)=>s+o.amount,0)),holdingCycleRequired:round(holdingCycle.reduce((s,o)=>s+o.amount,0)),annualHoldingTotal:round(annual.reduce((s,o)=>s+o.amount,0)),holdingPerPayday:round(annual.reduce((s,o)=>s+o.amount,0)/PAYDAYS_PER_YEAR),cycle,holdingCycle,holdingBills,calculatedAt:new Date().toISOString()};
+    const payday=parseDate(state.finance?.paydayDate)||todayAtNoon();payday.setHours(12,0,0,0);const next=addDays(payday,PAY_CYCLE_DAYS),yearEnd=addDays(payday,PAY_CYCLE_DAYS*PAYDAYS_PER_YEAR);
+    const cycle=[];bills.forEach(b=>cycle.push(...occurrences(b,payday,next,{includeOverdue:false})));
+    const current=cycle.filter(o=>norm(o.fundingSource)==='current account'),holdingBills=bills.filter(b=>isHolding(b.fundingSource)),holdingCycle=cycle.filter(o=>isHolding(o.fundingSource)),annual=[];holdingBills.forEach(b=>annual.push(...occurrences(b,payday,yearEnd,{includeOverdue:false})));
+    return{payday:iso(payday),nextPayday:iso(next),billCount:bills.length,currentAccountDue:round(current.reduce((s,o)=>s+o.amount,0)),holdingCycleRequired:round(holdingCycle.reduce((s,o)=>s+o.amount,0)),annualHoldingTotal:round(annual.reduce((s,o)=>s+o.amount,0)),holdingPerPayday:round(annual.reduce((s,o)=>s+o.amount,0)/PAYDAYS_PER_YEAR),cycle,holdingCycle,holdingBills,calculatedAt:new Date().toISOString(),build:BUILD};
   }
 
   function calcHolding(state,bills){
-    const payday=parseDate(bills.payday),today=new Date();today.setHours(12,0,0,0);const pre=[];
-    if(payday&&payday>today)(bills.holdingBills||[]).forEach(b=>pre.push(...occurrences(b,today,payday)));
+    const payday=parseDate(bills.payday),today=todayAtNoon(),pre=[];
+    if(payday&&payday>today)(bills.holdingBills||[]).forEach(b=>pre.push(...occurrences(b,today,payday,{includeOverdue:true,today})));
     const currentBalance=round(state.finance?.holdingPotBalance),spendBeforePayday=round(pre.reduce((s,o)=>s+o.amount,0)),projectedPaydayBalance=round(Math.max(0,currentBalance-spendBeforePayday)),baseContribution=round(bills.holdingPerPayday),minimumFloor=round(state.finance?.holdingPotTarget),cycleRequired=round(bills.holdingCycleRequired),dynamicTarget=round(Math.max(minimumFloor,cycleRequired)),projectedBeforeTopUp=round(projectedPaydayBalance+baseContribution),safetyTopUp=round(Math.max(0,dynamicTarget-projectedBeforeTopUp)),afterFunding=round(projectedBeforeTopUp+safetyTopUp);
-    return{currentBalance,spendBeforePayday,projectedPaydayBalance,prePaydayShortfall:round(Math.max(0,spendBeforePayday-currentBalance)),baseContribution,minimumFloor,cycleRequired,calculatedTarget:cycleRequired,dynamicTarget,safetyTopUp,projectedBeforeTopUp,afterFunding,headroom:round(afterFunding-dynamicTarget),prePayday:pre,calculatedAt:new Date().toISOString()};
+    return{currentBalance,spendBeforePayday,projectedPaydayBalance,prePaydayShortfall:round(Math.max(0,spendBeforePayday-currentBalance)),baseContribution,minimumFloor,cycleRequired,calculatedTarget:cycleRequired,dynamicTarget,safetyTopUp,projectedBeforeTopUp,afterFunding,headroom:round(afterFunding-dynamicTarget),prePayday:pre,calculatedAt:new Date().toISOString(),build:BUILD};
   }
 
   const funded=p=>p?.goalMode==='funded-progress'?num(p.balance)+num(p.spent):num(p.balance),gap=p=>Math.max(0,num(p.target)-funded(p));
@@ -57,13 +80,13 @@
     if(rollover&&rolloverContribution>.009)alloc.set(rollover.id,{amount:rolloverContribution,required:0,reasons:[`Payday Rollover · ${money(ROLLOVER_TARGET)} target · max ${money(ROLLOVER_MAX)} per payday`]});
     let remaining=Math.max(0,optionalBudget-rolloverContribution);for(const r of candidates.filter(r=>!r.deadline.has).sort((a,b)=>a.priority-b.priority||b.gap-a.gap)){if(remaining<=.009)break;const existing=alloc.get(r.pot.id)?.amount||0,take=Math.min(remaining,Math.max(0,r.gap-existing));if(take>.009){const a=alloc.get(r.pot.id)||{amount:0,required:0,reasons:[]};a.amount+=take;a.reasons.push(`P${r.priority} priority funding`);alloc.set(r.pot.id,a);remaining-=take}}
     const rows=pots.map(p=>{const a=alloc.get(p.id);return a?{id:p.id,name:p.name,amount:round(Math.min(gap(p),a.amount)),required:round(a.required),reason:a.reasons.join(' · ')}:null}).filter(Boolean),total=round(rows.reduce((s,r)=>s+r.amount,0));
-    return{potCount:pots.length,wageDifference,optionalBudget,requiredFunding:round(requiredFunding),rolloverContribution,optionalPriority:round(Math.max(0,optionalBudget-rolloverContribution-remaining)),total,rows,calculatedAt:new Date().toISOString()};
+    return{potCount:pots.length,wageDifference,optionalBudget,requiredFunding:round(requiredFunding),rolloverContribution,optionalPriority:round(Math.max(0,optionalBudget-rolloverContribution-remaining)),total,rows,calculatedAt:new Date().toISOString(),build:BUILD};
   }
 
   function calcDecision(state,bills,holding,pots){
     if(!bills||!holding||!pots)return null;
     const availableCash=round(state.finance?.availableCash),currentAccountBills=round(bills.currentAccountDue),baseHoldingContribution=round(holding.baseContribution),holdingSafetyTopUp=round(holding.safetyTopUp),potFunding=round(pots.total),protectedCash=round(state.finance?.protectedCash),commitments=round(currentAccountBills+baseHoldingContribution+holdingSafetyTopUp+potFunding),totalReserved=round(commitments+protectedCash),maximumSafeRelease=round(Math.max(0,availableCash-totalReserved));
-    return{availableCash,currentAccountBills,baseHoldingContribution,holdingSafetyTopUp,potFunding,protectedCash,commitments,totalReserved,maximumSafeRelease,calculatedAt:new Date().toISOString()};
+    return{availableCash,currentAccountBills,baseHoldingContribution,holdingSafetyTopUp,potFunding,protectedCash,commitments,totalReserved,maximumSafeRelease,calculatedAt:new Date().toISOString(),build:BUILD};
   }
 
   function setState(mutator){window.AuroraClean.updateState(mutator)}
@@ -89,7 +112,7 @@
     text('financeDecisionCash',money(d?.availableCash));text('financeDecisionBills',money(d?.currentAccountBills));text('financeDecisionHoldingBase',money(d?.baseHoldingContribution));text('financeDecisionHoldingTopUp',money(d?.holdingSafetyTopUp));text('financeDecisionPots',money(d?.potFunding));text('financeDecisionProtected',money(d?.protectedCash));text('financeDecisionCommitments',money(d?.commitments));text('financeDecisionReserved',money(d?.totalReserved));text('financeDecisionSafeRelease',money(d?.maximumSafeRelease));
     text('financeDecisionStage1Comparison',d?'Stage 5 uses frozen proved Stage 2–4 snapshots.':'Stage 5 not calculated yet.');
     const billRows=document.getElementById('financeStage2BillRows');if(billRows)billRows.innerHTML=b?.cycle?.length?b.cycle.map(o=>`<li><strong>${esc(o.billName)}</strong> — ${money(o.amount)} — ${esc(o.fundingSource)} — ${o.date||'estimated'}${o.overdue?' — OVERDUE':''}</li>`).join(''):'<li>Recalculate Stage 2 to load bill occurrences.</li>';
-    const hpRows=document.getElementById('financeStage3PrePaydayRows');if(hpRows)hpRows.innerHTML=h?.prePayday?.length?h.prePayday.map(o=>`<li><strong>${esc(o.billName)}</strong> — ${money(o.amount)} — ${o.date||'estimated'}</li>`).join(''):'<li>No frozen Stage 3 projection yet.</li>';
+    const hpRows=document.getElementById('financeStage3PrePaydayRows');if(hpRows)hpRows.innerHTML=h?.prePayday?.length?h.prePayday.map(o=>`<li><strong>${esc(o.billName)}</strong> — ${money(o.amount)} — ${o.date||'estimated'}${o.overdue?' — OVERDUE':''}</li>`).join(''):'<li>No frozen Stage 3 projection yet.</li>';
     const potRows=document.getElementById('financeStage4PotRows');if(potRows)potRows.innerHTML=p?.rows?.length?p.rows.map(r=>`<li><strong>${esc(r.name)}</strong> — ${money(r.amount)} — ${esc(r.reason)}</li>`).join(''):'<li>No frozen Stage 4 plan yet.</li>';
     const decRows=document.getElementById('financeStage5DecisionRows');if(decRows)decRows.innerHTML=d?`<li>Available cash: <strong>${money(d.availableCash)}</strong></li><li>Current Account bills: <strong>− ${money(d.currentAccountBills)}</strong></li><li>Base Holding Pot: <strong>− ${money(d.baseHoldingContribution)}</strong></li><li>Holding Pot top-up: <strong>− ${money(d.holdingSafetyTopUp)}</strong></li><li>Stage 4 pots: <strong>− ${money(d.potFunding)}</strong></li><li>Protected cash: <strong>− ${money(d.protectedCash)}</strong></li><li><strong>Maximum Safe Release: ${money(d.maximumSafeRelease)}</strong></li>`:'<li>Recalculate Stage 5 after Stages 2–4 are proved.</li>';
   }
@@ -104,7 +127,7 @@
     document.getElementById('financeRecalculatePots')?.addEventListener('click',()=>{commitPots();render()});
     document.getElementById('financeRecalculateDecision')?.addEventListener('click',()=>{const d=commitDecision();textStatus('financeDecisionStage1Comparison',d?'Stage 5 locked to proved Stage 2–4 snapshots.':'Recalculate Stages 2, 3 and 4 first.');render()});
     document.getElementById('financePaydayDate')?.addEventListener('change',e=>{setState(s=>{s.finance.paydayDate=String(e.target.value||'').slice(0,10);s.finance.stage2Bills=null;s.finance.stage3HoldingPot=null;s.finance.stage5PaydayDecision=null});render()});
-    render();window.addEventListener('aurora-clean:state',render);window.AuroraFinanceEngine=Object.freeze({calcBills,calcHolding,calcPots,calcDecision,commitBills,commitHolding,commitPots,commitDecision});
+    render();window.addEventListener('aurora-clean:state',render);window.AuroraFinanceEngine=Object.freeze({BUILD,calcBills,calcHolding,calcPots,calcDecision,commitBills,commitHolding,commitPots,commitDecision});
   }
   function textStatus(id,msg){const e=document.getElementById(id);if(e)e.textContent=msg}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
