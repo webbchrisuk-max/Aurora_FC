@@ -6,18 +6,25 @@
   }).format(Number(value || 0));
   const round2 = value => Number(Number(value || 0).toFixed(2));
   const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'
   }[ch]));
+  const upper = value => String(value || '').trim().toUpperCase();
+  const missionIsUsable = mission => !!mission && !['COMPLETE','CANCELLED'].includes(upper(mission.status)) && Number(mission.budget || 0) > 0;
 
   function buildPlan(state) {
     const aurora = window.AuroraClean;
     if (!aurora) return null;
-    const budget = round2(Math.max(0, aurora.safeRelease(state.finance)));
+    const mission = state.transfer?.mission;
+    const budget = missionIsUsable(mission) ? round2(Math.max(0, Number(mission.budget || 0))) : 0;
     const strategy = state.scouting?.strategy === 'maximum' ? 'maximum' : 'sustainable';
     const rows = aurora.scoutingRankings(state).filter(row => row.approved && Number(row.yieldPct) > 0);
 
     if (!budget || !rows.length) {
-      return {budget, strategy, approvedCount: rows.length, allocated: 0, projectedAnnualIncome: 0, allocations: []};
+      return {
+        budget, strategy, approvedCount: rows.length, allocated: 0, projectedAnnualIncome: 0,
+        allocations: [], missionId: missionIsUsable(mission) ? mission.id : null,
+        authority: missionIsUsable(mission) ? 'Finance Stage 6' : 'WAITING FOR FINANCE STAGE 6'
+      };
     }
 
     const baseCap = strategy === 'maximum' ? 0.65 : 0.45;
@@ -78,6 +85,8 @@
       allocated,
       projectedAnnualIncome: round2(allocations.reduce((sum, row) => sum + row.expectedAnnualIncome, 0)),
       allocations,
+      missionId: mission.id,
+      authority: 'Finance Stage 6',
       calculatedAt: new Date().toISOString()
     };
   }
@@ -90,12 +99,14 @@
     setText('scoutingAllocatedBudget', money(plan.allocated));
     setText('scoutingProjectedIncome', money(plan.projectedAnnualIncome));
     setText('scoutingAllocationNote', plan.allocations.length
-      ? `${plan.strategy === 'maximum' ? 'Maximum Income' : 'Sustainable Income'} optimiser · ${plan.allocations.length} allocation(s) · no equal split.`
-      : 'Approve one or more ranked candidates to build the payday allocation.');
+      ? `${plan.strategy === 'maximum' ? 'Maximum Income' : 'Sustainable Income'} optimiser · ${plan.allocations.length} allocation(s) · Finance Stage 6 mission ${plan.missionId}.`
+      : plan.budget > 0
+        ? 'Approve one or more ranked candidates to build the payday allocation.'
+        : 'Waiting for Finance Stage 6 to release an investment mission.');
     if (rows) {
       rows.innerHTML = plan.allocations.length
         ? plan.allocations.map((row, index) => `<li><strong>#${index + 1} ${esc(row.ticker)}</strong> — ${money(row.amount)} — ${row.yieldPct.toFixed(2)}% yield — projected annual income ${money(row.expectedAnnualIncome)}</li>`).join('')
-        : '<li>No allocation yet.</li>';
+        : `<li>${plan.budget > 0 ? 'No allocation yet.' : 'No Finance mission released yet.'}</li>`;
     }
   }
 
@@ -104,6 +115,7 @@
     const clean = plan => JSON.stringify({
       budget: plan.budget, strategy: plan.strategy, approvedCount: plan.approvedCount,
       allocated: plan.allocated, projectedAnnualIncome: plan.projectedAnnualIncome,
+      missionId: plan.missionId || null, authority: plan.authority || '',
       allocations: (plan.allocations || []).map(row => [row.ticker, row.amount, row.expectedAnnualIncome])
     });
     return clean(a) === clean(b);
