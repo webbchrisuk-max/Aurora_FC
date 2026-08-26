@@ -1,16 +1,24 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260826-clean-rebuild-1';
+  const BUILD = '20260826-clean-rebuild-2-finance';
   const STATE_KEY = 'aurora-clean:state:v1';
 
   const DEFAULT_STATE = {
-    version: 1,
+    version: 2,
     finance: {
+      expectedWages: 2600,
+      wagesReceived: 2600,
       availableCash: 2600,
       commitments: 1086.13,
       protectedCash: 300,
-      lastSafeRelease: 1213.87
+      holdingPotBalance: 0,
+      holdingPotTarget: 0,
+      bills: [],
+      pots: [],
+      lastSafeRelease: 1213.87,
+      lastPlan: null,
+      paydayHistory: []
     },
     scouting: {
       strategy: 'sustainable',
@@ -49,20 +57,46 @@
   const byId = id => document.getElementById(id);
   const setText = (id, value) => { const el = byId(id); if (el) el.textContent = value; };
   const setHtml = (id, value) => { const el = byId(id); if (el) el.innerHTML = value; };
+  const isoNow = () => new Date().toISOString();
+  const uid = prefix => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const round2 = value => Number(num(value).toFixed(2));
+
+  function normaliseState(input) {
+    const source = input && typeof input === 'object' ? input : {};
+    const next = clone(DEFAULT_STATE);
+    Object.assign(next, source);
+    next.finance = {...clone(DEFAULT_STATE.finance), ...(source.finance || {})};
+    next.finance.bills = Array.isArray(source.finance?.bills) ? source.finance.bills : [];
+    next.finance.pots = Array.isArray(source.finance?.pots) ? source.finance.pots : [];
+    next.finance.paydayHistory = Array.isArray(source.finance?.paydayHistory) ? source.finance.paydayHistory : [];
+    next.scouting = {...clone(DEFAULT_STATE.scouting), ...(source.scouting || {})};
+    next.scouting.candidates = Array.isArray(source.scouting?.candidates) ? source.scouting.candidates : [];
+    next.transfer = {...clone(DEFAULT_STATE.transfer), ...(source.transfer || {})};
+    next.registration = {...clone(DEFAULT_STATE.registration), ...(source.registration || {})};
+    next.registration.receipts = Array.isArray(source.registration?.receipts) ? source.registration.receipts : [];
+    next.squad = {...clone(DEFAULT_STATE.squad), ...(source.squad || {})};
+    next.squad.holdings = Array.isArray(source.squad?.holdings) ? source.squad.holdings : [];
+    next.income = {...clone(DEFAULT_STATE.income), ...(source.income || {})};
+    next.income.dividends = Array.isArray(source.income?.dividends) ? source.income.dividends : [];
+    next.matchReport = {...clone(DEFAULT_STATE.matchReport), ...(source.matchReport || {})};
+    next.version = 2;
+    return next;
+  }
 
   function readState() {
     try {
       const parsed = JSON.parse(localStorage.getItem(STATE_KEY) || 'null');
-      return parsed && typeof parsed === 'object' ? parsed : clone(DEFAULT_STATE);
+      return normaliseState(parsed);
     } catch (_) {
       return clone(DEFAULT_STATE);
     }
   }
 
   function writeState(next) {
-    localStorage.setItem(STATE_KEY, JSON.stringify(next));
-    window.dispatchEvent(new CustomEvent('aurora-clean:state', {detail: next}));
-    return next;
+    const clean = normaliseState(next);
+    localStorage.setItem(STATE_KEY, JSON.stringify(clean));
+    window.dispatchEvent(new CustomEvent('aurora-clean:state', {detail: clean}));
+    return clean;
   }
 
   function updateState(mutator) {
@@ -71,8 +105,46 @@
     return writeState(state);
   }
 
+  function activeBills(finance) {
+    return (finance.bills || []).filter(row => row.active !== false);
+  }
+
+  function activePots(finance) {
+    return (finance.pots || []).filter(row => row.active !== false);
+  }
+
+  function financeSummary(finance) {
+    const availableCash = Math.max(0, num(finance.availableCash));
+    const commitments = Math.max(0, num(finance.commitments));
+    const protectedCash = Math.max(0, num(finance.protectedCash));
+    const billsDue = activeBills(finance).reduce((sum, row) => sum + Math.max(0, num(row.amount)), 0);
+    const holdingBalance = Math.max(0, num(finance.holdingPotBalance));
+    const holdingTarget = Math.max(0, num(finance.holdingPotTarget));
+    const holdingTopUp = Math.max(0, holdingTarget - holdingBalance);
+    const potsDue = activePots(finance).reduce((sum, row) => sum + Math.max(0, num(row.plannedContribution)), 0);
+    const totalReserved = commitments + billsDue + holdingTopUp + potsDue + protectedCash;
+    const safeSurplus = Math.max(0, availableCash - totalReserved);
+    return {
+      availableCash: round2(availableCash),
+      commitments: round2(commitments),
+      billsDue: round2(billsDue),
+      holdingBalance: round2(holdingBalance),
+      holdingTarget: round2(holdingTarget),
+      holdingTopUp: round2(holdingTopUp),
+      potsDue: round2(potsDue),
+      protectedCash: round2(protectedCash),
+      totalReserved: round2(totalReserved),
+      safeSurplus: round2(safeSurplus)
+    };
+  }
+
   function safeRelease(finance) {
-    return Math.max(0, num(finance.availableCash) - num(finance.commitments) - num(finance.protectedCash));
+    return financeSummary(finance).safeSurplus;
+  }
+
+  function missionIsActive(mission) {
+    if (!mission) return false;
+    return !['COMPLETE', 'CANCELLED'].includes(String(mission.status || '').toUpperCase());
   }
 
   function annualIncome(state) {
@@ -113,37 +185,181 @@
     setText('nexusIncome', `${money(income)} annual / ${money(income / 12)} monthly`);
   }
 
+  function readFinanceForm(finance) {
+    finance.expectedWages = Math.max(0, num(byId('financeExpectedWages')?.value));
+    finance.wagesReceived = Math.max(0, num(byId('financeWagesReceived')?.value));
+    finance.availableCash = Math.max(0, num(byId('financeAvailable')?.value));
+    finance.commitments = Math.max(0, num(byId('financeCommitments')?.value));
+    finance.protectedCash = Math.max(0, num(byId('financeProtected')?.value));
+    finance.holdingPotBalance = Math.max(0, num(byId('financeHoldingBalance')?.value));
+    finance.holdingPotTarget = Math.max(0, num(byId('financeHoldingTarget')?.value));
+  }
+
   function renderFinance() {
     const state = readState();
     const finance = state.finance;
-    if (byId('financeAvailable')) byId('financeAvailable').value = finance.availableCash;
-    if (byId('financeCommitments')) byId('financeCommitments').value = finance.commitments;
-    if (byId('financeProtected')) byId('financeProtected').value = finance.protectedCash;
-    setText('financeSafeRelease', money(safeRelease(finance)));
-    setText('financeMissionStatus', state.transfer.mission ? `${state.transfer.mission.status} — ${money(state.transfer.mission.budget)}` : 'No active mission');
+    const summary = financeSummary(finance);
+    const mission = state.transfer.mission;
+
+    const fields = {
+      financeExpectedWages: finance.expectedWages,
+      financeWagesReceived: finance.wagesReceived,
+      financeAvailable: finance.availableCash,
+      financeCommitments: finance.commitments,
+      financeProtected: finance.protectedCash,
+      financeHoldingBalance: finance.holdingPotBalance,
+      financeHoldingTarget: finance.holdingPotTarget
+    };
+    Object.entries(fields).forEach(([id, value]) => { if (byId(id)) byId(id).value = value; });
+
+    setText('financeWageDifference', money(num(finance.wagesReceived) - num(finance.expectedWages)));
+    setText('financeBillsDue', money(summary.billsDue));
+    setText('financeHoldingTopUp', money(summary.holdingTopUp));
+    setText('financePotsDue', money(summary.potsDue));
+    setText('financeReservedTotal', money(summary.totalReserved));
+    setText('financeSafeRelease', money(summary.safeSurplus));
+
+    setHtml('financePlanBreakdown', `
+      <li>Available cash: ${money(summary.availableCash)}</li>
+      <li>Other commitments: ${money(summary.commitments)}</li>
+      <li>Active bills: ${money(summary.billsDue)}</li>
+      <li>Holding Pot top-up: ${money(summary.holdingTopUp)}</li>
+      <li>Goal pot funding: ${money(summary.potsDue)}</li>
+      <li>Protected cash: ${money(summary.protectedCash)}</li>
+      <li><strong>Safe release: ${money(summary.safeSurplus)}</strong></li>`);
+
+    setHtml('financeBillsRows', finance.bills.length ? finance.bills.map(row => `
+      <li>${esc(row.name)} — ${money(row.amount)}${row.dueDate ? ` — due ${esc(row.dueDate)}` : ''} — ${row.active === false ? 'PAUSED' : 'ACTIVE'}
+      <button type="button" data-toggle-bill="${esc(row.id)}">${row.active === false ? 'Resume' : 'Pause'}</button>
+      <button type="button" data-delete-bill="${esc(row.id)}">Delete</button></li>`).join('') : '<li>No bills added.</li>');
+
+    setHtml('financePotsRows', finance.pots.length ? finance.pots.map(row => `
+      <li>${esc(row.name)} — balance ${money(row.balance)} / target ${money(row.target)} — fund ${money(row.plannedContribution)} — ${row.active === false ? 'PAUSED' : 'ACTIVE'}
+      <button type="button" data-toggle-pot="${esc(row.id)}">${row.active === false ? 'Resume' : 'Pause'}</button>
+      <button type="button" data-delete-pot="${esc(row.id)}">Delete</button></li>`).join('') : '<li>No goal pots added.</li>');
+
+    if (byId('financeReleaseAmount')) {
+      const current = num(byId('financeReleaseAmount').value);
+      const max = summary.safeSurplus;
+      byId('financeReleaseAmount').max = String(max);
+      if (!current || current > max) byId('financeReleaseAmount').value = max.toFixed(2);
+    }
+
+    setText('financeMissionStatus', mission ? `${mission.status} — ${money(mission.budget)}${mission.id ? ` — ${mission.id}` : ''}` : 'No active mission');
+    const releaseButton = byId('financeRelease');
+    const cancelButton = byId('financeCancelMission');
+    if (releaseButton) releaseButton.disabled = missionIsActive(mission) || summary.safeSurplus <= 0;
+    if (cancelButton) cancelButton.disabled = !mission || !['DRAFT', 'READY'].includes(String(mission.status || '').toUpperCase());
+    setText('financeMissionGuard', missionIsActive(mission)
+      ? 'A Finance mission is already in progress. Complete it through Registration, or cancel it before the route is locked.'
+      : summary.safeSurplus > 0
+        ? `Finance can release up to ${money(summary.safeSurplus)}.`
+        : 'No safe surplus is available to release.');
   }
 
   function bindFinance() {
     byId('financeCalculate')?.addEventListener('click', () => {
       updateState(state => {
-        state.finance.availableCash = num(byId('financeAvailable')?.value);
-        state.finance.commitments = num(byId('financeCommitments')?.value);
-        state.finance.protectedCash = num(byId('financeProtected')?.value);
-        state.finance.lastSafeRelease = safeRelease(state.finance);
+        readFinanceForm(state.finance);
+        const summary = financeSummary(state.finance);
+        state.finance.lastSafeRelease = summary.safeSurplus;
+        state.finance.lastPlan = {...summary, calculatedAt: isoNow()};
+        state.finance.paydayHistory.unshift({...summary, id: uid('PLAN'), calculatedAt: isoNow()});
+        state.finance.paydayHistory = state.finance.paydayHistory.slice(0, 24);
+      });
+      renderFinance();
+    });
+
+    byId('financeUseActualPay')?.addEventListener('click', () => {
+      const actual = Math.max(0, num(byId('financeWagesReceived')?.value));
+      if (byId('financeAvailable')) byId('financeAvailable').value = actual.toFixed(2);
+    });
+
+    byId('financeAddBill')?.addEventListener('click', () => {
+      const name = String(byId('financeBillName')?.value || '').trim();
+      const amount = Math.max(0, num(byId('financeBillAmount')?.value));
+      const dueDate = String(byId('financeBillDate')?.value || '').trim();
+      if (!name || amount <= 0) return;
+      updateState(state => {
+        state.finance.bills.push({id: uid('BILL'), name, amount: round2(amount), dueDate, active: true});
+      });
+      if (byId('financeBillName')) byId('financeBillName').value = '';
+      if (byId('financeBillAmount')) byId('financeBillAmount').value = '';
+      if (byId('financeBillDate')) byId('financeBillDate').value = '';
+      renderFinance();
+    });
+
+    byId('financeAddPot')?.addEventListener('click', () => {
+      const name = String(byId('financePotName')?.value || '').trim();
+      const balance = Math.max(0, num(byId('financePotBalance')?.value));
+      const target = Math.max(0, num(byId('financePotTarget')?.value));
+      const plannedContribution = Math.max(0, num(byId('financePotContribution')?.value));
+      if (!name) return;
+      updateState(state => {
+        state.finance.pots.push({id: uid('POT'), name, balance: round2(balance), target: round2(target), plannedContribution: round2(plannedContribution), active: true});
+      });
+      ['financePotName','financePotBalance','financePotTarget','financePotContribution'].forEach(id => { if (byId(id)) byId(id).value = ''; });
+      renderFinance();
+    });
+
+    byId('financeBillsRows')?.addEventListener('click', event => {
+      const toggle = event.target.closest('[data-toggle-bill]');
+      const remove = event.target.closest('[data-delete-bill]');
+      if (!toggle && !remove) return;
+      updateState(state => {
+        if (toggle) {
+          const row = state.finance.bills.find(item => item.id === toggle.dataset.toggleBill);
+          if (row) row.active = row.active === false;
+        }
+        if (remove) state.finance.bills = state.finance.bills.filter(item => item.id !== remove.dataset.deleteBill);
+      });
+      renderFinance();
+    });
+
+    byId('financePotsRows')?.addEventListener('click', event => {
+      const toggle = event.target.closest('[data-toggle-pot]');
+      const remove = event.target.closest('[data-delete-pot]');
+      if (!toggle && !remove) return;
+      updateState(state => {
+        if (toggle) {
+          const row = state.finance.pots.find(item => item.id === toggle.dataset.togglePot);
+          if (row) row.active = row.active === false;
+        }
+        if (remove) state.finance.pots = state.finance.pots.filter(item => item.id !== remove.dataset.deletePot);
       });
       renderFinance();
     });
 
     byId('financeRelease')?.addEventListener('click', () => {
       updateState(state => {
-        const budget = safeRelease(state.finance);
-        state.finance.lastSafeRelease = budget;
+        readFinanceForm(state.finance);
+        const summary = financeSummary(state.finance);
+        if (missionIsActive(state.transfer.mission)) return;
+        const requested = Math.max(0, num(byId('financeReleaseAmount')?.value));
+        if (requested <= 0 || requested > summary.safeSurplus + 0.005) return;
+        state.finance.lastSafeRelease = summary.safeSurplus;
+        state.finance.lastPlan = {...summary, calculatedAt: isoNow()};
         state.transfer.mission = {
-          id: `MISSION-${Date.now()}`,
-          budget,
+          id: uid('MISSION'),
+          budget: round2(requested),
+          approvedBudget: round2(requested),
           status: 'DRAFT',
-          createdAt: new Date().toISOString()
+          source: 'Finance',
+          createdAt: isoNow(),
+          updatedAt: isoNow(),
+          financeSnapshot: {...summary}
         };
+        state.transfer.route = null;
+      });
+      renderFinance();
+    });
+
+    byId('financeCancelMission')?.addEventListener('click', () => {
+      updateState(state => {
+        const mission = state.transfer.mission;
+        if (!mission || !['DRAFT', 'READY'].includes(String(mission.status || '').toUpperCase())) return;
+        mission.status = 'CANCELLED';
+        mission.updatedAt = isoNow();
         state.transfer.route = null;
       });
       renderFinance();
@@ -191,13 +407,17 @@
     const approved = state.scouting.candidates.filter(row => row.approved);
     if (!approved.length || !(mission.budget > 0)) return [];
     const each = mission.budget / approved.length;
-    return approved.map(row => ({
+    const allocations = approved.map(row => ({
       ticker: row.ticker,
       name: row.name,
       yieldPct: row.yieldPct,
       amount: Number(each.toFixed(2)),
       expectedAnnualIncome: Number((each * row.yieldPct / 100).toFixed(2))
     }));
+    const allocated = allocations.reduce((sum, row) => sum + row.amount, 0);
+    const delta = round2(mission.budget - allocated);
+    if (allocations.length && delta) allocations[allocations.length - 1].amount = round2(allocations[allocations.length - 1].amount + delta);
+    return allocations;
   }
 
   function renderTransfer() {
@@ -221,13 +441,15 @@
         const allocations = buildAllocations(state);
         if (!allocations.length) return;
         state.transfer.route = {
-          id: `ROUTE-${Date.now()}`,
+          id: uid('ROUTE'),
           missionId: state.transfer.mission.id,
           strategy: state.scouting.strategy,
           allocations,
-          locked: false
+          locked: false,
+          createdAt: isoNow()
         };
         state.transfer.mission.status = 'READY';
+        state.transfer.mission.updatedAt = isoNow();
       });
       renderTransfer();
     });
@@ -235,7 +457,9 @@
       updateState(state => {
         if (!state.transfer.route?.allocations?.length) return;
         state.transfer.route.locked = true;
+        state.transfer.route.lockedAt = isoNow();
         state.transfer.mission.status = 'LOCKED';
+        state.transfer.mission.updatedAt = isoNow();
       });
       renderTransfer();
     });
@@ -253,14 +477,14 @@
     byId('registerRoute')?.addEventListener('click', () => {
       updateState(state => {
         const route = state.transfer.route;
-        if (!route?.locked) return;
+        if (!route?.locked || String(state.transfer.mission?.status || '').toUpperCase() === 'COMPLETE') return;
         route.allocations.forEach(row => {
           const receipt = {
-            id: `RECEIPT-${Date.now()}-${row.ticker}`,
+            id: uid('RECEIPT'),
             ticker: row.ticker,
             name: row.name,
             amount: row.amount,
-            registeredAt: new Date().toISOString()
+            registeredAt: isoNow()
           };
           state.registration.receipts.push(receipt);
           const existing = state.squad.holdings.find(h => h.ticker === row.ticker);
@@ -282,6 +506,7 @@
           }
         });
         state.transfer.mission.status = 'COMPLETE';
+        state.transfer.mission.updatedAt = isoNow();
       });
       renderRegistration();
     });
@@ -323,7 +548,7 @@
     byId('buildMatchReport')?.addEventListener('click', () => {
       updateState(state => {
         const annual = annualIncome(state);
-        state.matchReport.lastBuiltAt = new Date().toISOString();
+        state.matchReport.lastBuiltAt = isoNow();
         state.matchReport.summary = `Holdings ${state.squad.holdings.length}; annual income ${money(annual)}; mission ${state.transfer.mission?.status || 'NONE'}.`;
       });
       renderMatchReport();
@@ -345,9 +570,12 @@
 
   function renderSystemHealth() {
     const state = readState();
+    const f = financeSummary(state.finance);
     const checks = [
       ['State readable', !!state],
       ['Finance present', !!state.finance],
+      ['Finance calculation valid', Number.isFinite(f.safeSurplus) && f.safeSurplus >= 0],
+      ['Finance mission budget safe', !state.transfer.mission?.financeSnapshot || num(state.transfer.mission.budget) <= num(state.transfer.mission.financeSnapshot.safeSurplus) + 0.005],
       ['Scouting present', !!state.scouting],
       ['Transfer present', !!state.transfer],
       ['Registration present', !!state.registration],
@@ -380,7 +608,7 @@
     handlers[0]?.();
     window.addEventListener('aurora-clean:state', handlers[0]);
     window.addEventListener('storage', event => { if (event.key === STATE_KEY) handlers[0]?.(); });
-    window.AuroraClean = Object.freeze({BUILD, STATE_KEY, readState, writeState, updateState, safeRelease, annualIncome});
+    window.AuroraClean = Object.freeze({BUILD, STATE_KEY, readState, writeState, updateState, safeRelease, financeSummary, annualIncome});
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
