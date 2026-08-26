@@ -1,9 +1,29 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aurora Clean — System Health</title><link rel="stylesheet" href="aurora.css?v=20260826-clean-shell-1"><script src="aurora.js?v=20260826-clean-rebuild-4-shared-navigation" defer></script></head>
-<body data-page="system-health">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Aurora Clean — System Health</title>
+  <link rel="stylesheet" href="aurora.css?v=20260826-payday-chain-health-1">
+  <script src="aurora.js?v=20260826-clean-rebuild-9-single-mission-authority" defer></script>
+  <script src="payday-chain-health.js?v=20260826-payday-chain-health-1" defer></script>
+</head>
+<body data-page="system-health-real">
 <nav id="auroraNav"></nav><hr>
-<h1>System Health</h1>
-<p>Build: <strong id="healthBuild">Loading…</strong></p>
-<ul id="healthRows"></ul>
-</body></html>
+<header class="department-hero">
+  <div><p class="eyebrow">AURORA CITY FC · SYSTEM HEALTH</p><h1>Payday Chain Control</h1><p class="department-lead">One audit for every handoff from Finance through Scouting, Transfer, Registration, Squad and Income.</p></div>
+  <span class="stage-badge">PAYDAY SAFETY</span>
+</header>
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">LIVE PIPELINE</p><h2>Authority & reconciliation checks</h2></div><p id="healthSummary">Checking current state…</p></div>
+  <p>Build: <strong id="healthBuild">Loading…</strong></p>
+  <ul id="healthRows"></ul>
+</section>
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">NO-WRITE REHEARSAL</p><h2>Full payday dry run</h2></div><p>This clones the current clean state in memory and proves the entire payday chain without changing AuroraData, Squad or the real mission.</p></div>
+  <div class="finance-actions"><button id="runPaydayDryRun" type="button" class="finance-primary">Run Full Payday Dry Run</button></div>
+  <p><strong id="dryRunStatus">NOT RUN YET</strong></p>
+  <ul id="dryRunRows"><li>No rehearsal run yet.</li></ul>
+</section>
+</body>
+</html>
