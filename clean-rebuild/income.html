@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Aurora Clean — Income Centre</title>
-  <link rel="stylesheet" href="aurora.css?v=20260826-clean-income-dividend-calendar-1">
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-income-dividend-settlement-2">
   <script src="aurora.js?v=20260826-clean-rebuild-9-single-mission-authority" defer></script>
-  <script src="../aurora-data2-client.js?v=20260826-clean-income-dividend-calendar-1" defer></script>
-  <script src="income-engine.js?v=20260826-clean-income-dividend-calendar-1" defer></script>
+  <script src="../aurora-data2-client.js?v=20260826-clean-income-dividend-settlement-2" defer></script>
+  <script src="income-engine.js?v=20260826-clean-income-dividend-settlement-2" defer></script>
 </head>
 <body data-page="income-real">
 <nav id="auroraNav"></nav><hr>
@@ -16,10 +16,12 @@
   <div>
     <p class="eyebrow">AURORA CITY FC · INCOME CENTRE</p>
     <h1>Dividend Income</h1>
-    <p class="department-lead">Squad owns the confirmed forward-income run rate. AuroraData 2 owns declared and confirmed dividend dates, expected cash payments and eligibility.</p>
+    <p class="department-lead">Squad owns forward income. AuroraData 2 owns dividend dates and broker cash. When a dividend arrives, record the exact amount and the broker that received it.</p>
   </div>
   <button id="incomeRefresh" type="button">Refresh Dividends</button>
 </header>
+
+<div id="incomeToast" hidden style="position:sticky;top:12px;z-index:50;margin:12px auto;max-width:900px;padding:12px 16px;border-radius:12px;background:#10243a;border:1px solid #31506f;font-weight:700"></div>
 
 <section class="department-section">
   <div class="section-heading">
@@ -37,10 +39,50 @@
   </div>
 </section>
 
+<section class="department-section" id="dividendSettlement">
+  <div class="section-heading">
+    <div><p class="eyebrow">BROKER CASH</p><h2>Dividend received</h2></div>
+    <div><strong id="cashStatus">CHECKING</strong><p>Actual broker cash is separate for IG ISA and Trading 212 ISA.</p></div>
+  </div>
+  <div class="finance-result-grid">
+    <article class="finance-result-card"><span>IG ISA CASH</span><strong id="cashBalanceIG">£0.00</strong><small>Available broker cash</small></article>
+    <article class="finance-result-card"><span>TRADING 212 ISA CASH</span><strong id="cashBalanceT212">£0.00</strong><small>Available broker cash</small></article>
+  </div>
+  <div class="finance-actions"><button id="refreshBrokerCash" type="button">Refresh Broker Cash</button></div>
+
+  <div class="finance-input-grid" style="margin-top:18px">
+    <label>Dividend
+      <select id="cashRecordDividend"><option value="">Choose dividend…</option></select>
+    </label>
+    <label>Ticker
+      <input id="cashRecordTicker" type="text" readonly>
+    </label>
+    <label>Expected
+      <input id="cashRecordExpected" type="text" readonly>
+    </label>
+    <label>Broker received into
+      <select id="cashRecordAccount">
+        <option value="IG">IG ISA</option>
+        <option value="T212">Trading 212 ISA</option>
+      </select>
+    </label>
+    <label>Exact amount received £
+      <input id="cashRecordAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+    </label>
+    <label>Date received
+      <input id="cashRecordDate" type="date">
+    </label>
+  </div>
+  <div class="finance-actions"><button id="recordDividendCash" class="finance-primary" type="button">Record Dividend Received</button></div>
+  <p>Recording a dividend writes the real settlement to AuroraData 2 and adds the cash to the selected broker balance. Duplicate references are protected by the backend.</p>
+  <h3>Recent broker cash activity</h3>
+  <ul id="cashLedger"><li>Loading broker cash ledger…</li></ul>
+</section>
+
 <section class="department-section">
   <div class="section-heading">
     <div><p class="eyebrow">DIVIDEND FIXTURES</p><h2>Everything currently due to be received</h2></div>
-    <p>Only future dated records supplied by AuroraData 2 are shown. Aurora does not invent payment dates.</p>
+    <p>Only future dated records supplied by AuroraData 2 are shown. Use Record Received when the cash lands.</p>
   </div>
   <ul id="incomeUpcomingRows"><li>Loading upcoming dividends…</li></ul>
 </section>
@@ -62,8 +104,8 @@
 </section>
 
 <section class="finance-next-stage">
-  <strong>Payday integration</strong>
-  <p>When Registration settles a real purchase, Squad updates first. Income then reflects the new confirmed forward income automatically. The dated dividend calendar changes only when AuroraData 2 has a dividend record for that holding.</p>
+  <strong>Cash becomes deployable capital</strong>
+  <p>Dividend receipts remain in their real broker cash account. Transfer can use those balances as available broker cash alongside the next Finance mission instead of treating dividends as already invested.</p>
 </section>
 
 </body>
