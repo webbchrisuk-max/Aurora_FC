@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260826-payday-chain-health-2-cash-truth';
+  const BUILD='20260826-payday-chain-health-3-auto-scouting';
   const EPS=0.01,$=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const round=v=>Number(num(v).toFixed(2)),upper=v=>String(v||'').trim().toUpperCase(),clone=v=>JSON.parse(JSON.stringify(v));
@@ -9,6 +9,7 @@
   const sum=(rows,key)=>round((rows||[]).reduce((s,r)=>s+num(typeof key==='function'?key(r):r?.[key]),0));
   const accountCode=v=>{const s=upper(v);if(s.includes('212'))return'T212';if(s==='IG'||s.includes('IG ISA'))return'IG';return''};
   const cashTruthCurrent=(state,stage5)=>!!stage5&&Math.abs(num(stage5.availableCash)-num(state.finance?.availableCash))<EPS&&Math.abs(num(stage5.protectedCash)-num(state.finance?.protectedCash))<EPS;
+  const pickCountForBudget=budget=>{const v=Math.max(0,num(budget));if(v<500)return 1;if(v<1000)return 2;if(v<2000)return 3;if(v<3500)return 4;return 5};
 
   function snapshotChecks(state){
     const stage5=state.finance?.stage5PaydayDecision,mission=state.transfer?.mission,plan=state.scouting?.allocationPlan,route=state.transfer?.route,receipts=state.registration?.receipts||[];
@@ -24,6 +25,7 @@
       ['Finance mission matches Stage 5',!activeMission||Math.abs(missionBudget-stage5Budget)<EPS],
       ['Scouting plan uses mission authority',!activeMission||!plan||String(plan.missionId||'')===String(mission.id||'')],
       ['Scouting allocation reconciles to mission',!activeMission||!plan?.allocations?.length||Math.abs(planTotal-missionBudget)<EPS],
+      ['Transfer route requires approved Scouting plan',!route?.allocations?.length||upper(plan?.status)==='APPROVED'],
       ['Transfer route belongs to mission',!route||!mission||String(route.missionId||'')===String(mission.id||'')],
       ['Transfer route reconciles to mission',!route?.allocations?.length||Math.abs(routeTotal-missionBudget)<EPS],
       ['Transfer leg IDs are unique',!route?.allocations?.length||(routeLegs.every(Boolean)&&new Set(routeLegs).size===routeLegs.length)],
@@ -39,15 +41,15 @@
   }
 
   function buildDryPlan(state,budget){
-    const rankings=window.AuroraClean.scoutingRankings(state).filter(r=>r.approved&&num(r.yieldPct)>0);
-    if(!rankings.length)return{ok:false,error:'Approve at least one Scouting candidate before running the full rehearsal.'};
+    const eligible=window.AuroraClean.scoutingRankings(state).filter(r=>num(r.yieldPct)>0),target=Math.min(pickCountForBudget(budget),eligible.length),rankings=eligible.slice(0,target);
+    if(!rankings.length)return{ok:false,error:'No eligible Scouting candidates are available for automatic selection.'};
     const strategy=state.scouting?.strategy==='maximum'?'maximum':'sustainable',baseCap=strategy==='maximum'?0.65:0.45,capPct=Math.max(baseCap,1/rankings.length);
     const items=rankings.map(r=>({...r,weight:strategy==='maximum'?Math.max(1,num(r.score))*Math.max(.25,num(r.yieldPct)):Math.max(1,num(r.score))*(r.held?Math.max(.45,1-num(r.exposurePct)/100):1.12),amount:0}));
     let remaining=budget,open=[...items];
     while(open.length&&remaining>.004){const tw=open.reduce((s,r)=>s+r.weight,0)||open.length;let capped=false;for(const r of [...open]){const desired=remaining*(r.weight/tw),cap=budget*capPct,capacity=Math.max(0,cap-r.amount);if(desired>capacity+.005){r.amount+=capacity;remaining-=capacity;open=open.filter(x=>x!==r);capped=true;}}if(!capped){const w=open.reduce((s,r)=>s+r.weight,0)||open.length;open.forEach(r=>r.amount+=remaining*(r.weight/w));remaining=0;}}
-    const allocations=items.filter(r=>r.amount>.004).map((r,i)=>({legId:`DRY-LEG-${i+1}`,ticker:r.ticker,name:r.name,amount:round(r.amount),yieldPct:num(r.yieldPct),expectedAnnualIncome:round(r.amount*num(r.yieldPct)/100)}));
+    const allocations=items.filter(r=>r.amount>.004).map((r,i)=>({legId:`DRY-LEG-${i+1}`,selectionRank:i+1,ticker:r.ticker,name:r.name,amount:round(r.amount),yieldPct:num(r.yieldPct),expectedAnnualIncome:round(r.amount*num(r.yieldPct)/100)}));
     let allocated=sum(allocations,'amount');const delta=round(budget-allocated);if(allocations.length&&Math.abs(delta)>=.01)allocations[0].amount=round(allocations[0].amount+delta);allocated=sum(allocations,'amount');
-    return{ok:true,strategy,allocations,allocated};
+    return{ok:true,strategy,selectedCount:allocations.length,allocations,allocated,status:'PROPOSED'};
   }
 
   function dryRun(){
@@ -58,11 +60,12 @@
     if(!current)return renderDry(lines,false);
     pass('Stage 5 budget available',budget>0,money(budget));if(!(budget>0))return renderDry(lines,false);
     test.transfer.mission={id:'DRY-MISSION',budget,status:'DRAFT'};
-    const plan=buildDryPlan(test,budget);pass('Scouting optimiser built',plan.ok,plan.error||`${plan.allocations?.length||0} allocations`);if(!plan.ok)return renderDry(lines,false);
+    const plan=buildDryPlan(test,budget);pass('Scouting auto-selection built',plan.ok,plan.error||`${plan.selectedCount||0} auto-selected pick(s)`);if(!plan.ok)return renderDry(lines,false);
     pass('Scouting allocation = Finance budget',Math.abs(plan.allocated-budget)<EPS,`${money(plan.allocated)} / ${money(budget)}`);
-    test.scouting.allocationPlan={missionId:'DRY-MISSION',budget,allocated:plan.allocated,allocations:plan.allocations};
+    plan.status='APPROVED';plan.approvedAt='DRY';test.scouting.allocationPlan={missionId:'DRY-MISSION',budget,allocated:plan.allocated,allocations:plan.allocations,status:'APPROVED',approvedAt:'DRY'};
+    pass('Single payday plan approval gate',upper(test.scouting.allocationPlan.status)==='APPROVED','One whole-plan approval');
     test.transfer.route={id:'DRY-ROUTE',missionId:'DRY-MISSION',locked:true,allocations:clone(plan.allocations)};test.transfer.mission.status='LOCKED';
-    pass('Transfer receives same allocation',Math.abs(sum(test.transfer.route.allocations,'amount')-budget)<EPS);
+    pass('Transfer receives same approved allocation',Math.abs(sum(test.transfer.route.allocations,'amount')-budget)<EPS);
     test.registration.receipts=plan.allocations.map((r,i)=>({transactionId:`DRY-TX-${i+1}`,missionId:'DRY-MISSION',routeId:'DRY-ROUTE',legId:r.legId,ticker:r.ticker,account:'T212',shares:r.amount,priceInput:1,priceUnit:'GBP',currency:'GBP',fxRateToGbp:1,feesNative:0,totalCostGbp:r.amount,backendConfirmed:true,backendHolding:{account:'T212',ticker:r.ticker,name:r.name,shares:r.amount,bookCostGbp:r.amount,avgCostGbp:1,livePriceGbp:1,marketValueGbp:r.amount,annualIncomeGbp:r.expectedAnnualIncome,annualDpsGbp:r.amount>0?r.expectedAnnualIncome/r.amount:0,status:'ACTIVE'}}));
     pass('Synthetic execution receipts = route total',Math.abs(sum(test.registration.receipts,'totalCostGbp')-budget)<EPS);
     pass('Duplicate guard',new Set(test.registration.receipts.map(r=>r.transactionId)).size===test.registration.receipts.length);
@@ -74,6 +77,6 @@
 
   function renderDry(lines,ok){const box=$('dryRunRows'),status=$('dryRunStatus');if(box)box.innerHTML=lines.map(x=>`<li><strong>${x.ok?'PASS':'FAIL'}</strong> — ${x.label}${x.detail?` · ${x.detail}`:''}</li>`).join('');if(status){status.textContent=ok?'DRY RUN PASSED':'DRY RUN NEEDS ATTENTION';status.dataset.ok=ok?'true':'false';}}
   function render(){const A=window.AuroraClean;if(!A)return;const state=A.readState(),report=snapshotChecks(state),box=$('healthRows');if(box)box.innerHTML=report.checks.map(([label,ok])=>`<li><strong>${ok?'PASS':'FAIL'}</strong> — ${label}</li>`).join('');if($('healthBuild'))$('healthBuild').textContent=BUILD;if($('healthSummary'))$('healthSummary').textContent=`Stage 5 ${money(report.stage5Budget)} · Mission ${report.missionStatus} ${money(report.missionBudget)} · Scouting ${money(report.planTotal)} · Transfer ${money(report.routeTotal)} · Receipts ${money(report.receiptTotal)}`;}
-  function boot(){if(!window.AuroraClean){setTimeout(boot,50);return}render();$('runPaydayDryRun')?.addEventListener('click',dryRun);window.addEventListener('aurora-clean:state',render);window.AuroraPaydayHealth=Object.freeze({BUILD,snapshotChecks,dryRun,cashTruthCurrent});}
+  function boot(){if(!window.AuroraClean){setTimeout(boot,50);return}render();$('runPaydayDryRun')?.addEventListener('click',dryRun);window.addEventListener('aurora-clean:state',render);window.AuroraPaydayHealth=Object.freeze({BUILD,snapshotChecks,dryRun,cashTruthCurrent,pickCountForBudget});}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
