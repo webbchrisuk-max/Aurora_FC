@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260826-clean-rebuild-3-real-squad';
+  const BUILD = '20260826-clean-rebuild-4-shared-navigation';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -198,9 +198,21 @@
     ];
   }
 
+  function currentPageFile() {
+    const file = String(location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    return file || 'index.html';
+  }
+
   function renderNavigation() {
     const nav = byId('auroraNav');
-    if (nav) nav.innerHTML = pageLinks().map(([href,label]) => `<a href="${href}">${label}</a>`).join(' | ');
+    if (!nav) return;
+    const current = currentPageFile();
+    const links = pageLinks().map(([href,label]) => {
+      const active = href === current;
+      return `<a href="${href}"${active ? ' aria-current="page"' : ''}>${active ? '<strong>' : ''}${esc(label)}${active ? '</strong>' : ''}</a>`;
+    }).join('<br>');
+    nav.setAttribute('aria-label','Aurora Clean navigation');
+    nav.innerHTML = `<details id="auroraCleanMenu"><summary>☰ Aurora Menu</summary><div role="navigation" aria-label="Aurora departments">${links}</div></details>`;
   }
 
   function renderNexus() {
