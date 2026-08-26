@@ -1,11 +1,11 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260826-system-services-health-1';
+  const BUILD = '20260826-system-services-health-2-review-semantics';
   const $ = id => document.getElementById(id);
   const arr = v => Array.isArray(v) ? v : [];
   const upper = v => String(v || '').trim().toUpperCase();
-  const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch]));
   const money = v => new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(v)||0);
   const when = value => {
     if (!value) return 'Never';
@@ -88,10 +88,10 @@
         rows.push(row('Latest dividend engine run healthy', !engineFailed, engineFailed ? (last.error || engine.message || 'Latest run reported an error') : 'No engine failure reported'));
 
         const reviews = Number(engine?.openReviewCount || 0);
-        rows.push(row('Dividend review queue clear', reviews === 0, reviews ? `${reviews} dividend item${reviews===1?'':'s'} need review` : 'No open dividend reviews', reviews > 0));
+        rows.push(row('Dividend review queue operational', Number.isFinite(reviews), reviews ? `${reviews} manual review item${reviews===1?'':'s'} waiting for a decision · queue itself is healthy` : 'No open dividend reviews'));
 
         if (engine?.alphaVantage && typeof engine.alphaVantage === 'object') {
-          rows.push(row('Dividend market-data source configured', !!engine.alphaVantage.configured, engine.alphaVantage.configured ? 'Market-data source connected' : 'Market-data source not configured', !engine.alphaVantage.configured));
+          rows.push(row('Optional dividend discovery source', true, engine.alphaVantage.configured ? 'Alpha Vantage connected as an additional discovery source' : 'Not configured · official issuer sources remain the primary dividend authority'));
         }
       } catch (error) {
         rows.push(row('Dividend engine status readable', false, error?.message || error));
