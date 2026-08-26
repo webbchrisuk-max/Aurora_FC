@@ -6,7 +6,7 @@
   const LIVE_STATE_KEYS = ['aurora2:state:v1','aurora2:state:backup:lastgood'];
   const num = v => { const n = Number(String(v ?? '').replace(/[^0-9.-]/g,'')); return Number.isFinite(n) ? Math.max(0,n) : 0; };
   const money = v => new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
-  const esc = v => String(v ?? '').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const esc = v => String(v ?? '').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch]));
   const iso = d => d instanceof Date && !Number.isNaN(d.getTime()) ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : '';
   const parseDate = v => { if(!v) return null; const d = new Date(`${String(v).slice(0,10)}T12:00:00`); return Number.isNaN(d.getTime()) ? null : d; };
   const addDays = (d,n) => { const x = new Date(d.getTime()); x.setDate(x.getDate()+n); return x; };
@@ -115,6 +115,8 @@
     const aurora=window.AuroraClean; if(!aurora) return;
     const state=aurora.readState(), p=plan(state);
     const text=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+    const paydayInput=document.getElementById('financePaydayDate');
+    if(paydayInput && !paydayInput.value) paydayInput.value=state.finance?.paydayDate||p.payday;
     text('financeBillCount',String(p.billCount));
     text('financeCurrentAccountDue',money(p.currentAccountDue));
     text('financeHoldingAnnual',money(p.annualHoldingTotal));
@@ -126,7 +128,9 @@
     }
     const status=document.getElementById('financeBillImportStatus');
     if(status && state.finance?.billImportAt) status.textContent=`Live bills imported ${new Date(state.finance.billImportAt).toLocaleString('en-GB')} · ${state.finance.billImportSource||'Aurora state'}`;
-    aurora.updateState(next=>{ next.finance.stage2Bills={...p,calculatedAt:new Date().toISOString()}; });
+    const before=JSON.stringify(state.finance?.stage2Bills||{});
+    const nextPlan={...p,calculatedAt:state.finance?.stage2Bills?.calculatedAt||new Date().toISOString()};
+    if(before!==JSON.stringify(nextPlan)) aurora.updateState(next=>{ next.finance.stage2Bills=nextPlan; });
   }
 
   let writing=false;
@@ -135,6 +139,8 @@
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,50);return;}
     document.getElementById('financeImportBills')?.addEventListener('click',()=>{const result=importBills(); const el=document.getElementById('financeBillImportStatus'); if(el)el.textContent=result.message; safeRender();});
+    document.getElementById('financePaydayDate')?.addEventListener('change',event=>{window.AuroraClean.updateState(state=>{state.finance.paydayDate=String(event.target.value||'').slice(0,10);state.finance.stage2Bills=null;});safeRender();});
+    document.getElementById('financeRecalculateBills')?.addEventListener('click',safeRender);
     safeRender();
     window.addEventListener('aurora-clean:state',safeRender);
     window.AuroraFinanceBills=Object.freeze({plan,projectBillOccurrences,nextDue,importBills});
