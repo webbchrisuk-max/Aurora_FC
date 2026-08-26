@@ -224,9 +224,28 @@
     return {potCount:pots.length,expectedWages:expected,wagesReceived:received,wageDifference,extraBudget:Number(extraBudget.toFixed(2)),optionalCap:NORMAL_POT_PAYDAY_CAP,optionalBudget:Number(optionalBudget.toFixed(2)),requiredFunding:Number(requiredFunding.toFixed(2)),deadlineRequired:Number(deadlineRequired.toFixed(2)),rolloverBalance,rolloverGap,rolloverContribution,optionalAfterRollover:Number(optionalAfterRollover.toFixed(2)),optionalPriority,total,rows};
   }
 
+  function paydayDecisionPlan(state,billPlan,holding,pots){
+    const availableCash=Number(num(state.finance?.availableCash).toFixed(2));
+    const currentAccountBills=Number(num(billPlan.currentAccountDue).toFixed(2));
+    const baseHoldingContribution=Number(num(holding.baseContribution).toFixed(2));
+    const holdingSafetyTopUp=Number(num(holding.safetyTopUp).toFixed(2));
+    const potFunding=Number(num(pots.total).toFixed(2));
+    const protectedCash=Number(num(state.finance?.protectedCash).toFixed(2));
+    const commitments=Number((currentAccountBills+baseHoldingContribution+holdingSafetyTopUp+potFunding).toFixed(2));
+    const totalReserved=Number((commitments+protectedCash).toFixed(2));
+    const maximumSafeRelease=Number(Math.max(0,availableCash-totalReserved).toFixed(2));
+    const temporaryStage1Commitment=Number(num(state.finance?.commitments).toFixed(2));
+    const temporaryStage1Safe=Number(Math.max(0,availableCash-temporaryStage1Commitment-protectedCash).toFixed(2));
+    return {
+      availableCash,currentAccountBills,baseHoldingContribution,holdingSafetyTopUp,potFunding,protectedCash,
+      commitments,totalReserved,maximumSafeRelease,temporaryStage1Commitment,temporaryStage1Safe,
+      differenceFromStage1:Number((maximumSafeRelease-temporaryStage1Safe).toFixed(2))
+    };
+  }
+
   function render(){
     const aurora=window.AuroraClean; if(!aurora) return;
-    const state=aurora.readState(), p=plan(state), hp=holdingPlan(state,p), pots=potFundingPlan(state);
+    const state=aurora.readState(), p=plan(state), hp=holdingPlan(state,p), pots=potFundingPlan(state), decision=paydayDecisionPlan(state,p,hp,pots);
     const text=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
     const paydayInput=document.getElementById('financePaydayDate'); if(paydayInput && !paydayInput.value) paydayInput.value=state.finance?.paydayDate||p.payday;
     text('financeBillCount',String(p.billCount)); text('financeCurrentAccountDue',money(p.currentAccountDue)); text('financeHoldingAnnual',money(p.annualHoldingTotal)); text('financeHoldingPerPayday',money(p.holdingPerPayday)); text('financeBillWindow',`${p.payday} → ${p.nextPayday}`);
@@ -241,10 +260,26 @@
     const potStatus=document.getElementById('financePotImportStatus'); if(potStatus && state.finance?.potImportAt) potStatus.textContent=`Pots imported ${new Date(state.finance.potImportAt).toLocaleString('en-GB')} · ${state.finance.potImportSource||'Aurora state'}`;
     const potRows=document.getElementById('financeStage4PotRows'); if(potRows) potRows.innerHTML=pots.rows.length?pots.rows.map(r=>`<li><strong>${esc(r.name)}</strong> — ${money(r.amount)}${r.required>0?` — required ${money(r.required)}`:''} — ${esc(r.reason)}</li>`).join(''):'<li>No Stage 4 pot funding is required from the current payday inputs.</li>';
 
+    text('financeDecisionCash',money(decision.availableCash));
+    text('financeDecisionBills',money(decision.currentAccountBills));
+    text('financeDecisionHoldingBase',money(decision.baseHoldingContribution));
+    text('financeDecisionHoldingTopUp',money(decision.holdingSafetyTopUp));
+    text('financeDecisionPots',money(decision.potFunding));
+    text('financeDecisionProtected',money(decision.protectedCash));
+    text('financeDecisionCommitments',money(decision.commitments));
+    text('financeDecisionReserved',money(decision.totalReserved));
+    text('financeDecisionSafeRelease',money(decision.maximumSafeRelease));
+    text('financeDecisionStage1Comparison',`${money(decision.temporaryStage1Safe)} temporary Stage 1 · ${decision.differenceFromStage1>=0?'+':''}${money(decision.differenceFromStage1)} difference`);
+    const decisionRows=document.getElementById('financeStage5DecisionRows');
+    if(decisionRows) decisionRows.innerHTML=`<li>Available payday cash: <strong>${money(decision.availableCash)}</strong></li><li>Current Account bills: <strong>− ${money(decision.currentAccountBills)}</strong></li><li>Base Holding Pot contribution: <strong>− ${money(decision.baseHoldingContribution)}</strong></li><li>Holding Pot safety top-up: <strong>− ${money(decision.holdingSafetyTopUp)}</strong></li><li>Stage 4 pot funding: <strong>− ${money(decision.potFunding)}</strong></li><li>Protected cash: <strong>− ${money(decision.protectedCash)}</strong></li><li><strong>Maximum Safe Release: ${money(decision.maximumSafeRelease)}</strong></li>`;
+
     const nextBills={...p,holdingBills:undefined,calculatedAt:state.finance?.stage2Bills?.calculatedAt||new Date().toISOString()};
     const nextHolding={...hp,calculatedAt:state.finance?.stage3HoldingPot?.calculatedAt||new Date().toISOString()};
     const nextPots={...pots,calculatedAt:state.finance?.stage4PotFunding?.calculatedAt||new Date().toISOString()};
-    if(JSON.stringify(state.finance?.stage2Bills||{})!==JSON.stringify(nextBills) || JSON.stringify(state.finance?.stage3HoldingPot||{})!==JSON.stringify(nextHolding) || JSON.stringify(state.finance?.stage4PotFunding||{})!==JSON.stringify(nextPots)) aurora.updateState(next=>{ next.finance.stage2Bills=nextBills; next.finance.stage3HoldingPot=nextHolding; next.finance.stage4PotFunding=nextPots; });
+    const nextDecision={...decision,calculatedAt:state.finance?.stage5PaydayDecision?.calculatedAt||new Date().toISOString()};
+    if(JSON.stringify(state.finance?.stage2Bills||{})!==JSON.stringify(nextBills) || JSON.stringify(state.finance?.stage3HoldingPot||{})!==JSON.stringify(nextHolding) || JSON.stringify(state.finance?.stage4PotFunding||{})!==JSON.stringify(nextPots) || JSON.stringify(state.finance?.stage5PaydayDecision||{})!==JSON.stringify(nextDecision)) aurora.updateState(next=>{
+      next.finance.stage2Bills=nextBills; next.finance.stage3HoldingPot=nextHolding; next.finance.stage4PotFunding=nextPots; next.finance.stage5PaydayDecision=nextDecision; next.finance.lastSafeRelease=decision.maximumSafeRelease;
+    });
   }
 
   let writing=false;
@@ -254,10 +289,10 @@
     document.getElementById('financeImportBills')?.addEventListener('click',()=>{const result=importBills(); const el=document.getElementById('financeBillImportStatus'); if(el)el.textContent=result.message; safeRender();});
     document.getElementById('financeImportHoldingPot')?.addEventListener('click',()=>{const result=importHoldingPot(); const el=document.getElementById('financeHoldingImportStatus'); if(el)el.textContent=result.message; safeRender();});
     document.getElementById('financeImportPots')?.addEventListener('click',()=>{const result=importPots(); const el=document.getElementById('financePotImportStatus'); if(el)el.textContent=result.message; safeRender();});
-    document.getElementById('financePaydayDate')?.addEventListener('change',event=>{window.AuroraClean.updateState(state=>{state.finance.paydayDate=String(event.target.value||'').slice(0,10);state.finance.stage2Bills=null;state.finance.stage3HoldingPot=null;state.finance.stage4PotFunding=null;});safeRender();});
-    document.getElementById('financeRecalculateBills')?.addEventListener('click',safeRender); document.getElementById('financeRecalculateHolding')?.addEventListener('click',safeRender); document.getElementById('financeRecalculatePots')?.addEventListener('click',safeRender);
+    document.getElementById('financePaydayDate')?.addEventListener('change',event=>{window.AuroraClean.updateState(state=>{state.finance.paydayDate=String(event.target.value||'').slice(0,10);state.finance.stage2Bills=null;state.finance.stage3HoldingPot=null;state.finance.stage4PotFunding=null;state.finance.stage5PaydayDecision=null;});safeRender();});
+    document.getElementById('financeRecalculateBills')?.addEventListener('click',safeRender); document.getElementById('financeRecalculateHolding')?.addEventListener('click',safeRender); document.getElementById('financeRecalculatePots')?.addEventListener('click',safeRender); document.getElementById('financeRecalculateDecision')?.addEventListener('click',safeRender);
     safeRender(); window.addEventListener('aurora-clean:state',safeRender);
-    window.AuroraFinanceBills=Object.freeze({plan,holdingPlan,potFundingPlan,projectBillOccurrences,nextDue,importBills,importHoldingPot,importPots});
+    window.AuroraFinanceBills=Object.freeze({plan,holdingPlan,potFundingPlan,paydayDecisionPlan,projectBillOccurrences,nextDue,importBills,importHoldingPot,importPots});
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
