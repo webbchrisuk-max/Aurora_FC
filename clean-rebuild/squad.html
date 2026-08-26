@@ -4,14 +4,35 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Aurora Clean — Squad Hub</title>
-  <link rel="stylesheet" href="aurora.css?v=20260826-clean-squad-payday-chain-1">
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-squad-market-view-1">
   <script src="aurora.js?v=20260826-clean-rebuild-9-single-mission-authority" defer></script>
+  <script src="../squad-live-price-authority.js?v=20260825-shared-market-price-authority-3" defer></script>
+  <script src="squad-engine.js?v=20260826-clean-squad-market-view-1" defer></script>
 </head>
-<body data-page="squad">
+<body data-page="squad-real">
 <nav id="auroraNav"></nav><hr>
-<header class="department-hero squad-hero"><div><p class="eyebrow">AURORA CITY FC · FIRST TEAM</p><h1>Squad Hub</h1><p class="department-lead">One clean view of every active account position, portfolio value and confirmed forward income contribution.</p></div><button id="squadImportReal" type="button">Refresh Live Holdings</button></header>
-<section class="squad-status" aria-label="Squad data status"><p id="squadImportStatus">Live holdings are stored in the clean Aurora state.</p><p id="squadSource">Source: clean rebuild only</p></section>
-<section class="kpi-grid squad-kpis" aria-label="Squad summary"><article class="kpi-card"><span>ACTIVE POSITIONS</span><strong id="squadCount">0 account position(s)</strong></article><article class="kpi-card kpi-card-wide"><span>PORTFOLIO & INCOME</span><strong id="squadTotals">Book £0.00 • Market £0.00 • Annual income £0.00</strong></article></section>
-<section class="department-section squad-register"><div class="section-heading"><div><p class="eyebrow">PLAYER REGISTER</p><h2>Active Holdings</h2></div><p>Ordered by annual income, highest first. Every broker position remains separate.</p></div><ul id="squadRows" class="squad-holding-list"></ul></section>
+<header class="department-hero squad-hero">
+  <div><p class="eyebrow">AURORA CITY FC · FIRST TEAM</p><h1>Squad Hub</h1><p class="department-lead">Every active account position with live price, current market value, profit/loss and confirmed forward income.</p></div>
+  <button id="squadImportReal" type="button">Refresh Live Holdings</button>
+</header>
+<section class="squad-status" aria-label="Squad data status"><p id="squadImportStatus">Refreshing live holdings and market prices…</p><p id="squadSource">Waiting for live holdings refresh</p></section>
+
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">PORTFOLIO VALUE</p><h2>Current market position</h2></div><p id="squadCount">0 account position(s)</p></div>
+  <div class="scouting-control-grid">
+    <article class="scouting-control-card scouting-top-card"><span>TOTAL MARKET VALUE</span><strong id="squadMarketValue">£0.00</strong><small>Live price × active shares</small></article>
+    <article class="scouting-control-card"><span>BOOK COST</span><strong id="squadBookValue">£0.00</strong><small>Total invested cost basis</small></article>
+    <article class="scouting-control-card"><span>PROFIT / LOSS</span><strong id="squadProfitLoss">£0.00</strong><small id="squadProfitLossPct">0.00%</small></article>
+  </div>
+  <div class="finance-result-grid">
+    <article class="finance-result-card"><span>ANNUAL INCOME</span><strong id="squadAnnualIncome">£0.00</strong><small>Confirmed forward income</small></article>
+    <article class="finance-result-card"><span>MONTHLY AVERAGE</span><strong id="squadMonthlyIncome">£0.00</strong><small>Annual income ÷ 12</small></article>
+  </div>
+</section>
+
+<section class="department-section squad-register">
+  <div class="section-heading"><div><p class="eyebrow">PLAYER REGISTER</p><h2>Active Holdings</h2></div><p>Largest market value first. Broker positions remain separate.</p></div>
+  <ul id="squadRows" class="squad-holding-list"><li>Loading active holdings…</li></ul>
+</section>
 </body>
 </html>
