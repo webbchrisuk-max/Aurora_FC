@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260826-nexus-single-render-authority-1';
+  const BUILD = '20260826-nexus-mobile-nav-stable-2';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const INCOME_SUMMARY_KEY = 'aurora2:income:summary:v1';
@@ -37,6 +37,51 @@
   function text(id,value){ const el=document.getElementById(id); if(el) el.textContent=value; }
   function accountCode(value){ const t=String(value||'').toLowerCase(); return t.includes('212')?'T212':t.includes('ig')?'IG':'CHECK'; }
   function activeHolding(row){ return !['SOLD','ARCHIVED','CLOSED','EXITED'].includes(upper(row?.status||'ACTIVE')) && num(row?.shares)>0; }
+
+  function clearLegacyNavHash(){
+    if(location.hash !== '#club-nav') return;
+    try { history.replaceState(history.state,'',`${location.pathname}${location.search}`); }
+    catch(_) { location.hash=''; }
+  }
+  function closeNavigation(){
+    const nav=document.getElementById('club-nav');
+    nav?.classList.remove('is-open');
+    document.body?.classList.remove('aurora-nav-open');
+    clearLegacyNavHash();
+  }
+  function openNavigation(){
+    const nav=document.getElementById('club-nav');
+    if(!nav) return;
+    clearLegacyNavHash();
+    nav.classList.add('is-open');
+    document.body?.classList.add('aurora-nav-open');
+  }
+  function installNavigationController(){
+    const nav=document.getElementById('club-nav');
+    if(!nav || nav.dataset.nexusNavOwner===BUILD) return;
+    nav.dataset.nexusNavOwner=BUILD;
+    clearLegacyNavHash();
+    nav.classList.remove('is-open');
+    document.body?.classList.remove('aurora-nav-open');
+
+    let style=document.getElementById('nexusExplicitNavState');
+    if(!style){
+      style=document.createElement('style');
+      style.id='nexusExplicitNavState';
+      style.textContent='.club-nav:target{transform:translateX(-102%)!important}.club-nav:target~.nav-backdrop{display:none!important}.club-nav.is-open{transform:translateX(0)!important}.club-nav.is-open~.nav-backdrop{display:block!important}body.aurora-nav-open{overflow:hidden}';
+      document.head.appendChild(style);
+    }
+
+    document.addEventListener('click',event=>{
+      const menu=event.target.closest('.menu[href="#club-nav"]');
+      if(menu){ event.preventDefault(); nav.classList.contains('is-open')?closeNavigation():openNavigation(); return; }
+      const close=event.target.closest('.nav-close,.nav-backdrop');
+      if(close){ event.preventDefault(); closeNavigation(); return; }
+      const navLink=event.target.closest('#club-nav nav a[href]');
+      if(navLink) closeNavigation();
+    },true);
+    document.addEventListener('keydown',event=>{ if(event.key==='Escape') closeNavigation(); });
+  }
 
   function holdingMetrics(row){
     const shares=Math.max(0,num(row?.shares));
@@ -178,7 +223,6 @@
     text('nxTodayMove',p.todayGbp===null?'Awaiting feed':signedMoney(p.todayGbp)); text('nxTodayMoveMeta',p.todayPct===null?'Daily evidence incomplete':pct(p.todayPct));
     const move=document.getElementById('nxTodayMove'); if(move){ move.classList.remove('good','bad'); if(num(p.todayGbp)>0) move.classList.add('good'); else if(num(p.todayGbp)<0) move.classList.add('bad'); }
 
-    // One income authority everywhere on Nexus.
     text('nxAnnualIncome',money(income.annual)); text('nxMonthlyIncome',`${money(income.monthly)} / month`);
     text('nxIncomeMonthly',`${money(income.monthly)}/m`); text('nxIncomeAnnualSide',`${money(income.annual)}/yr`);
     const p625=Math.max(0,Math.min(100,income.monthly/625*100)), p2000=Math.max(0,Math.min(100,income.monthly/2000*100));
@@ -203,8 +247,6 @@
     document.documentElement.dataset.nexusFinal='live';
     document.documentElement.dataset.nexusRenderAuthority=BUILD;
     window.AuroraNexusFinal=Object.freeze({build:BUILD,ready:true,portfolioValue:p.value,annualIncome:income.annual,monthlyIncome:income.monthly,missionStatus:m.status,autoSyncRole:sync.role});
-
-    // Intelligence is a child renderer only. It owns no timers/listeners.
     try { window.AuroraNexusHeadquartersIntelligence?.render?.(state); } catch(err) { console.warn('[Aurora Nexus] intelligence render failed',err); }
   }
 
@@ -217,13 +259,14 @@
   }
 
   function boot(){
+    installNavigationController();
     render();
     window.addEventListener('aurora2:state',()=>schedule());
     window.addEventListener('aurora:browser-auto-sync',()=>schedule());
     window.addEventListener('storage',e=>{ if([STATE_KEY,BACKUP_KEY,INCOME_SUMMARY_KEY,INCOME_CALENDAR_KEY].includes(e.key)) schedule(); });
-    window.addEventListener('focus',()=>schedule());
-    window.addEventListener('pageshow',()=>schedule());
-    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') schedule(); });
+    window.addEventListener('focus',()=>{ closeNavigation(); schedule(); });
+    window.addEventListener('pageshow',()=>{ closeNavigation(); schedule(); });
+    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ closeNavigation(); schedule(); } });
     [400,1200,3000].forEach(schedule);
   }
 
