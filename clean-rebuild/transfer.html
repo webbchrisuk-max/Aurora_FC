@@ -4,19 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Aurora Clean — Transfer</title>
-  <link rel="stylesheet" href="aurora.css?v=20260826-clean-shell-1">
+  <link rel="stylesheet" href="aurora.css?v=20260826-transfer-broker-cash-2">
   <script src="aurora.js?v=20260826-clean-rebuild-9-mission-authority" defer></script>
-  <script src="transfer-stage2.js?v=20260826-transfer-approved-scouting-plan-1" defer></script>
+  <script src="../aurora-data2-client.js?v=20260826-transfer-broker-cash-2" defer></script>
+  <script src="transfer-stage2.js?v=20260826-transfer-approved-plan-plus-broker-cash-2" defer></script>
 </head>
 <body data-page="transfer">
 <nav id="auroraNav"></nav><hr>
-<h1>Transfer</h1>
-<p>Finance mission: <strong id="transferStage2Mission">No Finance mission</strong></p>
-<p>Route status: <strong id="transferStage2RouteStatus">WAITING</strong></p>
-<p>Transfer consumes only the single payday plan approved in Scouting, then freezes stable purchase legs for Registration. It never selects shares or creates its own split.</p>
-<button id="transferStage2Build" type="button">Build Approved Scouting Route</button>
-<button id="transferStage2Lock" type="button">Lock Route</button>
-<h2>Optimised Allocations</h2>
-<ul id="transferStage2Rows"><li>No approved Scouting payday plan available yet.</li></ul>
+<header class="department-hero">
+  <div><p class="eyebrow">AURORA CITY FC · TRANSFER CENTRE</p><h1>Transfer</h1><p class="department-lead">Transfer consumes the one approved Scouting payday plan, then combines the Finance mission with existing broker cash without moving cash between brokers.</p></div>
+  <span class="stage-badge">BROKER ROUTING</span>
+</header>
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">BUYING POWER</p><h2>Finance + existing broker cash</h2></div><button id="transferRefreshCash" type="button">Refresh Broker Cash</button></div>
+  <div class="finance-result-grid">
+    <article class="finance-result-card"><span>IG ISA CASH</span><strong id="transferCashIG">£0.00</strong><small>Locked to IG purchases</small></article>
+    <article class="finance-result-card"><span>TRADING 212 ISA CASH</span><strong id="transferCashT212">£0.00</strong><small>Locked to Trading 212 purchases</small></article>
+    <article class="finance-result-card"><span>TOTAL BUYING POWER</span><strong id="transferBuyingPower">£0.00</strong><small>Finance mission + available broker cash</small></article>
+  </div>
+  <p>Finance mission: <strong id="transferStage2Mission">No Finance mission</strong></p>
+  <p>Route status: <strong id="transferStage2RouteStatus">WAITING</strong></p>
+</section>
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">APPROVED ROUTE</p><h2>Optimised allocations</h2></div><p>Finance-funded legs stay within the Finance budget. Existing broker cash creates separate account-locked legs for the same approved Scouting picks.</p></div>
+  <div class="finance-actions"><button id="transferStage2Build" class="finance-primary" type="button">Build Approved Scouting Route</button><button id="transferStage2Lock" type="button">Lock Route</button></div>
+  <ul id="transferStage2Rows"><li>No approved Scouting payday plan available yet.</li></ul>
+</section>
 </body>
 </html>
