@@ -1,9 +1,70 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aurora Clean — Income</title><link rel="stylesheet" href="aurora.css?v=20260826-clean-income-payday-chain-1"><script src="aurora.js?v=20260826-clean-rebuild-9-single-mission-authority" defer></script></head>
-<body data-page="income">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Aurora Clean — Income Centre</title>
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-income-dividend-calendar-1">
+  <script src="aurora.js?v=20260826-clean-rebuild-9-single-mission-authority" defer></script>
+  <script src="../aurora-data2-client.js?v=20260826-clean-income-dividend-calendar-1" defer></script>
+  <script src="income-engine.js?v=20260826-clean-income-dividend-calendar-1" defer></script>
+</head>
+<body data-page="income-real">
 <nav id="auroraNav"></nav><hr>
-<header class="department-hero"><div><p class="eyebrow">AURORA CITY FC · INCOME CENTRE</p><h1>Income</h1><p class="department-lead">Confirmed Squad holdings are the income authority. Scouting forecasts remain forecasts until Registration and AuroraData confirm the holding.</p></div></header>
-<section class="department-section"><div class="scouting-control-grid"><article class="scouting-control-card"><span>ANNUAL INCOME</span><strong id="incomeAnnual">£0.00</strong></article><article class="scouting-control-card"><span>MONTHLY INCOME</span><strong id="incomeMonthly">£0.00</strong></article></div></section>
-<section class="department-section"><h2>Add Dividend Event</h2><div class="finance-form-grid"><label>Ticker<input id="dividendTicker"></label><label>Pay Date<input id="dividendDate" type="date"></label><label>Amount<input id="dividendAmount" type="number" step="0.01"></label></div><div class="finance-actions"><button id="addDividend" type="button">Add Dividend</button></div><h2>Dividend Events</h2><ul id="incomeDividendRows"></ul></section>
-</body></html>
+
+<header class="department-hero">
+  <div>
+    <p class="eyebrow">AURORA CITY FC · INCOME CENTRE</p>
+    <h1>Dividend Income</h1>
+    <p class="department-lead">Squad owns the confirmed forward-income run rate. AuroraData 2 owns declared and confirmed dividend dates, expected cash payments and eligibility.</p>
+  </div>
+  <button id="incomeRefresh" type="button">Refresh Dividends</button>
+</header>
+
+<section class="department-section">
+  <div class="section-heading">
+    <div><p class="eyebrow">INCOME POSITION</p><h2>Confirmed forward income</h2></div>
+    <div><strong id="incomeConnection">CHECKING</strong><p id="incomeConnectionDetail">Connecting to AuroraData 2…</p></div>
+  </div>
+  <div class="scouting-control-grid">
+    <article class="scouting-control-card scouting-top-card"><span>ANNUAL INCOME</span><strong id="incomeAnnual">£0.00</strong><small>Confirmed Squad holdings only</small></article>
+    <article class="scouting-control-card"><span>MONTHLY AVERAGE</span><strong id="incomeMonthly">£0.00</strong><small>Annual run-rate ÷ 12</small></article>
+    <article class="scouting-control-card"><span>NEXT PAYMENT</span><strong id="incomeNextPayment">—</strong><small id="incomeNextPaymentMeta">Waiting for dividend calendar</small></article>
+  </div>
+  <div class="finance-result-grid">
+    <article class="finance-result-card"><span>NEXT 30 DAYS</span><strong id="incomeNext30">£0.00</strong><small>Dated expected payments</small></article>
+    <article class="finance-result-card"><span>NEXT 90 DAYS</span><strong id="incomeNext90">£0.00</strong><small>Dated expected payments</small></article>
+  </div>
+</section>
+
+<section class="department-section">
+  <div class="section-heading">
+    <div><p class="eyebrow">DIVIDEND FIXTURES</p><h2>Everything currently due to be received</h2></div>
+    <p>Only future dated records supplied by AuroraData 2 are shown. Aurora does not invent payment dates.</p>
+  </div>
+  <ul id="incomeUpcomingRows"><li>Loading upcoming dividends…</li></ul>
+</section>
+
+<section class="department-section">
+  <div class="section-heading">
+    <div><p class="eyebrow">12-MONTH RUNWAY</p><h2>Dividend cash by month</h2></div>
+    <p>Confirmed and forecast dated payments grouped by their payment month.</p>
+  </div>
+  <ul id="incomeMonthlyRunway"><li>Building monthly runway…</li></ul>
+</section>
+
+<section class="department-section">
+  <div class="section-heading">
+    <div><p class="eyebrow">INCOME SQUAD</p><h2>Which holdings produce the income</h2></div>
+    <p>Forward annual income is taken from the clean Squad after Registration settlement.</p>
+  </div>
+  <ul id="incomeProducerRows"><li>Loading income-producing holdings…</li></ul>
+</section>
+
+<section class="finance-next-stage">
+  <strong>Payday integration</strong>
+  <p>When Registration settles a real purchase, Squad updates first. Income then reflects the new confirmed forward income automatically. The dated dividend calendar changes only when AuroraData 2 has a dividend record for that holding.</p>
+</section>
+
+</body>
+</html>
