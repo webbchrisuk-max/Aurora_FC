@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260823-transfer-max-income-optimizer-2';
+  const BUILD = '20260826-transfer-preview-prelock-only-1';
   const STATE_KEY = 'aurora2:state:v1';
   const BACKUP_KEY = 'aurora2:state:backup:lastgood';
   const DEFAULT_MIN = 250;
@@ -482,11 +482,21 @@
     return section;
   }
 
+  function lockedRouteOwnedElsewhere(state) {
+    const status = String(state?.mission?.status || '').toUpperCase();
+    return status === 'LOCKED' || status === 'PARTIALLY_REGISTERED';
+  }
+
   function render() {
+    const state = readState();
+    if (!state) return;
+    if (lockedRouteOwnedElsewhere(state)) {
+      document.documentElement.dataset.transferAllocationPreview = 'locked-ui-owner';
+      return;
+    }
     ensureStyles();
     const host = ensureSection();
-    const state = readState();
-    if (!host || !state) return;
+    if (!host) return;
     const preview = simulate(state);
     const strategyLabel = preview.strategy === 'maximum' ? 'Maximum Income' : 'Sustainable Income';
     const modeLabel = preview.strategy === 'maximum' ? 'INCOME OPTIMIZED' : 'QUALITY WEIGHTED';
