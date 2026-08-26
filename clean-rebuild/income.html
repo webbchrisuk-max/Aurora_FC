@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Aurora Clean — Income Centre</title>
-  <link rel="stylesheet" href="aurora.css?v=20260826-clean-income-dividend-settlement-2">
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-income-portfolio-value-3">
   <script src="aurora.js?v=20260826-clean-rebuild-9-single-mission-authority" defer></script>
-  <script src="../aurora-data2-client.js?v=20260826-clean-income-dividend-settlement-2" defer></script>
-  <script src="income-engine.js?v=20260826-clean-income-dividend-settlement-2" defer></script>
+  <script src="../aurora-data2-client.js?v=20260826-clean-income-portfolio-value-3" defer></script>
+  <script src="income-engine.js?v=20260826-clean-income-portfolio-value-3" defer></script>
 </head>
 <body data-page="income-real">
 <nav id="auroraNav"></nav><hr>
@@ -16,7 +16,7 @@
   <div>
     <p class="eyebrow">AURORA CITY FC · INCOME CENTRE</p>
     <h1>Dividend Income</h1>
-    <p class="department-lead">Squad owns forward income. AuroraData 2 owns dividend dates and broker cash. When a dividend arrives, record the exact amount and the broker that received it.</p>
+    <p class="department-lead">Squad owns portfolio value and forward income. AuroraData 2 owns dividend dates and broker cash. When a dividend arrives, record the exact amount and the broker that received it.</p>
   </div>
   <button id="incomeRefresh" type="button">Refresh Dividends</button>
 </header>
@@ -25,10 +25,15 @@
 
 <section class="department-section">
   <div class="section-heading">
-    <div><p class="eyebrow">INCOME POSITION</p><h2>Confirmed forward income</h2></div>
+    <div><p class="eyebrow">PORTFOLIO & INCOME</p><h2>Current position</h2></div>
     <div><strong id="incomeConnection">CHECKING</strong><p id="incomeConnectionDetail">Connecting to AuroraData 2…</p></div>
   </div>
   <div class="scouting-control-grid">
+    <article class="scouting-control-card scouting-top-card"><span>PORTFOLIO MARKET VALUE</span><strong id="incomeMarketValue">£0.00</strong><small>Current value of active Squad holdings</small></article>
+    <article class="scouting-control-card"><span>BOOK COST</span><strong id="incomeBookValue">£0.00</strong><small>Total invested cost basis</small></article>
+    <article class="scouting-control-card"><span>PORTFOLIO PROFIT / LOSS</span><strong id="incomePortfolioPnl">£0.00</strong><small id="incomePortfolioPnlPct">0.00%</small></article>
+  </div>
+  <div class="scouting-control-grid" style="margin-top:12px">
     <article class="scouting-control-card scouting-top-card"><span>ANNUAL INCOME</span><strong id="incomeAnnual">£0.00</strong><small>Confirmed Squad holdings only</small></article>
     <article class="scouting-control-card"><span>MONTHLY AVERAGE</span><strong id="incomeMonthly">£0.00</strong><small>Annual run-rate ÷ 12</small></article>
     <article class="scouting-control-card"><span>NEXT PAYMENT</span><strong id="incomeNextPayment">—</strong><small id="incomeNextPaymentMeta">Waiting for dividend calendar</small></article>
@@ -98,7 +103,7 @@
 <section class="department-section">
   <div class="section-heading">
     <div><p class="eyebrow">INCOME SQUAD</p><h2>Which holdings produce the income</h2></div>
-    <p>Forward annual income is taken from the clean Squad after Registration settlement.</p>
+    <p>Forward annual income and market values are taken from the clean Squad after Registration settlement and live-price refresh.</p>
   </div>
   <ul id="incomeProducerRows"><li>Loading income-producing holdings…</li></ul>
 </section>
