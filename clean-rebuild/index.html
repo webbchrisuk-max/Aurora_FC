@@ -1,16 +1,51 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aurora Clean — Nexus</title><link rel="stylesheet" href="aurora.css?v=20260826-clean-shell-1"><script src="aurora.js?v=20260826-clean-rebuild-4-shared-navigation" defer></script></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Aurora Clean — Nexus</title>
+  <link rel="stylesheet" href="aurora.css?v=20260826-clean-payday-controller-1">
+  <script src="aurora.js?v=20260826-clean-rebuild-9-single-mission-authority" defer></script>
+  <script src="payday-cycle.js?v=20260826-payday-cycle-controller-1" defer></script>
+</head>
 <body data-page="nexus">
 <nav id="auroraNav"></nav><hr>
-<h1>Nexus</h1>
-<p>Plain test build. One shared logic file, no styling.</p>
-<ul>
-<li>Finance: <strong id="nexusFinance">Loading…</strong></li>
-<li>Scouting: <strong id="nexusScouting">Loading…</strong></li>
-<li>Transfer: <strong id="nexusTransfer">Loading…</strong></li>
-<li>Registration: <strong id="nexusRegistration">Loading…</strong></li>
-<li>Squad: <strong id="nexusSquad">Loading…</strong></li>
-<li>Income: <strong id="nexusIncome">Loading…</strong></li>
-</ul>
-</body></html>
+
+<header class="department-hero">
+  <div>
+    <p class="eyebrow">AURORA CITY FC · NEXUS</p>
+    <h1>Payday Control Board</h1>
+    <p class="department-lead">One view of the complete payday chain from Finance proof through real broker settlement.</p>
+  </div>
+  <span class="stage-badge">PAYDAY HQ</span>
+</header>
+
+<section class="department-section payday-readiness-panel">
+  <div class="section-heading">
+    <div><p class="eyebrow">CURRENT CYCLE</p><h2 id="paydayReadiness">Checking payday readiness…</h2></div>
+    <p id="paydayReadinessDetail">Loading Finance authority.</p>
+  </div>
+  <div class="finance-actions"><button id="paydayCycleAction" type="button" class="finance-primary">Start New Payday Cycle</button></div>
+</section>
+
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">PAYDAY CHECKLIST</p><h2>Finance → Settlement</h2></div><p>Each department owns one stage. Nexus only reports the chain.</p></div>
+  <ul id="paydayChecklist" class="payday-checklist"><li>Loading chain status…</li></ul>
+</section>
+
+<section class="kpi-grid squad-kpis" aria-label="Aurora department summary">
+  <article class="kpi-card"><span>FINANCE</span><strong id="nexusFinance">Loading…</strong></article>
+  <article class="kpi-card"><span>SCOUTING</span><strong id="nexusScouting">Loading…</strong></article>
+  <article class="kpi-card"><span>TRANSFER</span><strong id="nexusTransfer">Loading…</strong></article>
+  <article class="kpi-card"><span>REGISTRATION</span><strong id="nexusRegistration">Loading…</strong></article>
+  <article class="kpi-card"><span>SQUAD</span><strong id="nexusSquad">Loading…</strong></article>
+  <article class="kpi-card"><span>INCOME</span><strong id="nexusIncome">Loading…</strong></article>
+</section>
+
+<section class="department-section">
+  <div class="section-heading"><div><p class="eyebrow">PAYDAY HISTORY</p><h2>Completed missions</h2></div><p><strong id="paydayHistoryCount">0</strong> archived cycle(s)</p></div>
+  <ul id="paydayHistoryRows" class="payday-history-list"><li>No completed payday missions archived yet.</li></ul>
+</section>
+
+</body>
+</html>
