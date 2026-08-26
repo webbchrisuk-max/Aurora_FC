@@ -1,12 +1,13 @@
 (() => {
   'use strict';
 
+  const BUILD='20260826-transfer-approved-scouting-plan-1';
   const money = value => new Intl.NumberFormat('en-GB', {
     style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2
   }).format(Number(value || 0));
   const round2 = value => Number(Number(value || 0).toFixed(2));
   const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'
   }[ch]));
   const upper = value => String(value || '').trim().toUpperCase();
   const hash=value=>{let h=2166136261;for(const c of String(value||'')){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,'0')};
@@ -14,7 +15,8 @@
   function scaledPlan(state) {
     const mission = state.transfer?.mission;
     const source = state.scouting?.allocationPlan;
-    if (!mission || !source || !Array.isArray(source.allocations) || !source.allocations.length) return null;
+    if (!mission || !source || upper(source.status) !== 'APPROVED' || !Array.isArray(source.allocations) || !source.allocations.length) return null;
+    if (String(source.missionId || '') !== String(mission.id || '')) return null;
     const missionBudget = round2(Math.max(0, Number(mission.budget || 0)));
     const sourceBudget = round2(Math.max(0, Number(source.budget || source.allocated || 0)));
     if (!missionBudget || !sourceBudget) return null;
@@ -26,6 +28,7 @@
       name: row.name,
       yieldPct: Number(row.yieldPct || 0),
       score: Number(row.score || 0),
+      selectionRank: Number(row.selectionRank || index + 1),
       amount: round2(Number(row.amount || 0) * factor)
     })).filter(row => row.ticker && row.amount > 0);
 
@@ -36,8 +39,11 @@
     allocated = round2(allocations.reduce((sum,row)=>sum+row.amount,0));
 
     return {
+      build: BUILD,
       budget: missionBudget,
       strategy: source.strategy || state.scouting?.strategy || 'sustainable',
+      sourcePlanStatus: source.status,
+      sourcePlanApprovedAt: source.approvedAt || null,
       allocations,
       allocated,
       expectedAnnualIncome: round2(allocations.reduce((sum,row)=>sum+row.expectedAnnualIncome,0))
@@ -49,6 +55,7 @@
     if (!aurora) return;
     const state = aurora.readState();
     const mission = state.transfer?.mission;
+    const source = state.scouting?.allocationPlan;
     const route = state.transfer?.route;
     const preview = scaledPlan(state);
     const setText = (id,value) => { const el=document.getElementById(id); if(el) el.textContent=value; };
@@ -61,11 +68,14 @@
       setText('transferStage2RouteStatus', route.locked ? 'LOCKED' : 'READY');
       if (rows) rows.innerHTML = route.allocations.map(row => `<li><strong>${esc(row.ticker)}</strong> — ${money(row.amount)} — projected annual income ${money(row.expectedAnnualIncome)}${row.legId?` — ${esc(row.legId)}`:''}</li>`).join('');
     } else if (preview?.allocations?.length) {
-      setText('transferStage2RouteStatus', 'SCOUTING OPTIMISER READY');
-      if (rows) rows.innerHTML = preview.allocations.map(row => `<li><strong>${esc(row.ticker)}</strong> — ${money(row.amount)} — projected annual income ${money(row.expectedAnnualIncome)}</li>`).join('');
+      setText('transferStage2RouteStatus', 'APPROVED SCOUTING PLAN READY');
+      if (rows) rows.innerHTML = preview.allocations.map(row => `<li><strong>#${row.selectionRank} ${esc(row.ticker)}</strong> — ${money(row.amount)} — projected annual income ${money(row.expectedAnnualIncome)}</li>`).join('');
+    } else if (mission && source?.allocations?.length && upper(source.status) !== 'APPROVED') {
+      setText('transferStage2RouteStatus', 'WAITING FOR PAYDAY PLAN APPROVAL');
+      if (rows) rows.innerHTML = '<li>Scouting has built a proposal. Approve the whole payday plan in Scouting before Transfer can route it.</li>';
     } else {
-      setText('transferStage2RouteStatus', mission ? 'WAITING FOR SCOUTING ALLOCATION' : 'WAITING FOR FINANCE');
-      if (rows) rows.innerHTML = '<li>No optimiser allocation available yet.</li>';
+      setText('transferStage2RouteStatus', mission ? 'WAITING FOR SCOUTING PLAN' : 'WAITING FOR FINANCE');
+      if (rows) rows.innerHTML = '<li>No approved Scouting payday plan available yet.</li>';
     }
 
     if (build) build.disabled = !mission || !['DRAFT','READY'].includes(upper(mission.status)) || !preview?.allocations?.length || !!route?.locked;
@@ -83,7 +93,8 @@
           id: `ROUTE-${Date.now()}`,
           missionId: state.transfer.mission.id,
           strategy: plan.strategy,
-          allocationAuthority: 'Scouting Optimiser',
+          allocationAuthority: 'Approved Scouting Payday Plan',
+          scoutingPlanApprovedAt: plan.sourcePlanApprovedAt,
           allocations: plan.allocations,
           allocated: plan.allocated,
           expectedAnnualIncome: plan.expectedAnnualIncome,
@@ -110,7 +121,7 @@
     window.addEventListener('aurora-clean:state', render);
     window.addEventListener('storage', event => { if (event.key === 'aurora-clean:state:v1') render(); });
     render();
-    window.AuroraTransferStage2 = Object.freeze({scaledPlan, render});
+    window.AuroraTransferStage2 = Object.freeze({BUILD,scaledPlan,render});
     return true;
   }
 
