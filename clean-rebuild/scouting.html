@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="aurora.css?v=20260826-clean-scouting-stage1-3">
   <script src="aurora.js?v=20260826-clean-rebuild-8-scouting-runtime-refresh" defer></script>
   <script src="scouting-universe.js?v=20260826-clean-universe-3-deploy-retry" defer></script>
+  <script src="scouting-allocation.js?v=20260826-clean-allocation-1" defer></script>
 </head>
 <body data-page="scouting">
 <nav id="auroraNav"></nav><hr>
@@ -15,9 +16,9 @@
   <div>
     <p class="eyebrow scouting-eyebrow">AURORA CITY FC · SCOUTING CENTRE</p>
     <h1>Payday Scouting</h1>
-    <p class="department-lead">Finance proves how much can be invested. Scouting ranks the best opportunities across Aurora's wider stock universe, using the current Squad as portfolio context.</p>
+    <p class="department-lead">Finance proves how much can be invested. Scouting ranks the best opportunities across Aurora's wider stock universe, then optimises how the approved shortlist should use that payday budget.</p>
   </div>
-  <span class="stage-badge scouting-stage-badge">STAGE 1 · RANKING</span>
+  <span class="stage-badge scouting-stage-badge">STAGE 1 + 2 · RANK & ALLOCATE</span>
 </header>
 
 <section class="scouting-control-grid">
@@ -88,15 +89,45 @@
 <section class="department-section scouting-ranking-section">
   <div class="section-heading">
     <div>
-      <p class="eyebrow scouting-eyebrow">RANKED SHORTLIST</p>
+      <p class="eyebrow scouting-eyebrow">STAGE 1 · RANKED SHORTLIST</p>
       <h2>Best payday opportunities</h2>
     </div>
-    <p>Stage 1 ranks the full universe. Stage 2 will optimise how the Finance budget is split between approved picks.</p>
+    <p>Approve the candidates you are happy for Aurora to use. Stage 2 will then decide the amount for each approved pick.</p>
   </div>
   <div class="scouting-table-head" aria-hidden="true">
     <span>Rank / Candidate</span><span>Yield</span><span>Income on Budget</span><span>Score</span><span>Decision</span>
   </div>
   <ul id="scoutingRows" class="scouting-ranking-list"></ul>
+</section>
+
+<section class="department-section scouting-ranking-section">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow scouting-eyebrow">STAGE 2 · PAYDAY ALLOCATION</p>
+      <h2>Optimised use of the Finance budget</h2>
+    </div>
+    <p id="scoutingAllocationNote">Approve one or more ranked candidates to build the payday allocation.</p>
+  </div>
+
+  <div class="scouting-control-grid">
+    <article class="scouting-control-card">
+      <span>APPROVED PICKS</span>
+      <strong id="scoutingApprovedCount">0</strong>
+      <small>Candidates allowed into the payday plan</small>
+    </article>
+    <article class="scouting-control-card">
+      <span>ALLOCATED BUDGET</span>
+      <strong id="scoutingAllocatedBudget">£0.00</strong>
+      <small>Finance money assigned by the optimiser</small>
+    </article>
+    <article class="scouting-control-card scouting-top-card">
+      <span>PROJECTED EXTRA INCOME</span>
+      <strong id="scoutingProjectedIncome">£0.00</strong>
+      <small>Estimated annual income from this payday allocation</small>
+    </article>
+  </div>
+
+  <ul id="scoutingAllocationRows"><li>No allocation yet.</li></ul>
 </section>
 
 </body>
