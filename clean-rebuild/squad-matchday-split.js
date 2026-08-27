@@ -1,17 +1,17 @@
 (() => {
   'use strict';
-  const BUILD='20260827-squad-matchday-split-1';
+  const BUILD='20260827-squad-matchday-split-market-first-2';
   const $=id=>document.getElementById(id);
   function arrange(){
-    const pitch=$('squadMatchdayPitch'),table=document.querySelector('.squad-register');
-    if(!pitch||!table)return false;
+    const market=$('squadCurrentMarketPosition'),pitch=$('squadMatchdayPitch'),table=document.querySelector('.squad-register');
+    if(!market||!pitch||!table)return false;
     let layout=$('squadMatchdayLayout');
     if(!layout){
       layout=document.createElement('section');
       layout.id='squadMatchdayLayout';
       layout.className='squad-matchday-layout';
-      table.parentNode.insertBefore(layout,table);
     }
+    if(market.nextElementSibling!==layout)market.insertAdjacentElement('afterend',layout);
     if(pitch.parentNode!==layout)layout.appendChild(pitch);
     if(table.parentNode!==layout)layout.appendChild(table);
     return true;
