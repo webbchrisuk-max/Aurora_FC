@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260826-clean-squad-market-view-2-single-refresh-owner';
+  const BUILD='20260827-clean-squad-pnl-colours-1';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
@@ -9,6 +9,7 @@
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
   const price=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:4}).format(num(v));
   const pct=v=>`${num(v)>=0?'+':''}${num(v).toFixed(2)}%`;
+  const pnlColour=v=>num(v)>0?'#5df29a':num(v)<0?'#ff6b7a':'#9aa9ba';
   const closed=new Set(['SOLD','ARCHIVED','CLOSED','EXITED']);
   let refreshing=false;
 
@@ -39,11 +40,14 @@
     set('squadBookValue',money(totalBook));
     set('squadProfitLoss',`${totalPnl>=0?'+':''}${money(totalPnl)}`);
     set('squadProfitLossPct',pct(totalPnlPct));
+    const totalColour=pnlColour(totalPnl);
+    if($('squadProfitLoss'))$('squadProfitLoss').style.color=totalColour;
+    if($('squadProfitLossPct'))$('squadProfitLossPct').style.color=totalColour;
     set('squadAnnualIncome',money(totalIncome));
     set('squadMonthlyIncome',money(totalIncome/12));
     set('squadSource',state.squad?.importedAt?`Market holdings refreshed ${new Date(state.squad.importedAt).toLocaleString('en-GB')} · ${state.squad.source||'Aurora live state'}`:'Waiting for live holdings refresh');
     const host=$('squadRows');
-    if(host)host.innerHTML=rows.length?rows.map(({row,m})=>`<li class="holding-card"><div class="holding-head"><div><span class="holding-ticker">${esc(row.ticker)}</span><strong class="holding-name">${esc(row.name||row.ticker)}</strong></div><span class="holding-broker">${esc(row.account||'Unspecified')}</span></div><div class="holding-metrics"><div class="holding-metric"><span>SHARES</span><strong>${m.shares.toLocaleString('en-GB',{maximumFractionDigits:6})}</strong></div><div class="holding-metric"><span>LIVE PRICE</span><strong>${m.live>0?price(m.live):'—'}</strong></div><div class="holding-metric"><span>MARKET VALUE</span><strong>${money(m.market)}</strong></div><div class="holding-metric"><span>BOOK VALUE</span><strong>${money(m.book)}</strong></div><div class="holding-metric"><span>PROFIT / LOSS</span><strong>${m.pnl>=0?'+':''}${money(m.pnl)} · ${pct(m.pnlPct)}</strong></div><div class="holding-metric"><span>ANNUAL INCOME</span><strong>${money(m.annual)}</strong></div></div></li>`).join(''):'<li>No active holdings yet.</li>';
+    if(host)host.innerHTML=rows.length?rows.map(({row,m})=>`<li class="holding-card"><div class="holding-head"><div><span class="holding-ticker">${esc(row.ticker)}</span><strong class="holding-name">${esc(row.name||row.ticker)}</strong></div><span class="holding-broker">${esc(row.account||'Unspecified')}</span></div><div class="holding-metrics"><div class="holding-metric"><span>SHARES</span><strong>${m.shares.toLocaleString('en-GB',{maximumFractionDigits:6})}</strong></div><div class="holding-metric"><span>LIVE PRICE</span><strong>${m.live>0?price(m.live):'—'}</strong></div><div class="holding-metric"><span>MARKET VALUE</span><strong>${money(m.market)}</strong></div><div class="holding-metric"><span>BOOK VALUE</span><strong>${money(m.book)}</strong></div><div class="holding-metric"><span>PROFIT / LOSS</span><strong style="color:${pnlColour(m.pnl)}">${m.pnl>=0?'+':''}${money(m.pnl)} · ${pct(m.pnlPct)}</strong></div><div class="holding-metric"><span>ANNUAL INCOME</span><strong>${money(m.annual)}</strong></div></div></li>`).join(''):'<li>No active holdings yet.</li>';
   }
 
   async function refreshLive(reason='manual'){
