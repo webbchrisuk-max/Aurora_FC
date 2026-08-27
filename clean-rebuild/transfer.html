@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Aurora Clean — Transfer</title>
-  <link rel="stylesheet" href="aurora.css?v=20260827-transfer-chairman-offers-2">
+  <link rel="stylesheet" href="aurora.css?v=20260827-transfer-chairman-offers-3">
   <script src="aurora.js?v=20260826-clean-rebuild-9-mission-authority" defer></script>
   <script src="../aurora-data2-client.js?v=20260826-transfer-broker-cash-2" defer></script>
   <script src="../squad-live-price-authority.js?v=20260825-shared-market-price-authority-3" defer></script>
   <script src="transfer-stage2.js?v=20260826-transfer-approved-plan-plus-broker-cash-2" defer></script>
-  <script src="transfer-chairman-offers.js?v=20260827-clean-chairman-offers-2" defer></script>
+  <script src="transfer-chairman-offers.js?v=20260827-clean-chairman-offers-3-auto-income-replacement" defer></script>
   <style>
     .transfer-split{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:16px}.chairman-create{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:end;margin-top:14px}.chairman-create label{display:grid;gap:6px}.chairman-create select,.chairman-create input{min-width:0}.chairman-offer-list{display:grid;gap:12px;margin-top:14px}.chairman-offer-card{border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:16px;background:linear-gradient(145deg,rgba(13,28,47,.96),rgba(5,13,25,.97));box-shadow:0 14px 36px rgba(0,0,0,.22)}.chairman-offer-card.status-active{border-color:rgba(52,211,153,.42);box-shadow:0 0 24px rgba(52,211,153,.08)}.chairman-offer-card.status-watching{border-color:rgba(34,211,238,.26)}.chairman-offer-card.status-accepted{border-color:rgba(245,193,82,.42)}.chairman-offer-card.status-withdrawn,.chairman-offer-card.status-expired{opacity:.72}.chairman-offer-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.chairman-offer-head h3{margin:6px 0 2px}.chairman-offer-head p{margin:0;color:#8fa2b8}.chairman-status{display:inline-block;border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:4px 9px;font-size:10px;font-weight:900;letter-spacing:.08em}.status-active .chairman-status{color:#84f3b8;border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.08)}.status-watching .chairman-status{color:#8ff3fb;border-color:rgba(34,211,238,.35);background:rgba(34,211,238,.08)}.status-accepted .chairman-status{color:#f6d27e;border-color:rgba(245,193,82,.35);background:rgba(245,193,82,.08)}.chairman-offer-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:14px}.chairman-offer-grid>div{border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:10px;background:rgba(255,255,255,.025)}.chairman-offer-grid span{display:block;color:#7890a8;font-size:9px;font-weight:900;letter-spacing:.08em}.chairman-offer-grid strong{display:block;margin-top:4px}.offer-positive{color:#74e7a6}.offer-negative{color:#ff8e9f}.chairman-offer-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}@media(max-width:820px){.transfer-split{grid-template-columns:1fr}.chairman-create{grid-template-columns:1fr 1fr}.chairman-create label:first-child{grid-column:1/-1}.chairman-offer-grid{grid-template-columns:1fr 1fr}}@media(max-width:520px){.chairman-create{grid-template-columns:1fr}.chairman-offer-grid{grid-template-columns:1fr 1fr}}
   </style>
@@ -42,13 +42,13 @@
 
   <div>
     <section class="department-section chairman-section">
-      <div class="section-heading"><div><p class="eyebrow">CHAIRMAN'S OFFERS</p><h2>Sell opportunities</h2></div><div class="finance-actions"><button id="chairmanRefreshHoldings" type="button">Refresh Holdings & Prices</button><p id="chairmanOfferCount">0 open offer(s)</p></div></div>
-      <p>Create an offer against a live Squad Hub position. A target hit changes WATCHING → ACTIVE only. Offers never withdraw themselves.</p>
+      <div class="section-heading"><div><p class="eyebrow">CHAIRMAN'S OFFERS</p><h2>6% income-upgrade opportunities</h2></div><div class="finance-actions"><button id="chairmanRefreshHoldings" type="button">Refresh Holdings & Prices</button><p id="chairmanOfferCount">0 open offer(s)</p></div></div>
+      <p>Aurora automatically creates an ACTIVE offer when a holding reaches at least +6% over average cost and the same sale proceeds can be moved into a Scouting replacement that pays more annual dividend income. If no income upgrade exists, no automatic offer is created.</p>
       <div class="chairman-create">
         <label>Holding<select id="chairmanHoldingSelect"><option value="">Choose a holding…</option></select></label>
         <label>Shares<input id="chairmanShares" type="number" min="0" step="0.000001" inputmode="decimal"></label>
         <label>Target price<input id="chairmanTargetPrice" type="number" min="0" step="0.0001" inputmode="decimal"></label>
-        <button id="chairmanCreateOffer" class="finance-primary" type="button">Create Offer</button>
+        <button id="chairmanCreateOffer" class="finance-primary" type="button">Create Manual Offer</button>
       </div>
       <div id="chairmanOfferRows" class="chairman-offer-list"><p>No Chairman's Offers yet.</p></div>
     </section>
