@@ -2,7 +2,8 @@
   'use strict';
 
   const STAGE1_SRC='finance-stage1.js?v=20260826-clean-finance-stage1-owner-1';
-  const AUTO_REFRESH_SRC='finance-auto-refresh.js?v=20260826-clean-finance-auto-refresh-1';
+  const AUTO_REFRESH_SRC='finance-auto-refresh.js?v=20260827-clean-finance-auto-refresh-2';
+  const AUTO_UI_SRC='finance-auto-ui.js?v=20260827-clean-finance-auto-ui-1';
   const money = value => new Intl.NumberFormat('en-GB', {
     style:'currency', currency:'GBP', minimumFractionDigits:2, maximumFractionDigits:2
   }).format(Number(value || 0));
@@ -21,6 +22,11 @@
     const script=document.createElement('script');script.src=AUTO_REFRESH_SRC;script.defer=true;document.head.appendChild(script);
   }
 
+  function loadAutoUI(){
+    if(window.AuroraFinanceAutoUI||[...document.scripts].some(s=>String(s.src||'').includes('finance-auto-ui.js')))return;
+    const script=document.createElement('script');script.src=AUTO_UI_SRC;script.defer=true;document.head.appendChild(script);
+  }
+
   function cashTruthMatches(state,decision){
     if(!decision)return false;
     const f=state.finance||{};
@@ -34,10 +40,10 @@
     const state = aurora.readState();
     const decision = state.finance?.stage5PaydayDecision;
     if (!decision || round2(decision.maximumSafeRelease) <= 0) {
-      return {ok:false,message:'Stage 5 must be calculated and have a positive Maximum Safe Release first.'};
+      return {ok:false,message:'The live Payday Decision must have a positive Maximum Safe Release first.'};
     }
     if (!cashTruthMatches(state,decision)) {
-      return {ok:false,message:'Stage 5 is stale because Stage 1 Cash Truth has changed. Recalculate the Payday Decision before releasing a mission.'};
+      return {ok:false,message:'The Payday Decision is refreshing because Cash Truth changed. Try the release again once the live decision is current.'};
     }
     if (activeMission(state.transfer?.mission)) {
       return {ok:false,message:`An active mission already exists: ${state.transfer.mission.id}.`};
@@ -81,10 +87,10 @@
     const amount=document.getElementById('financeStage6Amount'),status=document.getElementById('financeStage6Status'),detail=document.getElementById('financeStage6Detail'),button=document.getElementById('financeReleaseMission');
     const current=!!decision&&cashTruthMatches(state,decision);
     if (amount) amount.textContent = decision ? money(decision.maximumSafeRelease) : '£0.00';
-    if (status) status.textContent = activeMission(mission) ? `${mission.status} · ${mission.id}` : current ? 'READY TO RELEASE' : 'RECALCULATE STAGE 5';
+    if (status) status.textContent = activeMission(mission) ? `${mission.status} · ${mission.id}` : current ? 'READY TO RELEASE' : 'UPDATING LIVE DECISION';
     if (detail) detail.textContent = activeMission(mission)
       ? `${money(mission.budget)} released by Finance${mission.releasedAt ? ` · ${new Date(mission.releasedAt).toLocaleString('en-GB')}` : ''}`
-      : !current&&decision ? 'Stage 1 Cash Truth no longer matches the frozen Stage 5 decision.'
+      : !current&&decision ? 'Cash Truth changed; the automatic Finance chain is refreshing the decision.'
       : release ? `Previous mission ${release.missionId} is no longer active.` : 'No investment mission has been released yet.';
     if (button) button.disabled = !decision || round2(decision.maximumSafeRelease) <= 0 || !current || activeMission(mission);
   }
@@ -95,6 +101,6 @@
     window.addEventListener('aurora-clean:state', render);render();window.AuroraFinanceStage6=Object.freeze({releaseMission,render,cashTruthMatches});return true;
   }
 
-  function boot(){loadStage1();loadAutoRefresh();if(!bind())setTimeout(boot,50);}
+  function boot(){loadStage1();loadAutoRefresh();loadAutoUI();if(!bind())setTimeout(boot,50);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
