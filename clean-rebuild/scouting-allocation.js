@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260826-scouting-auto-select-single-approval-1';
+  const BUILD = '20260827-scouting-full-universe-allocation-1';
   const money = value => new Intl.NumberFormat('en-GB', {
     style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2
   }).format(Number(value || 0));
@@ -37,7 +37,9 @@
     const mission = state.transfer?.mission;
     const budget = missionIsUsable(mission) ? round2(Math.max(0, Number(mission.budget || 0))) : 0;
     const strategy = state.scouting?.strategy === 'maximum' ? 'maximum' : 'sustainable';
-    const eligible = aurora.scoutingRankings(state).filter(row => Number(row.yieldPct) > 0);
+    const rankingAuthority = window.AuroraScoutingNetwork?.rankings;
+    const ranked = typeof rankingAuthority === 'function' ? rankingAuthority(state) : aurora.scoutingRankings(state);
+    const eligible = ranked.filter(row => Number(row.yieldPct) > 0 && String(row.verdict || 'BUY') !== 'BLOCKED');
     const targetCount = budget > 0 ? Math.min(pickCountForBudget(budget), eligible.length) : 0;
     const rows = eligible.slice(0, targetCount);
 
@@ -46,7 +48,7 @@
         build: BUILD,
         budget, strategy, selectedCount: rows.length, targetCount, allocated: 0, projectedAnnualIncome: 0,
         allocations: [], missionId: missionIsUsable(mission) ? mission.id : null,
-        authority: missionIsUsable(mission) ? 'Finance Stage 6' : 'WAITING FOR FINANCE STAGE 6',
+        authority: missionIsUsable(mission) ? 'Finance Stage 6 + National Scouting Network' : 'WAITING FOR FINANCE STAGE 6',
         status: 'WAITING'
       };
     }
@@ -90,6 +92,9 @@
       name: row.name,
       yieldPct: Number(row.yieldPct),
       score: Number(row.score),
+      networkScore: Number(row.networkScore || row.score || 0),
+      pipelineStage: row.stage || '',
+      verdict: row.verdict || '',
       held: !!row.held,
       amount: round2(row.amount),
       expectedAnnualIncome: round2(row.amount * Number(row.yieldPct) / 100)
@@ -113,7 +118,7 @@
       projectedAnnualIncome: round2(allocations.reduce((sum, row) => sum + row.expectedAnnualIncome, 0)),
       allocations,
       missionId: mission.id,
-      authority: 'Finance Stage 6',
+      authority: 'Finance Stage 6 + National Scouting Network',
       status: 'PROPOSED',
       calculatedAt: new Date().toISOString()
     };
@@ -137,13 +142,13 @@
     setText('scoutingProjectedIncome', money(plan.projectedAnnualIncome));
     setText('scoutingPlanStatus', plan.status === 'APPROVED' ? 'APPROVED FOR TRANSFER' : plan.allocations.length ? 'PROPOSED · REVIEW REQUIRED' : 'WAITING');
     setText('scoutingAllocationNote', plan.allocations.length
-      ? `${plan.strategy === 'maximum' ? 'Maximum Income' : 'Sustainable Income'} automatically selected ${plan.allocations.length} best payday opportunity${plan.allocations.length === 1 ? '' : 'ies'} for ${money(plan.budget)}. Review the proposal, then approve the whole plan once.`
+      ? `${plan.strategy === 'maximum' ? 'Maximum Income' : 'Sustainable Income'} selected ${plan.allocations.length} strongest recruitment candidate${plan.allocations.length === 1 ? '' : 's'} from the full National Scouting Network for ${money(plan.budget)}. Review the proposal, then approve the whole plan once.`
       : plan.budget > 0
         ? 'No eligible ranked opportunities are available for the released mission.'
         : 'Waiting for Finance Stage 6 to release an investment mission.');
     if (rows) {
       rows.innerHTML = plan.allocations.length
-        ? plan.allocations.map(row => `<li><strong>#${row.selectionRank} ${esc(row.ticker)}</strong> — ${money(row.amount)} — score ${Number(row.score).toFixed(1)} — ${Number(row.yieldPct).toFixed(2)}% yield — projected annual income ${money(row.expectedAnnualIncome)}</li>`).join('')
+        ? plan.allocations.map(row => `<li><strong>#${row.selectionRank} ${esc(row.ticker)}</strong> — ${money(row.amount)} — network score ${Number(row.networkScore || row.score).toFixed(1)} — ${Number(row.yieldPct).toFixed(2)}% yield — ${esc(row.pipelineStage || row.verdict || '')} — projected annual income ${money(row.expectedAnnualIncome)}</li>`).join('')
         : `<li>${plan.budget > 0 ? 'No payday proposal yet.' : 'No Finance mission released yet.'}</li>`;
     }
     if (approve) {
