@@ -3,26 +3,48 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Aurora Clean — Nexus</title>
-  <link rel="stylesheet" href="aurora.css?v=20260826-clean-payday-controller-1">
+  <title>Aurora Clean — Nexus Headquarters</title>
+  <link rel="stylesheet" href="aurora.css?v=20260827-clean-nexus-command-1">
+  <link rel="stylesheet" href="nexus-command.css?v=20260827-nexus-command-1">
   <script src="aurora.js?v=20260826-clean-rebuild-9-single-mission-authority" defer></script>
   <script src="payday-cycle.js?v=20260826-payday-cycle-controller-1" defer></script>
+  <script src="nexus-command.js?v=20260827-nexus-command-1" defer></script>
 </head>
 <body data-page="nexus">
 <nav id="auroraNav"></nav><hr>
 
-<header class="department-hero">
+<header class="department-hero nexus-hero">
   <div>
-    <p class="eyebrow">AURORA CITY FC · NEXUS</p>
-    <h1>Payday Control Board</h1>
-    <p class="department-lead">One view of the complete payday chain from Finance proof through real broker settlement.</p>
+    <p class="eyebrow">AURORA CITY FC · NEXUS HEADQUARTERS</p>
+    <h1>Manager Command Centre</h1>
+    <p class="department-lead">One live view of Finance, Scouting, Transfer, Registration, Squad, Income and the current payday mission. Nexus reports the clean system and sends each decision back to the department that owns it.</p>
   </div>
-  <span class="stage-badge">PAYDAY HQ</span>
+  <span class="stage-badge">COMMAND · DECIDE · DEPLOY</span>
 </header>
 
-<section class="department-section payday-readiness-panel">
+<main class="nexus-command">
+  <section id="nexusMaster" class="nexus-master" aria-label="Aurora command status">
+    <article class="nexus-master-card"><div class="nexus-master-copy"><small>AURORA COMMAND STATUS</small><h2>Loading clean system…</h2><p>Reading department state.</p></div></article>
+  </section>
+
+  <section id="nexusStrip" class="nexus-strip" aria-label="Key club metrics"></section>
+
+  <div id="nexusUpdated" class="nexus-updated">Command view loading…</div>
+
+  <section class="department-section">
+    <div class="section-heading">
+      <div><p class="eyebrow">DEPARTMENT COMMAND</p><h2>Aurora operating picture</h2></div>
+      <p>Open the department that needs action. Nexus remains read-only.</p>
+    </div>
+    <div id="nexusDepartments" class="nexus-departments"></div>
+  </section>
+
+  <section id="nexusAlerts" class="nexus-alerts" aria-label="Manager alerts"></section>
+</main>
+
+<section id="payday" class="department-section payday-readiness-panel">
   <div class="section-heading">
-    <div><p class="eyebrow">CURRENT CYCLE</p><h2 id="paydayReadiness">Checking payday readiness…</h2></div>
+    <div><p class="eyebrow">CURRENT PAYDAY CYCLE</p><h2 id="paydayReadiness">Checking payday readiness…</h2></div>
     <p id="paydayReadinessDetail">Loading Finance authority.</p>
   </div>
   <div class="finance-actions"><button id="paydayCycleAction" type="button" class="finance-primary">Start New Payday Cycle</button></div>
