@@ -5,6 +5,8 @@
   const AUTO_REFRESH_SRC='finance-auto-refresh.js?v=20260827-clean-finance-auto-refresh-2';
   const AUTO_UI_SRC='finance-auto-ui.js?v=20260827-clean-finance-auto-ui-1';
   const CLASSIC_STYLE_SRC='finance-payday-classic.css?v=20260827-payday-mission-control-parity-1';
+  const TABS_STYLE_SRC='finance-tabs.css?v=20260827-clean-finance-tabs-1';
+  const TABS_SCRIPT_SRC='finance-tabs.js?v=20260827-clean-finance-tabs-1';
   const money = value => new Intl.NumberFormat('en-GB', {
     style:'currency', currency:'GBP', minimumFractionDigits:2, maximumFractionDigits:2
   }).format(Number(value || 0));
@@ -31,6 +33,15 @@
   function loadClassicStyle(){
     if([...document.styleSheets].some(s=>String(s.href||'').includes('finance-payday-classic.css')))return;
     const link=document.createElement('link');link.rel='stylesheet';link.href=CLASSIC_STYLE_SRC;document.head.appendChild(link);
+  }
+
+  function loadTabs(){
+    if(![...document.styleSheets].some(s=>String(s.href||'').includes('finance-tabs.css'))){
+      const link=document.createElement('link');link.rel='stylesheet';link.href=TABS_STYLE_SRC;document.head.appendChild(link);
+    }
+    if(!window.AuroraFinanceTabs&&![...document.scripts].some(s=>String(s.src||'').includes('finance-tabs.js'))){
+      const script=document.createElement('script');script.src=TABS_SCRIPT_SRC;script.defer=true;document.head.appendChild(script);
+    }
   }
 
   function presentAsPaydayMissionControl(){
@@ -121,6 +132,6 @@
     window.addEventListener('aurora-clean:state', render);render();window.AuroraFinanceStage6=Object.freeze({releaseMission,render,cashTruthMatches});return true;
   }
 
-  function boot(){loadClassicStyle();presentAsPaydayMissionControl();loadStage1();loadAutoRefresh();loadAutoUI();if(!bind())setTimeout(boot,50);}
+  function boot(){loadClassicStyle();loadTabs();presentAsPaydayMissionControl();loadStage1();loadAutoRefresh();loadAutoUI();if(!bind())setTimeout(boot,50);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
