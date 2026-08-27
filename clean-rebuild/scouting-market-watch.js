@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260827-scouting-market-watch-1';
+  const BUILD='20260827-scouting-market-watch-2';
   const TARGET=2000;
   const SOURCES={
     NASDAQ:'https://raw.githubusercontent.com/rreichel3/US-Stock-Symbols/main/nasdaq/nasdaq_tickers.json',
@@ -24,7 +24,6 @@
   function buildRows(pools){
     const seen=new Set();
     const rows=[];
-    // Round-robin exchanges so the broad watch is not dominated by one venue.
     const names=['NASDAQ','NYSE','AMEX'];
     const indexes={NASDAQ:0,NYSE:0,AMEX:0};
     while(rows.length<TARGET){
@@ -66,6 +65,29 @@
     return rows;
   }
 
+  function enrichedSourceRows(state){
+    const c=state.scouting?.universeCounts||{};
+    return Number(c.watchlist||0)+Number(c.global||0)+Number(c.scout||0);
+  }
+
+  function decorate(){
+    if(!loaded||!marketRows.length)return;
+    const A=window.AuroraClean;if(!A)return;
+    const state=A.readState();
+    const enriched=enrichedSourceRows(state);
+    const totalSource=enriched+marketRows.length;
+    const firstKpi=document.querySelector('#scoutingNetwork .scout-network-kpi');
+    const small=firstKpi?.querySelector('small');
+    if(small)small.textContent=`${totalSource.toLocaleString('en-GB')} source rows · ${enriched.toLocaleString('en-GB')} Aurora-enriched + ${marketRows.length.toLocaleString('en-GB')} broad market watch`;
+    const steps=document.querySelectorAll('#scoutingNetwork .scout-funnel-step');
+    if(steps[0]){
+      const strong=steps[0].querySelector('strong');
+      const label=steps[0].querySelector('span');
+      if(strong)strong.textContent=totalSource.toLocaleString('en-GB');
+      if(label)label.textContent='SOURCE + MARKET WATCH';
+    }
+  }
+
   function apply(){
     const A=window.AuroraClean;
     if(!A||!marketRows.length||writing)return;
@@ -73,10 +95,9 @@
     const existing=Array.isArray(state.scouting?.candidates)?state.scouting.candidates:[];
     const existingKeys=new Set(existing.map(r=>clean(r?.ticker)).filter(Boolean));
     const missing=marketRows.filter(r=>!existingKeys.has(r.ticker));
-    const currentMarketCount=existing.filter(r=>r?.source==='MARKET WATCH').length;
     const counts=state.scouting?.marketWatchCounts||{};
     const metadataCurrent=Number(counts.unique||0)===marketRows.length;
-    if(!missing.length&&currentMarketCount===marketRows.filter(r=>existingKeys.has(r.ticker)).length&&metadataCurrent)return;
+    if(!missing.length&&metadataCurrent){setTimeout(decorate,0);return;}
     writing=true;
     A.updateState(next=>{
       next.scouting=next.scouting||{};
@@ -89,6 +110,7 @@
       next.scouting.universeCounts={...(next.scouting.universeCounts||{}),marketWatch:marketRows.length};
     });
     writing=false;
+    setTimeout(decorate,0);
   }
 
   function setStatus(text,error=false){
@@ -121,6 +143,7 @@
       }
       apply();
       setStatus(`Broad Market Watch ready · ${marketRows.length.toLocaleString('en-GB')} real listed symbols · data-pending names cannot enter payday plans`);
+      setTimeout(decorate,30);
     }catch(e){
       console.error('[Aurora Market Watch]',e);
       setStatus(`Broad Market Watch unavailable · ${String(e?.message||e)}`,true);
@@ -144,9 +167,9 @@
     ensureStatus();
     load();
     window.addEventListener('aurora-clean:state',()=>{
-      if(!writing&&loaded)setTimeout(apply,0);
+      if(!writing&&loaded)setTimeout(()=>{apply();decorate();},0);
     });
-    window.AuroraScoutingMarketWatch=Object.freeze({BUILD,TARGET,load,apply});
+    window.AuroraScoutingMarketWatch=Object.freeze({BUILD,TARGET,load,apply,decorate});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
