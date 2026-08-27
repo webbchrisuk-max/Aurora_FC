@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260827-clean-squad-pnl-colours-1';
+  const BUILD='20260827-clean-squad-table-1';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
@@ -10,10 +10,12 @@
   const price=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:4}).format(num(v));
   const pct=v=>`${num(v)>=0?'+':''}${num(v).toFixed(2)}%`;
   const pnlColour=v=>num(v)>0?'#5df29a':num(v)<0?'#ff6b7a':'#9aa9ba';
+  const pnlClass=v=>num(v)>0?'squad-table-profit':num(v)<0?'squad-table-loss':'squad-table-flat';
   const closed=new Set(['SOLD','ARCHIVED','CLOSED','EXITED']);
   let refreshing=false;
 
   function active(row){return !closed.has(upper(row?.status||'ACTIVE'))&&num(row?.shares)>0}
+  function key(row){return `${upper(row?.account)}|${upper(row?.ticker)}`}
   function metrics(row){
     const shares=Math.max(0,num(row?.shares));
     const book=Math.max(0,num(row?.bookCostGbp));
@@ -47,7 +49,19 @@
     set('squadMonthlyIncome',money(totalIncome/12));
     set('squadSource',state.squad?.importedAt?`Market holdings refreshed ${new Date(state.squad.importedAt).toLocaleString('en-GB')} · ${state.squad.source||'Aurora live state'}`:'Waiting for live holdings refresh');
     const host=$('squadRows');
-    if(host)host.innerHTML=rows.length?rows.map(({row,m})=>`<li class="holding-card"><div class="holding-head"><div><span class="holding-ticker">${esc(row.ticker)}</span><strong class="holding-name">${esc(row.name||row.ticker)}</strong></div><span class="holding-broker">${esc(row.account||'Unspecified')}</span></div><div class="holding-metrics"><div class="holding-metric"><span>SHARES</span><strong>${m.shares.toLocaleString('en-GB',{maximumFractionDigits:6})}</strong></div><div class="holding-metric"><span>LIVE PRICE</span><strong>${m.live>0?price(m.live):'—'}</strong></div><div class="holding-metric"><span>MARKET VALUE</span><strong>${money(m.market)}</strong></div><div class="holding-metric"><span>BOOK VALUE</span><strong>${money(m.book)}</strong></div><div class="holding-metric"><span>PROFIT / LOSS</span><strong style="color:${pnlColour(m.pnl)}">${m.pnl>=0?'+':''}${money(m.pnl)} · ${pct(m.pnlPct)}</strong></div><div class="holding-metric"><span>ANNUAL INCOME</span><strong>${money(m.annual)}</strong></div></div></li>`).join(''):'<li>No active holdings yet.</li>';
+    if(host){
+      const body=rows.map(({row,m},i)=>{
+        const weight=totalMarket>0?m.market/totalMarket*100:0;
+        const role=i<11?'MATCHDAY XI':'BENCH';
+        return `<tr tabindex="0" data-player-key="${esc(key(row))}" aria-label="Open ${esc(row.ticker)} player report"><td class="squad-table-rank">${i+1}</td><td class="squad-table-name"><strong>${esc(upper(row.ticker))}</strong><small>${esc(row.name||row.ticker)}</small></td><td><span class="squad-table-role">${role}</span></td><td><span class="squad-table-broker">${esc(row.account||'Unspecified')}</span></td><td>${m.shares.toLocaleString('en-GB',{maximumFractionDigits:6})}</td><td>${m.live>0?price(m.live):'—'}</td><td>${money(m.market)}</td><td>${money(m.book)}</td><td class="${pnlClass(m.pnl)}">${m.pnl>=0?'+':''}${money(m.pnl)}</td><td class="${pnlClass(m.pnl)}">${pct(m.pnlPct)}</td><td>${money(m.annual)}/yr</td><td>${weight.toFixed(1)}%</td><td><span class="squad-table-open">REPORT →</span></td></tr>`;
+      }).join('');
+      host.innerHTML=rows.length?`<div class="squad-table-wrap"><table class="squad-table"><thead><tr><th>#</th><th>HOLDING</th><th>ROLE</th><th>BROKER</th><th>SHARES</th><th>LIVE PRICE</th><th>MARKET VALUE</th><th>BOOK COST</th><th>P/L</th><th>P/L %</th><th>ANNUAL INCOME</th><th>WEIGHT</th><th></th></tr></thead><tbody>${body}</tbody></table></div><div class="squad-table-foot"><span>Matchday XI = largest 11 positions by market value.</span><span>Tap any row for the full Aurora Player Report.</span></div>`:'<div class="squad-table-wrap"><div style="padding:18px">No active holdings yet.</div></div>';
+      host.querySelectorAll('[data-player-key]').forEach(row=>{
+        const open=()=>window.AuroraSquadMatchday?.openDrawer?.(row.dataset.playerKey);
+        row.addEventListener('click',open);
+        row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
+      });
+    }
   }
 
   async function refreshLive(reason='manual'){
