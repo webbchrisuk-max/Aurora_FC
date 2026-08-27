@@ -1,0 +1,13 @@
+/* Aurora Clean Finance — tabbed Payday Control layout */
+body[data-page="finance"] .finance-stage-track{display:none!important}
+.finance-tabbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0 18px;padding:8px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:rgba(5,13,25,.72);box-shadow:0 16px 36px rgba(0,0,0,.24)}
+.finance-tabbar button{appearance:none;border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:12px 14px;background:rgba(255,255,255,.035);color:#9db0c6;font-weight:900;font-size:13px;cursor:pointer;transition:.18s ease}
+.finance-tabbar button:hover{border-color:rgba(34,211,238,.28);color:#dff8ff}
+.finance-tabbar button[aria-selected="true"]{background:linear-gradient(135deg,rgba(34,211,238,.16),rgba(52,211,153,.12));border-color:rgba(34,211,238,.38);color:#effcff;box-shadow:0 0 22px rgba(34,211,238,.10)}
+.finance-tabbar button[data-tab="house"][aria-selected="true"]{background:linear-gradient(135deg,rgba(52,211,153,.16),rgba(245,193,82,.10));border-color:rgba(52,211,153,.38)}
+.finance-tab-panel[hidden]{display:none!important}
+.finance-tab-panel-title{margin:6px 0 12px;padding:0 2px}
+.finance-tab-panel-title .eyebrow{margin:0 0 5px;color:#6fe9f2;font-size:10px;font-weight:950;letter-spacing:.14em}
+.finance-tab-panel-title h2{margin:0;font-size:22px;letter-spacing:-.5px}
+.finance-tab-panel-title p{margin:6px 0 0;color:#8da2bb;font-size:13px}
+@media(max-width:760px){.finance-tabbar{grid-template-columns:repeat(2,minmax(0,1fr));position:sticky;top:8px;z-index:40;backdrop-filter:blur(18px)}}
