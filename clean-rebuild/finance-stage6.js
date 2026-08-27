@@ -4,6 +4,7 @@
   const STAGE1_SRC='finance-stage1.js?v=20260826-clean-finance-stage1-owner-1';
   const AUTO_REFRESH_SRC='finance-auto-refresh.js?v=20260827-clean-finance-auto-refresh-2';
   const AUTO_UI_SRC='finance-auto-ui.js?v=20260827-clean-finance-auto-ui-1';
+  const CLASSIC_STYLE_SRC='finance-payday-classic.css?v=20260827-payday-mission-control-parity-1';
   const money = value => new Intl.NumberFormat('en-GB', {
     style:'currency', currency:'GBP', minimumFractionDigits:2, maximumFractionDigits:2
   }).format(Number(value || 0));
@@ -25,6 +26,25 @@
   function loadAutoUI(){
     if(window.AuroraFinanceAutoUI||[...document.scripts].some(s=>String(s.src||'').includes('finance-auto-ui.js')))return;
     const script=document.createElement('script');script.src=AUTO_UI_SRC;script.defer=true;document.head.appendChild(script);
+  }
+
+  function loadClassicStyle(){
+    if([...document.styleSheets].some(s=>String(s.href||'').includes('finance-payday-classic.css')))return;
+    const link=document.createElement('link');link.rel='stylesheet';link.href=CLASSIC_STYLE_SRC;document.head.appendChild(link);
+  }
+
+  function presentAsPaydayMissionControl(){
+    const hero=document.querySelector('.department-hero.finance-hero');
+    if(!hero)return;
+    const eyebrow=hero.querySelector('.finance-eyebrow');
+    const title=hero.querySelector('h1');
+    const lead=hero.querySelector('.department-lead');
+    const badge=hero.querySelector('.stage-badge');
+    if(eyebrow)eyebrow.textContent='AURORA PAYDAY OPERATIONS';
+    if(title)title.textContent='Payday Mission Control';
+    if(lead)lead.textContent='Confirm the wage that arrived, protect every bill and Holding Pot requirement, fund your priority pots and release only the money that is genuinely safe to invest.';
+    if(badge)badge.textContent='PROTECT → FUND → INVEST';
+    document.title='Aurora Finance Department — Payday Mission Control';
   }
 
   function cashTruthMatches(state,decision){
@@ -101,6 +121,6 @@
     window.addEventListener('aurora-clean:state', render);render();window.AuroraFinanceStage6=Object.freeze({releaseMission,render,cashTruthMatches});return true;
   }
 
-  function boot(){loadStage1();loadAutoRefresh();loadAutoUI();if(!bind())setTimeout(boot,50);}
+  function boot(){loadClassicStyle();presentAsPaydayMissionControl();loadStage1();loadAutoRefresh();loadAutoUI();if(!bind())setTimeout(boot,50);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
