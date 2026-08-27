@@ -1,12 +1,18 @@
 (() => {
   'use strict';
 
-  const BUILD='20260827-payday-summary-cards-1';
+  const BUILD='20260827-payday-summary-cards-2';
+  const BILL_AUDIT_SRC='finance-bill-audit.js?v=20260827-clean-bill-audit-1';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const round=v=>Number(num(v).toFixed(2));
   const norm=v=>String(v??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
+
+  function loadBillAudit(){
+    if(window.AuroraFinanceBillAudit||[...document.scripts].some(s=>String(s.src||'').includes('finance-bill-audit.js')))return;
+    const script=document.createElement('script');script.src=BILL_AUDIT_SRC;script.defer=true;document.head.appendChild(script);
+  }
 
   function housePot(state){
     return (state?.finance?.pots||[]).find(p=>!p?.archived&&(String(p.id||'')==='house_fund'||norm(p.name).includes('house')))||null;
@@ -106,6 +112,7 @@
 
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,50);return}
+    loadBillAudit();
     render();
     window.addEventListener('aurora-clean:state',render);
     window.addEventListener('pageshow',render);
