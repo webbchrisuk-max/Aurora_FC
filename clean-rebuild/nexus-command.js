@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const BUILD='20260827-nexus-command-1';
+  const BUILD='20260827-nexus-command-next-dividend-2';
+  const INCOME_CACHE_KEY='aurora-clean:income-snapshot:v1';
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(v||0));
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
@@ -16,13 +17,45 @@
     return {holdings,market,book,pnl:market-book,annual,monthly:annual/12};
   }
 
+  function readIncomeSnapshot(){
+    try{
+      const cached=JSON.parse(localStorage.getItem(INCOME_CACHE_KEY)||'null');
+      return cached?.snapshot&&typeof cached.snapshot==='object'?cached.snapshot:null;
+    }catch(_){return null;}
+  }
+
+  function parseDividendDate(value){
+    if(value===null||value===undefined||value==='')return NaN;
+    if(typeof value==='number'&&Number.isFinite(value))return Date.UTC(1899,11,30)+Math.round(value)*86400000+12*3600000;
+    const raw=String(value).trim();
+    const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(iso)return Date.parse(`${iso[1]}-${iso[2]}-${iso[3]}T12:00:00`);
+    return Date.parse(raw);
+  }
+
+  function normaliseDividend(raw={}){
+    const date=parseDividendDate(raw.payDate??raw.pay_date??raw.paymentDate??raw.payment_date??raw.date);
+    const shares=Math.max(0,num(raw.sharesEligible??raw.shares_eligible??raw.eligibleShares));
+    const dps=Math.max(0,num(raw.dividendPerShareGbp??raw.dividend_per_share_gbp??raw.dpsGbp));
+    const expected=Math.max(0,num(raw.expectedAmountGbp??raw.expected_amount_gbp??raw.grossDividendGbp??raw.gross_dividend_gbp??raw.amountGbp??raw.amount));
+    return {
+      ticker:upper(raw.ticker||raw.symbol),
+      name:String(raw.name||raw.company||raw.ticker||''),
+      status:upper(raw.status||'FORECAST'),
+      date,
+      amount:expected>0?expected:(shares>0&&dps>0?shares*dps:0)
+    };
+  }
+
   function nextDividend(state){
-    const rows=Array.isArray(state.income?.dividends)?state.income.dividends:Array.isArray(state.income?.fixtures)?state.income.fixtures:[];
-    const now=Date.now();
-    return rows.map(r=>({
-      ...r,
-      date:Date.parse(r.paymentDate||r.payDate||r.date||r.exDate||'')
-    })).filter(r=>Number.isFinite(r.date)&&r.date>=now).sort((a,b)=>a.date-b.date)[0]||null;
+    const snapshot=readIncomeSnapshot();
+    const snapshotRows=Array.isArray(snapshot?.dividends)?snapshot.dividends:[];
+    const stateRows=Array.isArray(state.income?.dividends)?state.income.dividends:Array.isArray(state.income?.fixtures)?state.income.fixtures:[];
+    const rows=snapshotRows.length?snapshotRows:stateRows;
+    const today=new Date();today.setHours(0,0,0,0);const start=today.getTime();
+    return rows.map(normaliseDividend)
+      .filter(r=>Number.isFinite(r.date)&&r.date>=start&&!['ARCHIVED','CANCELLED','CANCELED','MISSED','PAID'].includes(r.status))
+      .sort((a,b)=>a.date-b.date||b.amount-a.amount)[0]||null;
   }
 
   function openChairman(state){
@@ -53,7 +86,6 @@
     const scouts=Array.isArray(state.scouting?.candidates)?state.scouting.candidates:[];
     const valid=scouts.filter(r=>num(r.yieldPct)>0&&num(r.livePriceGbp)>0).length;
     const top=typeof window.AuroraScoutingNetwork?.rankings==='function' ? window.AuroraScoutingNetwork.rankings(state)[0] : null;
-    const planCount=c.plan?.allocations?.length||0;
     const routeLegs=c.routeLegs.length||c.route?.allocations?.length||0;
     const chairman=openChairman(state);
     const receiptCount=c.missionReceipts.length;
@@ -86,7 +118,7 @@
       <article class="nexus-strip-card portfolio"><small class="nexus-card-label">PORTFOLIO VALUE</small><strong>${money(m.market)}</strong><small>P/L ${money(m.pnl)}</small></article>
       <article class="nexus-strip-card income"><small class="nexus-card-label">FORWARD INCOME</small><strong>${money(m.annual)}</strong><small>${money(m.monthly)} monthly average</small></article>
       <article class="nexus-strip-card scouting"><small class="nexus-card-label">SCOUTING NETWORK</small><strong>${(state.scouting?.candidates||[]).length.toLocaleString('en-GB')}</strong><small>${state.scouting?.allocationPlan?.allocations?.length||0} payday pick(s)</small></article>
-      <article class="nexus-strip-card dividend"><small class="nexus-card-label">NEXT DIVIDEND</small><strong>${div?esc(div.ticker||div.name||'Scheduled'):'No dated fixture'}</strong><small>${div?`${new Date(div.date).toLocaleDateString('en-GB')} · ${money(div.amountGbp||div.amount||div.expectedAmountGbp)}`:'Income Centre has no future dated payment'}</small></article>`;
+      <article class="nexus-strip-card dividend"><small class="nexus-card-label">NEXT DIVIDEND</small><strong>${div?esc(div.ticker||div.name||'Scheduled'):'No dated fixture'}</strong><small>${div?`${new Date(div.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} · ${money(div.amount)}`:'Open Income Centre to refresh dividend fixtures'}</small></article>`;
     const grid=document.getElementById('nexusDepartments');
     if(grid)grid.innerHTML=cards.map(card=>`<article class="nexus-dept-card" data-tone="${card.tone}"><div class="nexus-dept-head"><div><span class="nexus-card-label">DEPARTMENT</span><h3>${esc(card.name)}</h3></div><span class="nexus-status">${esc(card.status)}</span></div><div class="nexus-dept-value">${esc(card.value)}</div><p class="nexus-dept-detail">${esc(card.detail)}</p><a href="${esc(card.href)}">Open ${esc(card.name)} →</a></article>`).join('');
     const alerts=document.getElementById('nexusAlerts');
@@ -100,9 +132,10 @@
     render();
     window.addEventListener('aurora-clean:state',render);
     window.addEventListener('aurora:market-prices',render);
+    window.addEventListener('storage',event=>{if(event.key===INCOME_CACHE_KEY)render();});
     window.addEventListener('pageshow',render);
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')render();});
-    window.AuroraNexusCommand=Object.freeze({BUILD,render,metrics,chain});
+    window.AuroraNexusCommand=Object.freeze({BUILD,render,metrics,chain,nextDividend});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
