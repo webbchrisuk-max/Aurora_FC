@@ -7,6 +7,7 @@
   const CLASSIC_STYLE_SRC='finance-payday-classic.css?v=20260827-payday-mission-control-parity-1';
   const TABS_STYLE_SRC='finance-tabs.css?v=20260827-clean-finance-tabs-1';
   const TABS_SCRIPT_SRC='finance-tabs.js?v=20260827-clean-finance-tabs-1';
+  const SUMMARY_SRC='finance-payday-summaries.js?v=20260827-payday-summary-cards-1';
   const money = value => new Intl.NumberFormat('en-GB', {
     style:'currency', currency:'GBP', minimumFractionDigits:2, maximumFractionDigits:2
   }).format(Number(value || 0));
@@ -28,6 +29,11 @@
   function loadAutoUI(){
     if(window.AuroraFinanceAutoUI||[...document.scripts].some(s=>String(s.src||'').includes('finance-auto-ui.js')))return;
     const script=document.createElement('script');script.src=AUTO_UI_SRC;script.defer=true;document.head.appendChild(script);
+  }
+
+  function loadPaydaySummaries(){
+    if(window.AuroraFinancePaydaySummaries||[...document.scripts].some(s=>String(s.src||'').includes('finance-payday-summaries.js')))return;
+    const script=document.createElement('script');script.src=SUMMARY_SRC;script.defer=true;document.head.appendChild(script);
   }
 
   function loadClassicStyle(){
@@ -132,6 +138,6 @@
     window.addEventListener('aurora-clean:state', render);render();window.AuroraFinanceStage6=Object.freeze({releaseMission,render,cashTruthMatches});return true;
   }
 
-  function boot(){loadClassicStyle();loadTabs();presentAsPaydayMissionControl();loadStage1();loadAutoRefresh();loadAutoUI();if(!bind())setTimeout(boot,50);}
+  function boot(){loadClassicStyle();loadTabs();presentAsPaydayMissionControl();loadStage1();loadAutoRefresh();loadAutoUI();loadPaydaySummaries();if(!bind())setTimeout(boot,50);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
