@@ -1,0 +1,37 @@
+/* Aurora City FC — Nexus Command Centre */
+:root{--nexus-green:#32d583;--nexus-cyan:#45caff;--nexus-gold:#f6c453;--nexus-purple:#a78bfa;--nexus-red:#fb7185;--nexus-amber:#f59e0b}
+body[data-page="nexus"]{max-width:1440px;margin:0 auto;padding:0 22px 48px}
+.nexus-hero{background:linear-gradient(125deg,rgba(28,38,75,.98),rgba(36,25,70,.97));border:1px solid rgba(167,139,250,.45)}
+.nexus-command{margin-top:20px}
+.nexus-master{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.75fr);gap:16px;margin-bottom:16px}
+.nexus-master-card,.nexus-action-card,.nexus-dept-card,.nexus-strip-card{border:1px solid #23415b;border-radius:20px;background:linear-gradient(145deg,#0c1b2b,#091522);box-shadow:0 12px 30px rgba(0,0,0,.18)}
+.nexus-master-card{padding:24px;display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center}
+.nexus-master-copy small,.nexus-card-label{display:block;color:#91a8bd;font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.nexus-master-copy h2{font-size:clamp(1.8rem,3vw,3rem);margin:7px 0 4px;line-height:1}
+.nexus-master-copy p{margin:0;color:#9fb4c7}
+.nexus-health-ring{width:118px;height:118px;border-radius:50%;display:grid;place-items:center;border:10px solid rgba(50,213,131,.22);background:#0a1622;text-align:center}
+.nexus-health-ring strong{display:block;font-size:1.45rem;color:var(--nexus-green)}
+.nexus-health-ring span{font-size:.67rem;color:#8ba2b7;letter-spacing:.1em}
+.nexus-health-ring.attention{border-color:rgba(245,158,11,.25)}.nexus-health-ring.attention strong{color:var(--nexus-amber)}
+.nexus-health-ring.blocked{border-color:rgba(251,113,133,.28)}.nexus-health-ring.blocked strong{color:var(--nexus-red)}
+.nexus-action-card{padding:22px;border-color:rgba(246,196,83,.32);background:linear-gradient(145deg,rgba(68,48,18,.5),#0a1622)}
+.nexus-action-card h3{margin:7px 0 9px;font-size:1.3rem}.nexus-action-card p{margin:0 0 16px;color:#aabccd;line-height:1.45}
+.nexus-action-card a,.nexus-dept-card a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:#eff7ff;border:1px solid #34526e;background:#12273a;border-radius:11px;padding:9px 12px;font-weight:800;font-size:.82rem}
+.nexus-action-card a:hover,.nexus-dept-card a:hover{background:#18334a}
+.nexus-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.nexus-strip-card{padding:17px 18px;min-height:102px}.nexus-strip-card strong{display:block;font-size:1.55rem;margin-top:7px}.nexus-strip-card small:last-child{display:block;color:#839aaf;margin-top:5px}
+.nexus-strip-card.portfolio{border-color:rgba(69,202,255,.36)}.nexus-strip-card.portfolio strong{color:var(--nexus-cyan)}
+.nexus-strip-card.income{border-color:rgba(50,213,131,.35)}.nexus-strip-card.income strong{color:var(--nexus-green)}
+.nexus-strip-card.scouting{border-color:rgba(167,139,250,.38)}.nexus-strip-card.scouting strong{color:var(--nexus-purple)}
+.nexus-strip-card.dividend{border-color:rgba(246,196,83,.38)}.nexus-strip-card.dividend strong{color:var(--nexus-gold)}
+.nexus-departments{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.nexus-dept-card{padding:19px;position:relative;overflow:hidden}.nexus-dept-card:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:#36536d}
+.nexus-dept-card[data-tone="good"]:before{background:var(--nexus-green)}.nexus-dept-card[data-tone="active"]:before{background:var(--nexus-cyan)}.nexus-dept-card[data-tone="attention"]:before{background:var(--nexus-amber)}.nexus-dept-card[data-tone="blocked"]:before{background:var(--nexus-red)}
+.nexus-dept-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px}.nexus-dept-head h3{margin:3px 0 0;font-size:1.14rem}.nexus-status{font-size:.68rem;font-weight:900;letter-spacing:.08em;padding:6px 8px;border-radius:999px;border:1px solid #36536d;color:#bcd0df;white-space:nowrap}
+.nexus-dept-card[data-tone="good"] .nexus-status{color:var(--nexus-green);border-color:rgba(50,213,131,.4)}.nexus-dept-card[data-tone="attention"] .nexus-status{color:var(--nexus-amber);border-color:rgba(245,158,11,.4)}.nexus-dept-card[data-tone="blocked"] .nexus-status{color:var(--nexus-red);border-color:rgba(251,113,133,.45)}
+.nexus-dept-value{font-size:1.65rem;font-weight:900;line-height:1.05;margin:0 0 4px}.nexus-dept-detail{color:#8ea6ba;min-height:38px;font-size:.88rem;line-height:1.4;margin:0 0 13px}
+.nexus-alerts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}.nexus-alert-box{padding:17px 18px;border-radius:17px;background:#0a1827;border:1px solid #29445e}.nexus-alert-box strong{display:block;margin-bottom:5px}.nexus-alert-box p{margin:0;color:#91a8bb;line-height:1.4}.nexus-alert-box.warning{border-color:rgba(245,158,11,.4)}.nexus-alert-box.chairman{border-color:rgba(167,139,250,.4)}
+.nexus-updated{color:#6f879b;text-align:right;font-size:.76rem;margin:-6px 2px 14px}
+body[data-page="nexus"] .payday-readiness-panel{margin-top:18px}
+@media(max-width:1050px){.nexus-master{grid-template-columns:1fr}.nexus-strip{grid-template-columns:repeat(2,1fr)}.nexus-departments{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:680px){body[data-page="nexus"]{padding:0 12px 36px}.nexus-strip,.nexus-departments,.nexus-alerts{grid-template-columns:1fr}.nexus-master-card{grid-template-columns:1fr}.nexus-health-ring{width:96px;height:96px}.nexus-strip-card{min-height:0}}
