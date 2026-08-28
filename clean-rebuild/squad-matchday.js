@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD='20260828-squad-matchday-price-source-2';
+  const BUILD='20260828-squad-matchday-price-source-3';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
@@ -16,7 +16,8 @@
   function rows(state){const list=(state.squad?.holdings||[]).filter(r=>active(r.status)&&num(r.shares)>0).map(holding).sort((a,b)=>b.market-a.market||b.annual-a.annual);const total=list.reduce((s,x)=>s+x.market,0);list.forEach(x=>x.weight=total>0?x.market/total*100:0);return list}
   function priceSourceLabel(row){
     const src=upper(row?.priceSource||'');
-    if(src==='IG_BROKER_VERIFIED')return'IG broker verified';
+    if(src.includes('IG_BROKER_VERIFIED_LAST_GOOD'))return'IG broker verified · last known good';
+    if(src.includes('IG_BROKER_VERIFIED'))return'IG broker verified';
     if(src.includes('AURORADATA_LIVEPRICES'))return'AuroraData LivePrices';
     if(src.includes('LAST_KNOWN_GOOD'))return'Last-known-good clean price';
     if(src.includes('2026_08_25')||src.includes('FALLBACK'))return'Legacy fallback snapshot';
