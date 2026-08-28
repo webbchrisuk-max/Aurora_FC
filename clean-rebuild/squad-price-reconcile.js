@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260828-clean-squad-price-reconcile-3-last-good-cache';
+  const BUILD='20260828-clean-squad-price-reconcile-4-bootstrap-evidence';
   const SHEET_ID='10MdgQKc4tParno7pNkz40eBGz308wxHu1u3gvJe_WsE';
   const LIVE_URL=`https://opensheet.elk.sh/${SHEET_ID}/LivePrices`;
   const REFRESH_MS=60*1000;
@@ -44,9 +44,24 @@
     return next;
   }
 
-  async function fetchQuotes(){
-    const next=readLastGood();
+  function brokerVerifiedHistory(){
+    const next=new Map();
+    Object.entries(VERIFIED_BROKER_OVERRIDES).forEach(([tk,row])=>{
+      if(num(row.price)>0)next.set(tk,{ticker:tk,price:num(row.price),source:`${row.source||'BROKER_VERIFIED'}_LAST_GOOD`,observedAt:row.observedAt||null,lastGood:true});
+    });
+    return next;
+  }
+
+  function seedTrustedEvidence(map){
+    const next=map instanceof Map?map:new Map();
+    brokerVerifiedHistory().forEach((row,tk)=>{if(!next.has(tk))next.set(tk,row)});
     brokerVerifiedQuotes().forEach((row,tk)=>next.set(tk,row));
+    return next;
+  }
+
+  async function fetchQuotes(){
+    const next=seedTrustedEvidence(readLastGood());
+    const activeBroker=brokerVerifiedQuotes();
     let liveSucceeded=false;
     try{
       const response=await fetch(`${LIVE_URL}?v=${Date.now()}`,{cache:'no-store'});
@@ -56,8 +71,7 @@
       (Array.isArray(rows)?rows:[]).forEach(row=>{
         const tk=ticker(row.Symbol??row.symbol??row.ticker);
         const price=num(row.Price??row.price??row.livePriceGbp??row.live_price_gbp);
-        const broker=brokerVerifiedQuotes().get(tk);
-        if(tk&&price>0&&!broker)next.set(tk,{ticker:tk,price,source:'AURORADATA_LIVEPRICES_CLEAN',observedAt});
+        if(tk&&price>0&&!activeBroker.has(tk))next.set(tk,{ticker:tk,price,source:'AURORADATA_LIVEPRICES_CLEAN',observedAt});
       });
       liveSucceeded=true;
     }catch(error){
@@ -86,7 +100,7 @@
       priceSource:quote.source||'AURORADATA_LIVEPRICES_CLEAN',
       priceUpdatedAt:quote.observedAt||stamp,
       lastPriceReconciledAt:stamp,
-      ...(quote.observedAt?{brokerPriceObservedAt:quote.source==='IG_BROKER_VERIFIED'?quote.observedAt:row?.brokerPriceObservedAt}:{})
+      ...(quote.observedAt&&String(quote.source||'').includes('IG_BROKER_VERIFIED')?{brokerPriceObservedAt:quote.observedAt}:{})
     };
   }
 
@@ -104,7 +118,7 @@
       const expected=num(row?.shares)*quote.price;
       const currentMarket=num(row?.marketValueGbp??row?.currentValueGbp);
       const currentSource=String(row?.priceSource||'').toUpperCase();
-      const staleLegacy=/VERIFIED_2026_08_25|FALLBACK|SHARED_MARKET/.test(currentSource);
+      const staleLegacy=!currentSource||/VERIFIED_2026_08_25|FALLBACK|SHARED_MARKET/.test(currentSource);
       if(!staleLegacy&&Math.abs(current-quote.price)<0.0000001&&Math.abs(currentMarket-expected)<0.005)return row;
       changed=true;
       return patchHolding(row,quote,stamp);
@@ -141,9 +155,8 @@
 
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,50);return}
-    quotes=readLastGood();
-    brokerVerifiedQuotes().forEach((row,tk)=>quotes.set(tk,row));
-    if(quotes.size)apply('last-known-good-startup');
+    quotes=seedTrustedEvidence(readLastGood());
+    if(quotes.size){saveLastGood(quotes);apply('trusted-evidence-startup')}
     refresh('startup');
     setTimeout(()=>refresh('startup-settled'),1500);
     setInterval(()=>refresh('interval'),REFRESH_MS);
