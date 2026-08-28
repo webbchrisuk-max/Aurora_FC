@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260827-clean-squad-table-1';
+  const BUILD='20260828-clean-squad-price-order-2';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
@@ -47,7 +47,7 @@
     if($('squadProfitLossPct'))$('squadProfitLossPct').style.color=totalColour;
     set('squadAnnualIncome',money(totalIncome));
     set('squadMonthlyIncome',money(totalIncome/12));
-    set('squadSource',state.squad?.importedAt?`Market holdings refreshed ${new Date(state.squad.importedAt).toLocaleString('en-GB')} · ${state.squad.source||'Aurora live state'}`:'Waiting for live holdings refresh');
+    set('squadSource',state.squad?.importedAt?`Market holdings refreshed ${new Date(state.squad.importedAt).toLocaleString('en-GB')} · ${state.squad.priceSource||state.squad.source||'Aurora live state'}`:'Waiting for live holdings refresh');
     const host=$('squadRows');
     if(host){
       const body=rows.map(({row,m},i)=>{
@@ -71,8 +71,12 @@
       const authority=window.AuroraMarketPriceAuthority||window.AuroraSquadLivePriceAuthority;
       if(authority?.refresh)await authority.refresh(reason);
       const result=window.AuroraClean?.importRealHoldings?.();
+      const cleanPrices=window.AuroraCleanSquadPrices;
+      if(cleanPrices?.refresh)await cleanPrices.refresh(`${reason}-after-import`);
+      else if(cleanPrices?.apply)cleanPrices.apply(`${reason}-after-import`);
       const status=$('squadImportStatus');
-      if(status)status.textContent=result?.ok?`${result.message} Live prices, market value and P/L refreshed.`:(result?.message||'Live holdings refresh unavailable.');
+      const priceSource=window.AuroraClean?.readState?.()?.squad?.priceSource;
+      if(status)status.textContent=result?.ok?`${result.message} ${priceSource==='AURORADATA_LIVEPRICES_CLEAN'?'AuroraData LivePrices reconciled after import.':'Live prices, market value and P/L refreshed.'}`:(result?.message||'Live holdings refresh unavailable.');
       render();
     }catch(error){const status=$('squadImportStatus');if(status)status.textContent=`Live holdings refresh failed: ${String(error?.message||error)}`}
     finally{refreshing=false;if(btn){btn.disabled=false;btn.textContent='Refresh Live Holdings'}}
