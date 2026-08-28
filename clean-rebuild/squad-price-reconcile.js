@@ -1,10 +1,12 @@
 (() => {
   'use strict';
 
-  const BUILD='20260828-clean-squad-price-reconcile-2-broker-verified';
+  const BUILD='20260828-clean-squad-price-reconcile-3-last-good-cache';
   const SHEET_ID='10MdgQKc4tParno7pNkz40eBGz308wxHu1u3gvJe_WsE';
   const LIVE_URL=`https://opensheet.elk.sh/${SHEET_ID}/LivePrices`;
   const REFRESH_MS=60*1000;
+  const CACHE_KEY='aurora-clean:squad-last-good-prices:v1';
+  const CACHE_MAX_AGE_MS=24*60*60*1000;
   const VERIFIED_BROKER_OVERRIDES=Object.freeze({
     FGEN:{price:0.90,observedAt:'2026-08-28T09:25:00+01:00',expiresAt:'2026-08-28T16:40:00+01:00',source:'IG_BROKER_VERIFIED'}
   });
@@ -12,6 +14,26 @@
   const ticker=v=>String(v||'').trim().toUpperCase().replace(/^LON:/,'').replace(/\.L$/,'').replace(/\.GB$/,'');
   const active=row=>!['SOLD','ARCHIVED','CLOSED','EXITED'].includes(String(row?.status||'ACTIVE').toUpperCase())&&num(row?.shares)>0;
   let quotes=new Map(),busy=false,applying=false,lastRefreshAt=null;
+
+  function readLastGood(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
+      const savedAt=Date.parse(raw?.savedAt||'');
+      if(!raw||!Array.isArray(raw.quotes)||!Number.isFinite(savedAt)||Date.now()-savedAt>CACHE_MAX_AGE_MS)return new Map();
+      return new Map(raw.quotes.filter(r=>ticker(r?.ticker)&&num(r?.price)>0).map(r=>[ticker(r.ticker),{
+        ticker:ticker(r.ticker),price:num(r.price),source:String(r.source||'LAST_KNOWN_GOOD'),observedAt:r.observedAt||r.priceUpdatedAt||raw.savedAt,lastGood:true
+      }]));
+    }catch(_){return new Map()}
+  }
+
+  function saveLastGood(map){
+    if(!map?.size)return;
+    try{
+      localStorage.setItem(CACHE_KEY,JSON.stringify({savedAt:new Date().toISOString(),quotes:[...map.values()].map(r=>({
+        ticker:r.ticker,price:r.price,source:r.source||'AURORADATA_LIVEPRICES_CLEAN',observedAt:r.observedAt||new Date().toISOString()
+      }))}));
+    }catch(_){}
+  }
 
   function brokerVerifiedQuotes(){
     const now=Date.now(),next=new Map();
@@ -23,20 +45,26 @@
   }
 
   async function fetchQuotes(){
-    const next=brokerVerifiedQuotes();
+    const next=readLastGood();
+    brokerVerifiedQuotes().forEach((row,tk)=>next.set(tk,row));
+    let liveSucceeded=false;
     try{
       const response=await fetch(`${LIVE_URL}?v=${Date.now()}`,{cache:'no-store'});
       if(!response.ok)throw new Error(`LivePrices HTTP ${response.status}`);
       const rows=await response.json();
+      const observedAt=new Date().toISOString();
       (Array.isArray(rows)?rows:[]).forEach(row=>{
         const tk=ticker(row.Symbol??row.symbol??row.ticker);
         const price=num(row.Price??row.price??row.livePriceGbp??row.live_price_gbp);
-        if(tk&&price>0&&!next.has(tk))next.set(tk,{ticker:tk,price,source:'AURORADATA_LIVEPRICES_CLEAN'});
+        const broker=brokerVerifiedQuotes().get(tk);
+        if(tk&&price>0&&!broker)next.set(tk,{ticker:tk,price,source:'AURORADATA_LIVEPRICES_CLEAN',observedAt});
       });
+      liveSucceeded=true;
     }catch(error){
       if(!next.size)throw error;
-      console.warn('[Aurora Clean Squad Price Reconcile] LivePrices feed unavailable; using fresh broker-verified evidence.',error);
+      console.warn('[Aurora Clean Squad Price Reconcile] LivePrices feed unavailable; retaining last-known-good clean prices.',error);
     }
+    if(liveSucceeded||next.size)saveLastGood(next);
     return next;
   }
 
@@ -56,8 +84,9 @@
       market_value_gbp:market,
       profitLossGbp:pnl,
       priceSource:quote.source||'AURORADATA_LIVEPRICES_CLEAN',
-      priceUpdatedAt:stamp,
-      ...(quote.observedAt?{brokerPriceObservedAt:quote.observedAt}:{})
+      priceUpdatedAt:quote.observedAt||stamp,
+      lastPriceReconciledAt:stamp,
+      ...(quote.observedAt?{brokerPriceObservedAt:quote.source==='IG_BROKER_VERIFIED'?quote.observedAt:row?.brokerPriceObservedAt}:{})
     };
   }
 
@@ -74,7 +103,9 @@
       const current=num(row?.livePriceGbp??row?.priceGbp);
       const expected=num(row?.shares)*quote.price;
       const currentMarket=num(row?.marketValueGbp??row?.currentValueGbp);
-      if(Math.abs(current-quote.price)<0.0000001&&Math.abs(currentMarket-expected)<0.005)return row;
+      const currentSource=String(row?.priceSource||'').toUpperCase();
+      const staleLegacy=/VERIFIED_2026_08_25|FALLBACK|SHARED_MARKET/.test(currentSource);
+      if(!staleLegacy&&Math.abs(current-quote.price)<0.0000001&&Math.abs(currentMarket-expected)<0.005)return row;
       changed=true;
       return patchHolding(row,quote,stamp);
     });
@@ -110,8 +141,9 @@
 
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,50);return}
-    quotes=brokerVerifiedQuotes();
-    if(quotes.size)apply('broker-verified-startup');
+    quotes=readLastGood();
+    brokerVerifiedQuotes().forEach((row,tk)=>quotes.set(tk,row));
+    if(quotes.size)apply('last-known-good-startup');
     refresh('startup');
     setTimeout(()=>refresh('startup-settled'),1500);
     setInterval(()=>refresh('interval'),REFRESH_MS);
