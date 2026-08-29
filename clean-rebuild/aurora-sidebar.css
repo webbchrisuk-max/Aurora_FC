@@ -1,25 +1,27 @@
-:root{--aurora-sidebar-w:252px;--aurora-sidebar-gap:22px;--aurora-sidebar-collapsed-w:68px}
+:root{--aurora-sidebar-w:252px;--aurora-sidebar-gap:22px;--aurora-sidebar-collapsed-w:70px}
 @media (min-width:900px){
-  body{padding-left:calc(var(--aurora-sidebar-w) + var(--aurora-sidebar-gap) + 16px)!important;transition:padding-left .2s ease}
-  body>nav#auroraNav{position:fixed!important;left:0;top:0;bottom:0;width:var(--aurora-sidebar-w);max-width:none!important;margin:0!important;padding:18px 14px!important;border-right:1px solid #20354d;border-bottom:0!important;background:linear-gradient(180deg,rgba(5,13,23,.985),rgba(7,18,31,.985))!important;backdrop-filter:blur(18px);overflow-y:auto;overflow-x:hidden;z-index:80;transition:width .2s ease,padding .2s ease}
+  body{padding-left:calc(var(--aurora-sidebar-w) + var(--aurora-sidebar-gap) + 16px)!important;transition:padding-left .24s ease}
+  body>nav#auroraNav{position:fixed!important;left:0;top:0;bottom:0;width:var(--aurora-sidebar-w);max-width:none!important;margin:0!important;padding:16px 12px!important;border-right:1px solid #20354d;border-bottom:0!important;background:linear-gradient(180deg,rgba(5,13,23,.99),rgba(7,18,31,.99))!important;backdrop-filter:blur(18px);overflow-y:auto;overflow-x:hidden;z-index:80;transition:width .24s ease,padding .24s ease}
   #auroraCleanMenu{max-width:none!important;margin:0!important;position:relative}
   #auroraCleanMenu>summary{display:none!important}
-  #auroraCleanMenu>div{display:flex!important;flex-direction:column;gap:7px;margin:0!important;padding:48px 0 0!important;border:0!important;background:transparent!important;box-shadow:none!important}
-  #auroraCleanMenu>div:before{content:'AURORA CITY FC';display:block;margin:4px 8px 14px;padding:0 0 15px;border-bottom:1px solid #1d3148;color:#70cfff;font-size:.72rem;font-weight:950;letter-spacing:.15em;white-space:nowrap}
-  #auroraCleanMenu a{display:flex!important;align-items:center;min-height:46px;padding:11px 13px!important;border:1px solid transparent!important;border-radius:13px!important;background:transparent!important;color:#aebfd2!important;font-size:.9rem;font-weight:760;line-height:1.2;text-decoration:none;transition:.16s ease;white-space:nowrap;overflow:hidden}
-  #auroraCleanMenu a:hover{background:#0e2033!important;border-color:#29435f!important;color:#eef7ff!important;transform:translateX(2px)}
-  #auroraCleanMenu a[aria-current='page']{background:linear-gradient(90deg,#123754,#10283d)!important;border-color:#2d668c!important;color:#fff!important;box-shadow:inset 3px 0 #45c6ff}
-  #auroraCleanMenu a strong{color:inherit!important;font-weight:900}
-  .aurora-sidebar-toggle{position:absolute;top:2px;right:0;width:38px;height:38px;border:1px solid #29435f;border-radius:12px;background:#0d2033;color:#eef7ff;font-size:1.55rem;font-weight:800;line-height:1;display:grid;place-items:center;cursor:pointer;z-index:2}
-  .aurora-sidebar-toggle:hover{background:#12314a}
+  #auroraCleanMenu>div{display:flex!important;flex-direction:column;gap:7px;margin:0!important;padding:50px 0 0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+  #auroraCleanMenu>div:before{content:'AURORA CITY FC';display:block;margin:3px 8px 13px;padding:0 0 14px;border-bottom:1px solid #1d3148;color:#70cfff;font-size:.72rem;font-weight:950;letter-spacing:.15em;white-space:nowrap;overflow:hidden}
+  #auroraCleanMenu a{display:flex!important;align-items:center;gap:11px;min-height:46px;padding:10px 12px!important;border:1px solid transparent!important;border-radius:13px!important;background:transparent!important;color:#aebfd2!important;font-size:.9rem;font-weight:760;line-height:1.2;text-decoration:none!important;white-space:nowrap;overflow:hidden;outline:none!important;-webkit-tap-highlight-color:transparent;transition:background .16s ease,border-color .16s ease,color .16s ease,transform .16s ease}
+  #auroraCleanMenu a:hover{background:#0e2033!important;border-color:#243d57!important;color:#eef7ff!important;transform:translateX(1px)}
+  #auroraCleanMenu a:focus,#auroraCleanMenu a:focus-visible{outline:none!important;box-shadow:none!important;border-color:transparent!important}
+  #auroraCleanMenu a.aurora-nav-pressed{background:#102a40!important;border-color:#315c7e!important;color:#fff!important;transform:translateX(1px)}
+  #auroraCleanMenu a[aria-current='page']{background:linear-gradient(90deg,#123754,#10283d)!important;border-color:#2d668c!important;color:#fff!important;box-shadow:inset 3px 0 #45c6ff!important}
+  .aurora-nav-icon{display:inline-grid;place-items:center;flex:0 0 24px;width:24px;font-size:1.15rem;line-height:1}
+  .aurora-nav-label{display:block;overflow:hidden;text-overflow:ellipsis}
+  .aurora-sidebar-toggle{position:absolute;top:2px;right:2px;width:40px;height:40px;border:1px solid #31516f;border-radius:12px;background:#0d2033;color:#eef7ff;font-size:1.6rem;font-weight:800;line-height:1;display:grid;place-items:center;cursor:pointer;z-index:4;outline:none!important;-webkit-tap-highlight-color:transparent;box-shadow:0 8px 22px rgba(0,0,0,.22);transition:background .16s ease,border-color .16s ease,transform .16s ease}
+  .aurora-sidebar-toggle:hover{background:#12314a;border-color:#3d6b91}.aurora-sidebar-toggle:active{transform:scale(.96)}.aurora-sidebar-toggle:focus,.aurora-sidebar-toggle:focus-visible{outline:none!important}
   html.aurora-sidebar-collapsed body{padding-left:calc(var(--aurora-sidebar-collapsed-w) + 18px)!important}
   html.aurora-sidebar-collapsed body>nav#auroraNav{width:var(--aurora-sidebar-collapsed-w);padding-left:8px!important;padding-right:8px!important}
-  html.aurora-sidebar-collapsed #auroraCleanMenu>div{padding-top:48px!important;gap:8px}
-  html.aurora-sidebar-collapsed #auroraCleanMenu>div:before{content:'AFC';margin:4px 2px 12px;text-align:center;font-size:.66rem;letter-spacing:.08em}
-  html.aurora-sidebar-collapsed #auroraCleanMenu a{width:50px;min-width:50px;max-width:50px;height:48px;min-height:48px;margin:0 auto;padding:0!important;justify-content:center;font-size:0!important;border-radius:13px!important}
-  html.aurora-sidebar-collapsed #auroraCleanMenu a::first-letter{font-size:1.25rem}
-  html.aurora-sidebar-collapsed #auroraCleanMenu a strong{font-size:0!important}
-  html.aurora-sidebar-collapsed #auroraCleanMenu a strong::first-letter{font-size:1.25rem}
+  html.aurora-sidebar-collapsed #auroraCleanMenu>div{padding-top:50px!important;gap:8px}
+  html.aurora-sidebar-collapsed #auroraCleanMenu>div:before{content:'AFC';margin:3px 0 11px;text-align:center;font-size:.65rem;letter-spacing:.08em}
+  html.aurora-sidebar-collapsed #auroraCleanMenu a{width:52px;min-width:52px;max-width:52px;height:48px;min-height:48px;margin:0 auto;padding:0!important;justify-content:center;gap:0;border-radius:13px!important}
+  html.aurora-sidebar-collapsed .aurora-nav-icon{width:28px;flex-basis:28px;font-size:1.2rem}
+  html.aurora-sidebar-collapsed .aurora-nav-label{display:none!important}
   html.aurora-sidebar-collapsed .aurora-sidebar-toggle{right:7px}
   body>header,body>section,body>div,body>h1,body>h2,body>p,body>ul,body>label,body>button{margin-left:auto!important;margin-right:auto!important}
 }
@@ -28,10 +30,12 @@
   .aurora-sidebar-toggle{display:none!important}
   body>nav#auroraNav{position:sticky!important;top:0!important;z-index:90!important;margin:0 -16px 18px!important;padding:10px 14px!important;background:rgba(4,10,18,.96)!important;border-bottom:1px solid #20344a!important}
   #auroraCleanMenu{max-width:none!important;margin:0!important}
-  #auroraCleanMenu>summary{display:inline-flex!important;align-items:center;min-height:44px;padding:9px 13px!important;border:1px solid #29435f!important;border-radius:12px!important;background:#0c1b2d!important;color:#eef7ff!important}
+  #auroraCleanMenu>summary{display:inline-flex!important;align-items:center;min-height:44px;padding:9px 13px!important;border:1px solid #29435f!important;border-radius:12px!important;background:#0c1b2d!important;color:#eef7ff!important;outline:none!important;-webkit-tap-highlight-color:transparent}
   #auroraCleanMenu>div{position:fixed!important;left:10px;top:66px;bottom:10px;width:min(310px,calc(100vw - 20px));display:flex!important;flex-direction:column;gap:7px;margin:0!important;padding:15px!important;border:1px solid #29435f!important;border-radius:18px!important;background:linear-gradient(180deg,#081524,#0a1929)!important;box-shadow:0 24px 70px rgba(0,0,0,.55)!important;overflow-y:auto;z-index:100}
   #auroraCleanMenu:not([open])>div{display:none!important}
   #auroraCleanMenu>div:before{content:'AURORA CITY FC · DEPARTMENTS';display:block;margin:2px 4px 10px;padding-bottom:12px;border-bottom:1px solid #21364e;color:#70cfff;font-size:.69rem;font-weight:950;letter-spacing:.13em}
-  #auroraCleanMenu a{display:block!important;padding:12px 13px!important;border-radius:12px!important;background:#0e1f32!important;border:1px solid transparent!important;color:#c6d6e6!important;font-weight:760;text-decoration:none}
-  #auroraCleanMenu a[aria-current='page']{background:#143650!important;border-color:#2d668c!important;color:#fff!important;box-shadow:inset 3px 0 #45c6ff}
+  #auroraCleanMenu a{display:flex!important;align-items:center;gap:10px;padding:12px 13px!important;border-radius:12px!important;background:#0e1f32!important;border:1px solid transparent!important;color:#c6d6e6!important;font-weight:760;text-decoration:none!important;outline:none!important;-webkit-tap-highlight-color:transparent}
+  #auroraCleanMenu a:focus,#auroraCleanMenu a:focus-visible{outline:none!important;box-shadow:none!important;border-color:transparent!important}
+  #auroraCleanMenu a[aria-current='page']{background:#143650!important;border-color:#2d668c!important;color:#fff!important;box-shadow:inset 3px 0 #45c6ff!important}
+  .aurora-nav-icon{display:inline-grid;place-items:center;width:24px;flex:0 0 24px}.aurora-nav-label{display:block}
 }
