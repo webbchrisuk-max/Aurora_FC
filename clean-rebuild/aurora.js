@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260826-clean-rebuild-9-mission-authority';
+  const BUILD = '20260829-sidebar-shell-3-direct-open';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -161,6 +161,11 @@
     const links=pageLinks().map(([href,label])=>{const active=href===current;return`<a href="${href}"${active?' aria-current="page"':''}>${active?'<strong>':''}${esc(label)}${active?'</strong>':''}</a>`;}).join('');
     nav.setAttribute('aria-label','Aurora Clean navigation');
     nav.innerHTML=`<details id="auroraCleanMenu"><summary>☰ Aurora Menu</summary><div role="navigation" aria-label="Aurora departments">${links}</div></details>`;
+    const details=byId('auroraCleanMenu');
+    const desktop=window.matchMedia('(min-width:900px)');
+    const syncSidebar=()=>{if(details)details.open=desktop.matches;};
+    syncSidebar();
+    if(desktop.addEventListener)desktop.addEventListener('change',syncSidebar);else desktop.addListener?.(syncSidebar);
     ensureSidebarAssets();
   }
 
