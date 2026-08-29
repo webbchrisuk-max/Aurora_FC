@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260826-clean-rebuild-9-mission-authority';
+  const BUILD = '20260829-clean-rebuild-10-sidebar-shell';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -145,14 +145,23 @@
   }
   function annualIncome(state){return(state.squad?.holdings||[]).reduce((sum,row)=>sum+holdingAnnualIncome(row),0);}
 
-  function pageLinks(){return[['index.html','Nexus'],['finance.html','Finance'],['scouting.html','Scouting'],['transfer.html','Transfer'],['registration.html','Registration'],['squad.html','Squad'],['income.html','Income'],['match-report.html','Match Report'],['club-control.html','Club Control'],['system-health.html','System Health']];}
+  function pageLinks(){return[['index.html','🏠 Nexus'],['finance.html','💷 Finance Department'],['scouting.html','🔎 Scouting Centre'],['transfer.html','🔁 Transfer Centre'],['registration.html','🧾 Registration Desk'],['squad.html','⚽ Squad Hub'],['income.html','📈 Income Centre'],['match-report.html','📋 Match Report'],['club-control.html','🧠 Club Control'],['system-health.html','🩺 System Health']];}
   function currentPageFile(){return String(location.pathname.split('/').pop()||'index.html').toLowerCase()||'index.html';}
+  function ensureSidebarAssets(){
+    if(!document.querySelector('link[data-aurora-sidebar]')){
+      const link=document.createElement('link');link.rel='stylesheet';link.href='aurora-sidebar.css?v=20260829-aurora-sidebar-1';link.dataset.auroraSidebar='style';document.head.appendChild(link);
+    }
+    if(!document.querySelector('script[data-aurora-sidebar]')){
+      const script=document.createElement('script');script.src='aurora-sidebar.js?v=20260829-aurora-sidebar-1';script.defer=true;script.dataset.auroraSidebar='script';document.head.appendChild(script);
+    }
+  }
   function renderNavigation(){
     const nav=byId('auroraNav');if(!nav)return;
     const current=currentPageFile();
-    const links=pageLinks().map(([href,label])=>{const active=href===current;return`<a href="${href}"${active?' aria-current="page"':''}>${active?'<strong>':''}${esc(label)}${active?'</strong>':''}</a>`;}).join('<br>');
+    const links=pageLinks().map(([href,label])=>{const active=href===current;return`<a href="${href}"${active?' aria-current="page"':''}>${active?'<strong>':''}${esc(label)}${active?'</strong>':''}</a>`;}).join('');
     nav.setAttribute('aria-label','Aurora Clean navigation');
     nav.innerHTML=`<details id="auroraCleanMenu"><summary>☰ Aurora Menu</summary><div role="navigation" aria-label="Aurora departments">${links}</div></details>`;
+    ensureSidebarAssets();
   }
 
   function renderNexus(){
