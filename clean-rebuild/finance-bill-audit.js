@@ -1,13 +1,19 @@
 (() => {
   'use strict';
-  const BUILD='20260829-clean-bill-audit-2-monthly-loader';
+  const BUILD='20260901-clean-bill-audit-3-actual-paid-loader';
   const MONTHLY_BILLS_SRC='finance-bills-monthly.js?v=20260829-finance-bills-monthly-paid-1';
+  const ACTUAL_PAID_SRC='finance-bills-actual-paid.js?v=20260901-finance-bills-actual-paid-1';
   const norm=v=>String(v??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
   const active=b=>b&&!b.archived&&b.included!==false&&!b.paid&&num(b.amount)>0;
   const exactKey=b=>[norm(b.name),num(b.amount).toFixed(2),String(b.frequency||'').toLowerCase(),norm(b.fundingSource)].join('|');
   const nearKey=b=>[norm(b.name).replace(/\b(shop|payment|bill)\b/g,'').replace(/\s+/g,' ').trim(),num(b.amount).toFixed(2),norm(b.fundingSource)].join('|');
+
+  function loadActualPaid(){
+    if(window.AuroraFinanceBillsActualPaid||[...document.scripts].some(s=>String(s.src||'').includes('finance-bills-actual-paid.js')))return;
+    const script=document.createElement('script');script.src=ACTUAL_PAID_SRC;script.defer=true;document.head.appendChild(script);
+  }
 
   function loadMonthlyBills(){
     if(window.AuroraFinanceBillsMonthly||[...document.scripts].some(s=>String(s.src||'').includes('finance-bills-monthly.js')))return;
@@ -59,6 +65,6 @@
     body.innerHTML=`${result.exact.length?`<h3>Exact duplicates</h3>${result.exact.map((g,i)=>`<article class="finance-manage-card"><div><strong>Exact group ${i+1}</strong><ul>${g.map(billLine).join('')}</ul></div></article>`).join('')}`:''}${result.near.length?`<h3>Possible duplicates</h3>${result.near.map((g,i)=>`<article class="finance-manage-card"><div><strong>Review group ${i+1}</strong><ul>${g.map(billLine).join('')}</ul></div></article>`).join('')}`:''}`;
   }
 
-  function boot(){if(!window.AuroraClean){setTimeout(boot,50);return}loadMonthlyBills();render();window.addEventListener('aurora-clean:state',render);window.addEventListener('pageshow',render);window.AuroraFinanceBillAudit=Object.freeze({BUILD,audit,render});}
+  function boot(){if(!window.AuroraClean){setTimeout(boot,50);return}loadActualPaid();loadMonthlyBills();render();window.addEventListener('aurora-clean:state',render);window.addEventListener('pageshow',render);window.AuroraFinanceBillAudit=Object.freeze({BUILD,audit,render});}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
