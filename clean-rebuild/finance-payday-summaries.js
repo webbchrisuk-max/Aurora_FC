@@ -1,9 +1,9 @@
 (() => {
   'use strict';
 
-  const BUILD='20260831-payday-summary-cards-4-house-room-breakdown';
-  const BILL_AUDIT_SRC='finance-bill-audit.js?v=20260829-clean-bill-audit-2-monthly-loader';
-  const HOUSE_BREAKDOWN_SRC='finance-house-room-breakdown.js?v=20260831-finance-house-room-breakdown-1';
+  const BUILD='20260901-payday-summary-cards-5-actual-paid-bills';
+  const BILL_AUDIT_SRC='finance-bill-audit.js?v=20260901-clean-bill-audit-3-actual-paid-loader';
+  const HOUSE_BREAKDOWN_SRC='finance-house-room-breakdown.js?v=20260831-finance-house-room-breakdown-3-fresh-user-rooms';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const round=v=>Number(num(v).toFixed(2));
