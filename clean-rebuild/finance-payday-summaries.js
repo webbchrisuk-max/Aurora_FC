@@ -1,8 +1,9 @@
 (() => {
   'use strict';
 
-  const BUILD='20260829-payday-summary-cards-3-bills-monthly-loader';
+  const BUILD='20260831-payday-summary-cards-4-house-room-breakdown';
   const BILL_AUDIT_SRC='finance-bill-audit.js?v=20260829-clean-bill-audit-2-monthly-loader';
+  const HOUSE_BREAKDOWN_SRC='finance-house-room-breakdown.js?v=20260831-finance-house-room-breakdown-1';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const round=v=>Number(num(v).toFixed(2));
@@ -12,6 +13,11 @@
   function loadBillAudit(){
     if(window.AuroraFinanceBillAudit||[...document.scripts].some(s=>String(s.src||'').includes('finance-bill-audit.js')))return;
     const script=document.createElement('script');script.src=BILL_AUDIT_SRC;script.defer=true;document.head.appendChild(script);
+  }
+
+  function loadHouseBreakdown(){
+    if(window.AuroraFinanceHouseRoomBreakdown||[...document.scripts].some(s=>String(s.src||'').includes('finance-house-room-breakdown.js')))return;
+    const script=document.createElement('script');script.src=HOUSE_BREAKDOWN_SRC;script.defer=true;document.head.appendChild(script);
   }
 
   function housePot(state){
@@ -113,6 +119,7 @@
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,50);return}
     loadBillAudit();
+    loadHouseBreakdown();
     render();
     window.addEventListener('aurora-clean:state',render);
     window.addEventListener('pageshow',render);
