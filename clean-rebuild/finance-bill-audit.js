@@ -1,8 +1,8 @@
 (() => {
   'use strict';
-  const BUILD='20260901-clean-bill-audit-3-actual-paid-loader';
+  const BUILD='20260901-clean-bill-audit-4-holding-deduction-loader';
   const MONTHLY_BILLS_SRC='finance-bills-monthly.js?v=20260829-finance-bills-monthly-paid-1';
-  const ACTUAL_PAID_SRC='finance-bills-actual-paid.js?v=20260901-finance-bills-actual-paid-1';
+  const ACTUAL_PAID_SRC='finance-bills-actual-paid.js?v=20260901-finance-bills-actual-paid-2-holding-deduction';
   const norm=v=>String(v??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
