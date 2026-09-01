@@ -1,9 +1,10 @@
 (() => {
   'use strict';
 
-  const BUILD='20260901-payday-summary-cards-5-actual-paid-bills';
+  const BUILD='20260901-payday-summary-cards-6-emergency-interest';
   const BILL_AUDIT_SRC='finance-bill-audit.js?v=20260901-clean-bill-audit-3-actual-paid-loader';
   const HOUSE_BREAKDOWN_SRC='finance-house-room-breakdown.js?v=20260831-finance-house-room-breakdown-3-fresh-user-rooms';
+  const EMERGENCY_INTEREST_SRC='finance-emergency-interest.js?v=20260901-finance-emergency-interest-1';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const round=v=>Number(num(v).toFixed(2));
@@ -18,6 +19,11 @@
   function loadHouseBreakdown(){
     if(window.AuroraFinanceHouseRoomBreakdown||[...document.scripts].some(s=>String(s.src||'').includes('finance-house-room-breakdown.js')))return;
     const script=document.createElement('script');script.src=HOUSE_BREAKDOWN_SRC;script.defer=true;document.head.appendChild(script);
+  }
+
+  function loadEmergencyInterest(){
+    if(window.AuroraFinanceEmergencyInterest||[...document.scripts].some(s=>String(s.src||'').includes('finance-emergency-interest.js')))return;
+    const script=document.createElement('script');script.src=EMERGENCY_INTEREST_SRC;script.defer=true;document.head.appendChild(script);
   }
 
   function housePot(state){
@@ -121,6 +127,7 @@
     loadBillAudit();
     loadHouseBreakdown();
     render();
+    loadEmergencyInterest();
     window.addEventListener('aurora-clean:state',render);
     window.addEventListener('pageshow',render);
     window.AuroraFinancePaydaySummaries=Object.freeze({BUILD,render});
