@@ -37,3 +37,96 @@
 <div class="finance-tab-panel-title" id="financeTabTitle">
   <p class="eyebrow">PAYDAY MISSION CONTROL</p><h2>Stages 1–6</h2><p>Cash truth through mission release in one continuous flow.</p>
 </div>
+
+<main data-finance-tab="payday">
+<section class="department-section finance-control">
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 1 · CASH TRUTH</p><h2>Proved payday cash</h2></div><p>Your live payday cash inputs.</p></div>
+  <div class="finance-form-grid">
+    <label>Expected Wages<input id="financeExpectedWages" type="number" min="0" step="0.01" inputmode="decimal"><small>What payday was expected to pay.</small></label>
+    <label>Wages Received<input id="financeWagesReceived" type="number" min="0" step="0.01" inputmode="decimal"><small>The actual wage payment received.</small></label>
+    <label>Cash Available on Payday<input id="financeAvailable" type="number" min="0" step="0.01" inputmode="decimal"><small>Cash Finance can make decisions from.</small></label>
+    <label>Protected Cash<input id="financeProtected" type="number" min="0" step="0.01" inputmode="decimal"><small>Cash that must remain untouched.</small></label>
+  </div>
+  <div class="finance-actions"><button id="financeUseActualPay" type="button">Use Actual Pay as Available Cash</button><button id="financeCalculate" type="button" class="finance-primary">Update Cash Truth</button></div>
+</section>
+
+<section class="department-section finance-control">
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 2 · BILLS</p><h2>Proved recurring obligations</h2></div><p id="financeBillImportStatus">LIVE · AUTO UPDATED</p></div>
+  <div class="finance-form-grid"><label>Payday Date<input id="financePaydayDate" type="date"><small>The 28-day cycle starts here.</small></label><label>Bill Window<strong id="financeBillWindow">—</strong><small>Payday through the day before next payday.</small></label></div>
+  <div class="scouting-control-grid"><article class="scouting-control-card"><span>ACTIVE BILLS</span><strong id="financeBillCount">0</strong></article><article class="scouting-control-card"><span>CURRENT ACCOUNT · NEXT CYCLE</span><strong id="financeCurrentAccountDue">£0.00</strong></article><article class="scouting-control-card"><span>HOLDING POT · 13-PAY YEAR</span><strong id="financeHoldingAnnual">£0.00</strong></article></div>
+  <div class="finance-result-grid"><article class="finance-result-card finance-safe-card"><span>BASE HOLDING POT FUNDING / PAYDAY</span><strong id="financeHoldingPerPayday">£0.00</strong></article></div>
+</section>
+
+<section class="department-section finance-control">
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 3 · HOLDING POT</p><h2>Protect the next bill cycle</h2></div><p id="financeHoldingImportStatus">LIVE · AUTO UPDATED</p></div>
+  <div class="scouting-control-grid"><article class="scouting-control-card"><span>CURRENT HOLDING POT</span><strong id="financeHoldingBalanceStage3">£0.00</strong></article><article class="scouting-control-card"><span>SPEND BEFORE PAYDAY</span><strong id="financeHoldingSpendBeforePayday">£0.00</strong></article><article class="scouting-control-card"><span>PROJECTED PAYDAY BALANCE</span><strong id="financeHoldingProjectedPayday">£0.00</strong></article></div>
+  <div class="finance-result-grid"><article class="finance-result-card"><span>BASE 13-PAY CONTRIBUTION</span><strong id="financeHoldingBaseContribution">£0.00</strong></article><article class="finance-result-card"><span>ONE-CYCLE DYNAMIC TARGET</span><strong id="financeHoldingDynamicTarget">£0.00</strong></article><article class="finance-result-card finance-safe-card"><span>SAFETY TOP-UP</span><strong id="financeHoldingTopUpStage3">£0.00</strong></article></div>
+  <div class="scouting-control-grid"><article class="scouting-control-card"><span>NEXT-CYCLE BILL REQUIREMENT</span><strong id="financeHoldingCycleRequired">£0.00</strong></article><article class="scouting-control-card"><span>CONFIGURED FLOOR</span><strong id="financeHoldingFloor">£0.00</strong></article><article class="scouting-control-card scouting-top-card"><span>HOLDING POT AFTER FUNDING</span><strong id="financeHoldingAfterFunding">£0.00</strong></article></div>
+  <div class="finance-result-grid"><article class="finance-result-card"><span>PRE-PAYDAY SHORTFALL</span><strong id="financeHoldingPrePaydayShortfall">£0.00</strong></article><article class="finance-result-card"><span>TARGET HEADROOM</span><strong id="financeHoldingHeadroom">£0.00</strong></article></div>
+</section>
+
+<section class="department-section finance-control">
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 4 · POT FUNDING</p><h2>Fund goals in the correct order</h2></div><p id="financePotImportStatus">LIVE · AUTO UPDATED</p></div>
+  <div class="scouting-control-grid"><article class="scouting-control-card"><span>ACTIVE POTS</span><strong id="financePotCount">0</strong></article><article class="scouting-control-card"><span>WAGE DIFFERENCE</span><strong id="financePotWageDifference">£0.00</strong></article><article class="scouting-control-card"><span>OPTIONAL ALLOWANCE</span><strong id="financePotOptionalBudget">£0.00</strong></article></div>
+  <div class="finance-result-grid"><article class="finance-result-card"><span>REQUIRED / DEADLINE POTS</span><strong id="financePotRequired">£0.00</strong></article><article class="finance-result-card"><span>PAYDAY ROLLOVER</span><strong id="financePotRollover">£0.00</strong></article><article class="finance-result-card"><span>OPTIONAL PRIORITY POTS</span><strong id="financePotOptionalPriority">£0.00</strong></article></div>
+  <div class="scouting-control-grid"><article class="scouting-control-card scouting-top-card"><span>TOTAL STAGE 4 POT FUNDING</span><strong id="financePotTotal">£0.00</strong></article></div>
+</section>
+
+<section class="department-section finance-control">
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 5 · PAYDAY DECISION</p><h2>Definitive Maximum Safe Release</h2></div><p id="financeDecisionStage1Comparison">LIVE · AUTO UPDATED</p></div>
+  <div class="scouting-control-grid"><article class="scouting-control-card"><span>AVAILABLE PAYDAY CASH</span><strong id="financeDecisionCash">£0.00</strong></article><article class="scouting-control-card"><span>PROVED COMMITMENTS</span><strong id="financeDecisionCommitments">£0.00</strong></article><article class="scouting-control-card"><span>PROTECTED CASH</span><strong id="financeDecisionProtected">£0.00</strong></article></div>
+  <div class="finance-result-grid"><article class="finance-result-card"><span>CURRENT ACCOUNT BILLS</span><strong id="financeDecisionBills">£0.00</strong></article><article class="finance-result-card"><span>BASE HOLDING POT</span><strong id="financeDecisionHoldingBase">£0.00</strong></article><article class="finance-result-card"><span>HOLDING POT TOP-UP</span><strong id="financeDecisionHoldingTopUp">£0.00</strong></article><article class="finance-result-card"><span>STAGE 4 POT FUNDING</span><strong id="financeDecisionPots">£0.00</strong></article><article class="finance-result-card"><span>TOTAL RESERVED</span><strong id="financeDecisionReserved">£0.00</strong></article></div>
+  <div class="scouting-control-grid"><article class="scouting-control-card scouting-top-card"><span>MAXIMUM SAFE RELEASE</span><strong id="financeDecisionSafeRelease">£0.00</strong></article></div>
+</section>
+
+<section class="department-section finance-control">
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 6 · MISSION RELEASE</p><h2>Release the proved investment budget</h2></div><p>Final approval only.</p></div>
+  <div class="finance-actions"><button id="financeReleaseMission" type="button" class="finance-primary">Release Investment Mission</button></div>
+  <div class="scouting-control-grid"><article class="scouting-control-card scouting-top-card"><span>MISSION BUDGET</span><strong id="financeStage6Amount">£0.00</strong></article><article class="scouting-control-card"><span>MISSION STATUS</span><strong id="financeStage6Status">READY TO RELEASE</strong><small id="financeStage6Detail">No investment mission has been released yet.</small></article></div>
+</section>
+
+<section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 5 AUDIT</p><h2>Where every pound goes</h2></div></div><ul id="financeStage5DecisionRows"><li>No Stage 5 decision loaded.</li></ul></section>
+<section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">BEFORE PAYDAY</p><h2>Projected Holding Pot spend</h2></div></div><ul id="financeStage3PrePaydayRows"><li>No Holding Pot projection loaded.</li></ul></section>
+</main>
+
+<main data-finance-tab="bills" hidden>
+<section class="department-section finance-manager-section"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">BILL CONTROL</p><h2>Manage Bills</h2></div><button id="financeAddBill" type="button">+ Add Bill</button></div><p>Your saved bills are the source used automatically by Payday Control.</p><div id="financeBillCards" class="finance-manage-list"><p>Loading bills…</p></div></section>
+<section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">NEXT PAYDAY CYCLE</p><h2>Projected bill occurrences</h2></div></div><ul id="financeStage2BillRows"><li>No bill data loaded.</li></ul></section>
+<div class="finance-actions finance-manual-recovery" hidden><button id="financeImportBills" type="button">Import Live Aurora Bills</button><button id="financeRecalculateBills" type="button">Recalculate Bills</button></div>
+</main>
+
+<main data-finance-tab="pots" hidden>
+<section class="department-section finance-manager-section"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">POT CONTROL</p><h2>Goal Pots</h2></div><button id="financeAddPot" type="button">+ Add Pot</button></div><p>Payday Control reads these pots automatically.</p><div id="financePotCards" class="finance-pot-grid"><p>Loading pots…</p></div></section>
+<section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">POT FUNDING PLAN</p><h2>Where Stage 4 money goes</h2></div></div><ul id="financeStage4PotRows"><li>No pot plan loaded.</li></ul></section>
+<div class="finance-actions finance-manual-recovery" hidden><button id="financeImportPots" type="button">Import Live Aurora Pots</button><button id="financeRecalculatePots" type="button">Recalculate Pot Funding</button><button id="financeImportHoldingPot" type="button">Import Live Holding Pot</button><button id="financeRecalculateHolding" type="button">Recalculate Holding Pot</button><button id="financeRecalculateDecision" type="button">Recalculate Payday Decision</button></div>
+</main>
+
+<main data-finance-tab="house" hidden>
+<section class="department-section finance-manager-section house-project-section">
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">HOUSE IMPROVEMENTS</p><h2>House Project Control</h2></div><div class="finance-actions"><button id="houseEditSetup" type="button">House Setup</button><button id="houseAddPayment" class="finance-primary" type="button">+ Add House Payment</button></div></div>
+  <div class="house-funded-banner"><strong id="houseProgressPct">0%</strong><span><b id="houseFunded">£0.00</b> funded of <b id="houseTarget">£0.00</b></span><div class="house-progress-track"><i id="houseProgressBar"></i></div></div>
+  <div class="scouting-control-grid"><article class="scouting-control-card"><span>PROJECT TARGET</span><strong id="houseTargetMirror">—</strong><small>Whole renovation</small></article><article class="scouting-control-card"><span>HOUSE FUND CASH</span><strong id="houseCash">£0.00</strong><small>Current available pot</small></article><article class="scouting-control-card"><span>ESTIMATED RESERVED</span><strong id="houseReserved">£0.00</strong><small>Upcoming work</small></article></div>
+  <div class="finance-result-grid"><article class="finance-result-card"><span>AVAILABLE AFTER COSTS</span><strong id="houseAvailable">£0.00</strong></article><article class="finance-result-card"><span>ACTUAL SPENT</span><strong id="houseSpent">£0.00</strong></article><article class="finance-result-card"><span>TOTAL FUNDED</span><strong id="houseFundedMirror">—</strong></article><article class="finance-result-card"><span>REMAINING</span><strong id="houseRemaining">£0.00</strong></article></div>
+  <div class="section-heading house-room-heading"><div><p class="eyebrow">RENOVATION CONTROL</p><h3>Room Dashboard</h3></div><p>Estimated · actual · reserved · variance</p></div><div id="houseRoomCards" class="finance-pot-grid"></div>
+  <div class="section-heading"><div><p class="eyebrow">RENOVATION LEDGER</p><h3>House Payments</h3></div></div><div id="housePaymentRows" class="finance-manage-list"><p>Loading house payments…</p></div>
+</section>
+</main>
+
+<style>
+.finance-manage-list{display:grid;gap:10px}.finance-manage-card{display:flex;justify-content:space-between;gap:16px;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;background:rgba(255,255,255,.025)}.finance-manage-card strong,.finance-manage-card span,.finance-manage-card small{display:block}.finance-manage-card span{margin-top:5px}.finance-manage-card small{margin-top:4px;opacity:.7}.finance-manage-actions{display:flex;gap:8px;flex-wrap:wrap}.finance-manage-actions .danger,.house-ledger-controls .danger{border-color:rgba(255,90,110,.35);color:#ff9bad}.finance-pot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.finance-pot-card{border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;background:rgba(255,255,255,.025)}.finance-pot-card-head{display:flex;justify-content:space-between;gap:10px}.finance-pot-card-head small{display:block;margin-top:4px}.finance-pot-balance{font-size:26px;font-weight:900;margin:13px 0 8px}.finance-pot-progress{height:8px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin:9px 0}.finance-pot-progress i{display:block;height:100%;background:linear-gradient(90deg,#62f3ff,#50ff8f)}.finance-pot-card .finance-manage-actions{margin-top:12px}.house-funded-banner{border:1px solid rgba(120,255,170,.3);border-radius:20px;padding:18px;margin:14px 0 18px;background:linear-gradient(135deg,rgba(45,110,90,.18),rgba(20,60,90,.18))}.house-funded-banner>strong{display:block;font-size:42px;line-height:1}.house-funded-banner>span{display:block;margin-top:8px}.house-progress-track{height:9px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:14px}.house-progress-track i{display:block;height:100%;background:linear-gradient(90deg,#76e9ff,#85ffc0)}.house-room-card{border-bottom:3px solid #69e5ff}.house-add-room{display:flex;align-items:center;justify-content:center;min-height:110px}.house-ledger-card{align-items:flex-start}.house-ledger-main{flex:1}.house-status{display:inline-block;margin-top:10px;padding:4px 10px;border:1px solid rgba(255,255,255,.22);border-radius:999px;font-style:normal;font-weight:800;font-size:12px}.house-ledger-controls{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.house-ledger-controls label{display:grid;gap:5px}.house-ledger-controls input{max-width:130px}.house-room-heading{margin-top:24px}.finance-tabbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px auto 10px;max-width:1200px}.finance-tabbar button{padding:13px 16px;border-radius:15px;border:1px solid rgba(255,255,255,.1);background:rgba(9,22,38,.86);color:#9eb1c7;font-weight:900}.finance-tabbar button[aria-selected="true"]{color:#eaffff;border-color:rgba(34,211,238,.45);background:linear-gradient(135deg,rgba(34,211,238,.15),rgba(52,211,153,.1));box-shadow:0 0 22px rgba(34,211,238,.1)}.finance-tab-panel-title{max-width:1200px;margin:8px auto 14px;padding:0 2px}.finance-tab-panel-title h2{margin:3px 0}.finance-tab-panel-title p{margin:0;color:#8ea2b8}[data-finance-tab][hidden]{display:none!important}@media(max-width:700px){.finance-tabbar{grid-template-columns:1fr 1fr}.finance-manage-card{align-items:flex-start;flex-direction:column}.house-ledger-controls{width:100%}}
+</style>
+
+<script>
+(() => {
+  const meta={payday:['PAYDAY MISSION CONTROL','Stages 1–6','Cash truth through mission release in one continuous flow.'],bills:['BILL CONTROL','Bills','Manage recurring bills and inspect the next payday cycle.'],pots:['POT CONTROL','Goal Pots','Manage pots and review the current funding plan.'],house:['HOUSE PROJECT','House Improvements','Renovation fund, room budgets and house payments.']};
+  function select(id){if(!meta[id])id='payday';document.querySelectorAll('.finance-tabbar button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===id?'true':'false'));document.querySelectorAll('[data-finance-tab]').forEach(p=>p.hidden=p.dataset.financeTab!==id);const t=document.getElementById('financeTabTitle'),m=meta[id];if(t)t.innerHTML=`<p class="eyebrow">${m[0]}</p><h2>${m[1]}</h2><p>${m[2]}</p>`;try{sessionStorage.setItem('aurora-clean:finance-tab',id)}catch(_){}}
+  document.querySelectorAll('.finance-tabbar button').forEach(b=>b.addEventListener('click',()=>select(b.dataset.tab)));
+  let saved='payday';try{saved=sessionStorage.getItem('aurora-clean:finance-tab')||'payday'}catch(_){}select(saved);
+  document.addEventListener('aurora-clean:state',()=>{const A=window.AuroraFinanceManager;if(!A)return;const m=A.houseMetrics(window.AuroraClean.readState());const t=document.getElementById('houseTargetMirror'),f=document.getElementById('houseFundedMirror');if(t)t.textContent=new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(m.target);if(f)f.textContent=new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(m.funded)});
+  setTimeout(()=>window.dispatchEvent(new CustomEvent('aurora-clean:state')),500);
+})();
+</script>
+
+<section class="finance-next-stage"><strong>Finance rebuild complete after mission release</strong><p>Once released, Scouting ranks and allocates only the official Stage 6 mission budget. Transfer then routes that same plan.</p></section>
+</body>
+</html>
