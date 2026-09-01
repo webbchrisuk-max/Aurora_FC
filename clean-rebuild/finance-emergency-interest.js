@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const BUILD='20260901-finance-emergency-interest-1';
+  const BUILD='20260901-finance-emergency-interest-2-roundup-loader';
+  const ROUNDUPS_SRC='finance-emergency-roundups.js?v=20260901-finance-emergency-roundups-1';
   const AER=0.0325;
   const MONTHLY_RATE=Math.pow(1+AER,1/12)-1;
   const norm=v=>String(v??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
@@ -14,6 +15,11 @@
 
   function emergencyPot(state){
     return arr(state?.finance?.pots).find(p=>!p?.archived&&(norm(p.name)==='emergency pot'||norm(p.name).includes('emergency')))||null;
+  }
+
+  function loadRoundups(){
+    if(window.AuroraFinanceEmergencyRoundups||[...document.scripts].some(s=>String(s.src||'').includes('finance-emergency-roundups.js')))return;
+    const script=document.createElement('script');script.src=ROUNDUPS_SRC;script.defer=true;document.head.appendChild(script);
   }
 
   function ensureMeta(state){
@@ -70,17 +76,7 @@
       p.interestPaid='monthly';
       p.lastInterestAmount=credit;
       p.lastInterestAt=now.toISOString();
-      m.history.push({
-        id:`EMERGENCY-INT-${period}`,
-        period,
-        openingBalance:before,
-        aer:AER,
-        monthlyRate:MONTHLY_RATE,
-        amount:credit,
-        closingBalance:after,
-        postedAt:now.toISOString(),
-        source:'AURORA_EMERGENCY_INTEREST_AUTO'
-      });
+      m.history.push({id:`EMERGENCY-INT-${period}`,period,openingBalance:before,aer:AER,monthlyRate:MONTHLY_RATE,amount:credit,closingBalance:after,postedAt:now.toISOString(),source:'AURORA_EMERGENCY_INTEREST_AUTO'});
       m.lastProcessedMonth=current;
       m.lastProcessedAt=now.toISOString();
       m.lastInterestPeriod=period;
@@ -99,19 +95,9 @@
     card=document.createElement('article');
     card.id='paydayEmergencyCard';
     card.className='payday-pot-summary emergency';
-    card.innerHTML=`
-      <div class="payday-pot-summary-head"><div><p>Emergency reserve</p><h3>Emergency Pot</h3></div><span class="payday-pot-summary-badge">3.25% AER</span></div>
-      <div class="payday-pot-summary-main" id="paydayEmergencyBalance">£0.00</div>
-      <div class="payday-pot-summary-grid">
-        <div class="payday-pot-summary-stat"><span>Interest rate</span><strong>3.25% AER</strong></div>
-        <div class="payday-pot-summary-stat"><span>Est. next monthly interest</span><strong id="paydayEmergencyNextInterest">£0.00</strong></div>
-        <div class="payday-pot-summary-stat"><span>Last interest added</span><strong id="paydayEmergencyLastInterest">—</strong></div>
-        <div class="payday-pot-summary-stat"><span>Interest frequency</span><strong>Monthly</strong></div>
-      </div>`;
+    card.innerHTML=`<div class="payday-pot-summary-head"><div><p>Emergency reserve</p><h3>Emergency Pot</h3></div><span class="payday-pot-summary-badge">3.25% AER</span></div><div class="payday-pot-summary-main" id="paydayEmergencyBalance">£0.00</div><div class="payday-pot-summary-grid"><div class="payday-pot-summary-stat"><span>Interest rate</span><strong>3.25% AER</strong></div><div class="payday-pot-summary-stat"><span>Est. next monthly interest</span><strong id="paydayEmergencyNextInterest">£0.00</strong></div><div class="payday-pot-summary-stat"><span>Last interest added</span><strong id="paydayEmergencyLastInterest">—</strong></div><div class="payday-pot-summary-stat"><span>Interest frequency</span><strong>Monthly</strong></div></div>`;
     host.appendChild(card);
-    if(!document.getElementById('financeEmergencyInterestStyle')){
-      const s=document.createElement('style');s.id='financeEmergencyInterestStyle';s.textContent='.payday-pot-summary.emergency:before{background:linear-gradient(90deg,#fb7185,#f59e0b)}.payday-pot-summary.emergency .payday-pot-summary-main{color:#f9c784}@media(min-width:761px){.payday-pot-summaries{grid-template-columns:repeat(3,minmax(0,1fr))}}';document.head.appendChild(s);
-    }
+    if(!document.getElementById('financeEmergencyInterestStyle')){const s=document.createElement('style');s.id='financeEmergencyInterestStyle';s.textContent='.payday-pot-summary.emergency:before{background:linear-gradient(90deg,#fb7185,#f59e0b)}.payday-pot-summary.emergency .payday-pot-summary-main{color:#f9c784}@media(min-width:761px){.payday-pot-summaries{grid-template-columns:repeat(3,minmax(0,1fr))}}';document.head.appendChild(s);}
     return card;
   }
 
@@ -131,6 +117,7 @@
     initializeIfNeeded();
     applyDueInterest();
     render();
+    loadRoundups();
     window.addEventListener('aurora-clean:state',()=>setTimeout(render,0));
     window.addEventListener('pageshow',()=>{applyDueInterest();setTimeout(render,0)});
     const timer=setInterval(()=>{applyDueInterest();render()},60*60*1000);
