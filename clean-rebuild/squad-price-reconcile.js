@@ -4,7 +4,7 @@
   /* Compatibility filename retained only because transfer.html already loads it.
    * This is NOT the old price reconciler. It is now a backend-only bridge.
    */
-  const BUILD='20260901-transfer-squad-backend-bridge-1';
+  const BUILD='20260901-transfer-squad-backend-bridge-2';
   const CONNECTION_KEY='aurora:data2:registration-connection:v2';
   const POLL_MS=30*1000;
   let busy=false;
@@ -62,9 +62,16 @@
     });
   }
 
-  if(!window.AuroraData2Client){
-    window.AuroraData2Client=Object.freeze({BUILD:'20260901-transfer-inline-backend-client-1',config,post,jsonp});
-  }
+  // Transfer must own the backend client methods it relies on. Do not allow a
+  // stale cached legacy client to suppress POST support for Chairman Offers.
+  const previousClient=window.AuroraData2Client&&typeof window.AuroraData2Client==='object'?window.AuroraData2Client:{};
+  window.AuroraData2Client=Object.freeze({
+    ...previousClient,
+    BUILD:'20260901-transfer-inline-backend-client-2',
+    config,
+    post,
+    jsonp
+  });
 
   async function sync(reason='startup'){
     if(busy)return {ok:false,busy:true};
