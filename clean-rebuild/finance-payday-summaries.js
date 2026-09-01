@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const BUILD='20260901-payday-summary-cards-8-monzo-webhook';
-  const BILL_AUDIT_SRC='finance-bill-audit.js?v=20260901-clean-bill-audit-3-actual-paid-loader';
+  const BUILD='20260901-payday-summary-cards-9-holding-bill-deduction';
+  const BILL_AUDIT_SRC='finance-bill-audit.js?v=20260901-clean-bill-audit-4-holding-deduction-loader';
   const HOUSE_BREAKDOWN_SRC='finance-house-room-breakdown.js?v=20260831-finance-house-room-breakdown-3-fresh-user-rooms';
   const EMERGENCY_INTEREST_SRC='finance-emergency-interest.js?v=20260901-finance-emergency-interest-3-monzo-sync';
   const EMERGENCY_ROUNDUPS_SRC='finance-emergency-roundups.js?v=20260901-finance-emergency-roundups-1';
