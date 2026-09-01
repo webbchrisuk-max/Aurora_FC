@@ -4,7 +4,7 @@
   /* Compatibility filename retained only because transfer.html already loads it.
    * This is NOT the old price reconciler. It is now a backend-only bridge.
    */
-  const BUILD='20260901-transfer-squad-backend-bridge-2';
+  const BUILD='20260901-transfer-squad-backend-bridge-3';
   const CONNECTION_KEY='aurora:data2:registration-connection:v2';
   const POLL_MS=30*1000;
   let busy=false;
@@ -24,13 +24,15 @@
 
   async function post(action,payload){
     const c=endpoint();
+    const actionName=String(action||'').trim();
     const body=new URLSearchParams();
+    body.set('action',actionName);
     body.set('token',c.token);
-    body.set('payload',JSON.stringify({...(payload||{}),action:String(action||'').trim()}));
+    body.set('payload',JSON.stringify({...(payload||{}),action:actionName}));
     const response=await fetch(c.url,{method:'POST',body,redirect:'follow',credentials:'omit'});
     if(!response.ok)throw new Error(`Aurora backend HTTP ${response.status}`);
     const result=await response.json();
-    if(result?.ok===false)throw new Error(result.message||`Aurora backend action failed: ${action}`);
+    if(result?.ok===false)throw new Error(result.message||`Aurora backend action failed: ${actionName}`);
     return result;
   }
 
@@ -67,7 +69,7 @@
   const previousClient=window.AuroraData2Client&&typeof window.AuroraData2Client==='object'?window.AuroraData2Client:{};
   window.AuroraData2Client=Object.freeze({
     ...previousClient,
-    BUILD:'20260901-transfer-inline-backend-client-2',
+    BUILD:'20260901-transfer-inline-backend-client-3',
     config,
     post,
     jsonp
