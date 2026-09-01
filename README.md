@@ -1,40 +1,27 @@
-# Aurora City FC — Clean Rebuild
+# Aurora City FC
 
-This repository is the controlled rebuild of Aurora City FC.
+Aurora City FC now runs from one maintained application only:
 
-## Stage 1 — Browser Navigation Baseline
+- `clean-rebuild/` — the live Aurora application
+- `assets/` — shared visual assets used by the clean application
+- `AuroraMaster.json` — retained scouting/data baseline used by the clean rebuild
+- `index.html` — root redirect into `clean-rebuild/index.html`
 
-The current build contains clean HTML department pages and one shared CSS file only.
+The previous root application, old stage/test pages, migration workflow, and `legacy/aurora-fc-2-reference` archive have been removed.
 
-No application JavaScript, session guard, router, sync manager, AuroraData connection, market feed or department logic is connected yet.
+## Live pages
 
-### Pages
+- `clean-rebuild/index.html` — Nexus Headquarters
+- `clean-rebuild/finance.html` — Finance Command
+- `clean-rebuild/scouting.html` — Scouting Centre
+- `clean-rebuild/transfer.html` — Transfer Centre
+- `clean-rebuild/registration.html` — Registration Desk
+- `clean-rebuild/squad.html` — Squad Hub / Matchday
+- `clean-rebuild/income.html` — Income Centre
+- `clean-rebuild/match-report.html` — Match Report
+- `clean-rebuild/club-control.html` — Club Control
+- `clean-rebuild/system-health.html` — System Health
 
-- `index.html` — Nexus Headquarters
-- `AuroraCityFC_NexusV2.html` — Nexus compatibility entry
-- `finance.html`
-- `scouting.html`
-- `transfer.html`
-- `registration.html`
-- `squad.html`
-- `income.html`
-- `match-report.html`
-- `club-control.html`
-- `system-health.html`
+## Development rule
 
-## Test rule
-
-Before Stage 2, every sidebar and direct navigation link must open the destination page fully in Safari, Chrome and Brave.
-
-If Stage 1 is stable, add the next layer only, then retest.
-
-## Planned restore order
-
-1. HTML navigation baseline
-2. Shared shell/session layer
-3. Aurora Core + department ownership
-4. Department logic one area at a time
-5. AuroraData/live sync last
-6. Create a known-good `stable` recovery branch once the rebuilt system is verified
-
-The older `aurora-fc-2` repository remains the reference source for proven business logic while this rebuild is validated.
+All application changes should be made inside `clean-rebuild/`. Root-level files should remain limited to the redirect, shared assets/data, and repository documentation/configuration required by the live clean rebuild.
