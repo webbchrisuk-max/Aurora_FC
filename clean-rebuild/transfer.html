@@ -11,15 +11,17 @@
   <script src="transfer-stage2.js?v=20260826-transfer-approved-plan-plus-broker-cash-2" defer></script>
   <script src="transfer-broker-reconcile-view.js?v=20260829-transfer-broker-reconcile-view-1" defer></script>
   <script src="transfer-chairman-reset.js?v=20260901-chairman-offers-reset-1" defer></script>
-  <script src="transfer-chairman-snapshot.js?v=20260901-chairman-snapshot-ui-1" defer></script>
+  <script src="transfer-chairman-snapshot.js?v=20260901-chairman-snapshot-ui-2-actions" defer></script>
+  <script src="transfer-chairman-actions.js?v=20260901-chairman-actions-1" defer></script>
   <script src="transfer-intelligence.js?v=20260827-transfer-intelligence-1" defer></script>
   <script src="transfer-pace-compound.js?v=20260827-transfer-pace-compound-1" defer></script>
   <style>
     body[data-page="transfer"]{max-width:none;margin:0;padding-left:clamp(12px,2vw,28px);padding-right:clamp(12px,2vw,28px)}
     .transfer-split{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:16px}
-    .chairman-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}.chairman-kpis article{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;background:rgba(255,255,255,.025)}.chairman-kpis span,.chairman-review-row span{display:block;color:#7890a8;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.chairman-kpis strong{display:block;margin-top:5px;font-size:24px}.chairman-review-list{display:grid;gap:10px}.chairman-review-row{display:grid;grid-template-columns:1.5fr repeat(4,minmax(0,1fr));gap:10px;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;background:linear-gradient(145deg,rgba(13,28,47,.96),rgba(5,13,25,.97))}.chairman-review-row strong{display:block;margin-top:5px}.chairman-review-row small{display:block;margin-top:4px;color:#7f95ad}.chairman-review-row .stage-badge{display:inline-block;margin-bottom:7px}.chairman-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .chairman-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}.chairman-kpis article{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;background:rgba(255,255,255,.025)}.chairman-kpis span,.chairman-review-row span{display:block;color:#7890a8;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.chairman-kpis strong{display:block;margin-top:5px;font-size:24px}.chairman-review-list{display:grid;gap:10px}.chairman-review-row{display:grid;grid-template-columns:1.5fr repeat(4,minmax(0,1fr));gap:10px;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;background:linear-gradient(145deg,rgba(13,28,47,.96),rgba(5,13,25,.97))}.chairman-review-row strong{display:block;margin-top:5px}.chairman-review-row small{display:block;margin-top:4px;color:#7f95ad}.chairman-review-row .stage-badge{display:inline-block;margin-bottom:7px}.chairman-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.chairman-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.chairman-actions button{padding:9px 12px}.chairman-actions button[disabled]{opacity:.48;cursor:not-allowed}.chairman-link{display:inline-flex;align-items:center;justify-content:center;padding:9px 12px;border:1px solid rgba(71,196,255,.34);border-radius:10px;color:#8bdcff;text-decoration:none;font-weight:800;background:rgba(31,143,204,.08)}
     @media(max-width:1000px){.chairman-review-row{grid-template-columns:1.5fr 1fr 1fr}.chairman-kpis{grid-template-columns:1fr 1fr}}
     @media(max-width:820px){.transfer-split{grid-template-columns:1fr}.chairman-review-row{grid-template-columns:1fr 1fr}}
+    @media(max-width:560px){.chairman-review-row{grid-template-columns:1fr}.chairman-actions{align-items:stretch}.chairman-actions button,.chairman-link{width:100%}}
   </style>
 </head>
 <body data-page="transfer">
@@ -31,7 +33,7 @@
 
 <section class="department-section chairman-section">
   <div class="section-heading">
-    <div><p class="eyebrow">CHAIRMAN'S OFFERS · CLEAN</p><h2>Profit Rotation Desk</h2><p>Live Chairman reviews from the same Holdings + LivePrices backend authority as Squad Hub.</p></div>
+    <div><p class="eyebrow">CHAIRMAN'S OFFERS · CLEAN</p><h2>Profit Rotation Desk</h2><p>Live Chairman reviews from the same Holdings + LivePrices backend authority as Squad Hub. Executable cases can now be accepted and frozen directly for Registration.</p></div>
     <div class="chairman-tools"><span id="chairmanSnapshotBadge" class="stage-badge">WAITING FOR BACKEND</span><button id="chairmanSnapshotRefresh" type="button">Refresh Reviews</button></div>
   </div>
   <div class="chairman-kpis">
@@ -64,9 +66,9 @@
 
   <div>
     <section class="department-section chairman-section">
-      <div class="section-heading"><div><p class="eyebrow">CHAIRMAN'S OFFERS</p><h2>Backend authority</h2></div><p>Backend review stage</p></div>
+      <div class="section-heading"><div><p class="eyebrow">CHAIRMAN'S OFFERS</p><h2>Backend authority</h2></div><p>Decision + Registration handoff live</p></div>
       <div class="chairman-review-row" style="grid-template-columns:1fr">
-        <div><span class="stage-badge">PHASE 2 LIVE</span><strong>Reviews now come from Aurora backend</strong><small>Backend-led offer intelligence is active. Execution remains controlled through the approved transfer workflow.</small></div>
+        <div><span class="stage-badge">PHASE 3 LIVE</span><strong>Backend reviews now feed the controlled execution chain</strong><small>Accept freezes an approved case for Registration. Broker sale and replacement purchase still require explicit real-execution confirmation before Squad and Income change.</small></div>
       </div>
     </section>
   </div>
