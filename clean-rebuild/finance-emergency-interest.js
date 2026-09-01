@@ -1,8 +1,9 @@
 (() => {
   'use strict';
 
-  const BUILD='20260901-finance-emergency-interest-2-roundup-loader';
+  const BUILD='20260901-finance-emergency-interest-3-monzo-sync';
   const ROUNDUPS_SRC='finance-emergency-roundups.js?v=20260901-finance-emergency-roundups-1';
+  const MONZO_SYNC_SRC='finance-monzo-webhook-sync.js?v=20260901-finance-monzo-webhook-sync-1';
   const AER=0.0325;
   const MONTHLY_RATE=Math.pow(1+AER,1/12)-1;
   const norm=v=>String(v??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
@@ -13,116 +14,19 @@
   const monthKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   const previousMonthKey=d=>{const x=new Date(d.getFullYear(),d.getMonth()-1,1);return monthKey(x)};
 
-  function emergencyPot(state){
-    return arr(state?.finance?.pots).find(p=>!p?.archived&&(norm(p.name)==='emergency pot'||norm(p.name).includes('emergency')))||null;
-  }
+  function emergencyPot(state){return arr(state?.finance?.pots).find(p=>!p?.archived&&(norm(p.name)==='emergency pot'||norm(p.name).includes('emergency')))||null;}
+  function loadScript(src,flag,file){if(window[flag]||[...document.scripts].some(s=>String(s.src||'').includes(file)))return;const script=document.createElement('script');script.src=src;script.defer=true;document.head.appendChild(script);}
+  function loadRoundups(){loadScript(ROUNDUPS_SRC,'AuroraFinanceEmergencyRoundups','finance-emergency-roundups.js')}
+  function loadMonzoSync(){loadScript(MONZO_SYNC_SRC,'AuroraFinanceMonzoWebhookSync','finance-monzo-webhook-sync.js')}
 
-  function loadRoundups(){
-    if(window.AuroraFinanceEmergencyRoundups||[...document.scripts].some(s=>String(s.src||'').includes('finance-emergency-roundups.js')))return;
-    const script=document.createElement('script');script.src=ROUNDUPS_SRC;script.defer=true;document.head.appendChild(script);
-  }
+  function ensureMeta(state){state.finance=state.finance||{};state.finance.emergencyInterest=state.finance.emergencyInterest&&typeof state.finance.emergencyInterest==='object'?state.finance.emergencyInterest:{};const meta=state.finance.emergencyInterest;meta.aer=AER;meta.monthlyRate=MONTHLY_RATE;meta.history=arr(meta.history);return meta;}
+  function initializeIfNeeded(){const A=window.AuroraClean;if(!A?.readState||!A?.updateState)return false;const state=A.readState(),pot=emergencyPot(state);if(!pot)return false;const now=new Date(),current=monthKey(now),meta=state.finance?.emergencyInterest;if(meta?.initializedMonth)return true;A.updateState(next=>{const p=emergencyPot(next);if(!p)return;const m=ensureMeta(next);m.initializedMonth=current;m.lastProcessedMonth=current;m.initializedAt=now.toISOString();m.lastKnownBalance=round(p.balance);m.source='AURORA_EMERGENCY_INTEREST';p.interestRateAER=AER;p.interestPaid='monthly';});return true;}
+  function applyDueInterest(){const A=window.AuroraClean;if(!A?.readState||!A?.updateState)return null;const state=A.readState(),pot=emergencyPot(state);if(!pot)return null;const meta=state.finance?.emergencyInterest;if(!meta?.initializedMonth){initializeIfNeeded();return null;}const now=new Date(),current=monthKey(now);if(String(meta.lastProcessedMonth||'')===current)return null;const opening=round(pot.balance),interest=round(opening*MONTHLY_RATE);if(interest<=0){A.updateState(next=>{const m=ensureMeta(next);m.lastProcessedMonth=current;m.lastProcessedAt=now.toISOString();});return null;}const period=previousMonthKey(now);A.updateState(next=>{const p=emergencyPot(next);if(!p)return;const m=ensureMeta(next);const before=round(p.balance),credit=round(before*MONTHLY_RATE),after=round(before+credit);p.balance=after;p.interestRateAER=AER;p.interestPaid='monthly';p.lastInterestAmount=credit;p.lastInterestAt=now.toISOString();m.history.push({id:`EMERGENCY-INT-${period}`,period,openingBalance:before,aer:AER,monthlyRate:MONTHLY_RATE,amount:credit,closingBalance:after,postedAt:now.toISOString(),source:'AURORA_EMERGENCY_INTEREST_AUTO'});m.lastProcessedMonth=current;m.lastProcessedAt=now.toISOString();m.lastInterestPeriod=period;m.lastInterestAmount=credit;m.lastKnownBalance=after;next.finance.lastManagerChangeAt=now.toISOString();next.finance.lastManagerChangeReason='Emergency Pot monthly interest added';});return {period,opening,interest,closing:round(opening+interest)};}
 
-  function ensureMeta(state){
-    state.finance=state.finance||{};
-    state.finance.emergencyInterest=state.finance.emergencyInterest&&typeof state.finance.emergencyInterest==='object'?state.finance.emergencyInterest:{};
-    const meta=state.finance.emergencyInterest;
-    meta.aer=AER;
-    meta.monthlyRate=MONTHLY_RATE;
-    meta.history=arr(meta.history);
-    return meta;
-  }
+  function ensureCard(){const host=document.getElementById('paydayPotSummaries');if(!host)return null;let card=document.getElementById('paydayEmergencyCard');if(card)return card;card=document.createElement('article');card.id='paydayEmergencyCard';card.className='payday-pot-summary emergency';card.innerHTML=`<div class="payday-pot-summary-head"><div><p>Emergency reserve</p><h3>Emergency Pot</h3></div><span class="payday-pot-summary-badge">3.25% AER</span></div><div class="payday-pot-summary-main" id="paydayEmergencyBalance">£0.00</div><div class="payday-pot-summary-grid"><div class="payday-pot-summary-stat"><span>Interest rate</span><strong>3.25% AER</strong></div><div class="payday-pot-summary-stat"><span>Est. next monthly interest</span><strong id="paydayEmergencyNextInterest">£0.00</strong></div><div class="payday-pot-summary-stat"><span>Last interest added</span><strong id="paydayEmergencyLastInterest">—</strong></div><div class="payday-pot-summary-stat"><span>Interest frequency</span><strong>Monthly</strong></div></div>`;host.appendChild(card);if(!document.getElementById('financeEmergencyInterestStyle')){const s=document.createElement('style');s.id='financeEmergencyInterestStyle';s.textContent='.payday-pot-summary.emergency:before{background:linear-gradient(90deg,#fb7185,#f59e0b)}.payday-pot-summary.emergency .payday-pot-summary-main{color:#f9c784}@media(min-width:761px){.payday-pot-summaries{grid-template-columns:repeat(3,minmax(0,1fr))}}';document.head.appendChild(s);}return card;}
+  function render(){const A=window.AuroraClean;if(!A?.readState)return;const state=A.readState(),pot=emergencyPot(state);if(!pot)return;ensureCard();const meta=state.finance?.emergencyInterest||{};const balance=round(pot.balance),nextInterest=round(balance*MONTHLY_RATE);const b=document.getElementById('paydayEmergencyBalance');if(b)b.textContent=money(balance);const n=document.getElementById('paydayEmergencyNextInterest');if(n)n.textContent=money(nextInterest);const l=document.getElementById('paydayEmergencyLastInterest');if(l)l.textContent=num(meta.lastInterestAmount)>0?money(meta.lastInterestAmount):'Tracking started';}
 
-  function initializeIfNeeded(){
-    const A=window.AuroraClean;if(!A?.readState||!A?.updateState)return false;
-    const state=A.readState(),pot=emergencyPot(state);if(!pot)return false;
-    const now=new Date(),current=monthKey(now),meta=state.finance?.emergencyInterest;
-    if(meta?.initializedMonth)return true;
-    A.updateState(next=>{
-      const p=emergencyPot(next);if(!p)return;
-      const m=ensureMeta(next);
-      m.initializedMonth=current;
-      m.lastProcessedMonth=current;
-      m.initializedAt=now.toISOString();
-      m.lastKnownBalance=round(p.balance);
-      m.source='AURORA_EMERGENCY_INTEREST';
-      p.interestRateAER=AER;
-      p.interestPaid='monthly';
-    });
-    return true;
-  }
-
-  function applyDueInterest(){
-    const A=window.AuroraClean;if(!A?.readState||!A?.updateState)return null;
-    const state=A.readState(),pot=emergencyPot(state);if(!pot)return null;
-    const meta=state.finance?.emergencyInterest;
-    if(!meta?.initializedMonth){initializeIfNeeded();return null;}
-    const now=new Date(),current=monthKey(now);
-    if(String(meta.lastProcessedMonth||'')===current)return null;
-
-    const opening=round(pot.balance);
-    const interest=round(opening*MONTHLY_RATE);
-    if(interest<=0){
-      A.updateState(next=>{const m=ensureMeta(next);m.lastProcessedMonth=current;m.lastProcessedAt=now.toISOString();});
-      return null;
-    }
-
-    const period=previousMonthKey(now);
-    A.updateState(next=>{
-      const p=emergencyPot(next);if(!p)return;
-      const m=ensureMeta(next);
-      const before=round(p.balance),credit=round(before*MONTHLY_RATE),after=round(before+credit);
-      p.balance=after;
-      p.interestRateAER=AER;
-      p.interestPaid='monthly';
-      p.lastInterestAmount=credit;
-      p.lastInterestAt=now.toISOString();
-      m.history.push({id:`EMERGENCY-INT-${period}`,period,openingBalance:before,aer:AER,monthlyRate:MONTHLY_RATE,amount:credit,closingBalance:after,postedAt:now.toISOString(),source:'AURORA_EMERGENCY_INTEREST_AUTO'});
-      m.lastProcessedMonth=current;
-      m.lastProcessedAt=now.toISOString();
-      m.lastInterestPeriod=period;
-      m.lastInterestAmount=credit;
-      m.lastKnownBalance=after;
-      next.finance.lastManagerChangeAt=now.toISOString();
-      next.finance.lastManagerChangeReason='Emergency Pot monthly interest added';
-    });
-    return {period,opening,interest,closing:round(opening+interest)};
-  }
-
-  function ensureCard(){
-    const host=document.getElementById('paydayPotSummaries');if(!host)return null;
-    let card=document.getElementById('paydayEmergencyCard');
-    if(card)return card;
-    card=document.createElement('article');
-    card.id='paydayEmergencyCard';
-    card.className='payday-pot-summary emergency';
-    card.innerHTML=`<div class="payday-pot-summary-head"><div><p>Emergency reserve</p><h3>Emergency Pot</h3></div><span class="payday-pot-summary-badge">3.25% AER</span></div><div class="payday-pot-summary-main" id="paydayEmergencyBalance">£0.00</div><div class="payday-pot-summary-grid"><div class="payday-pot-summary-stat"><span>Interest rate</span><strong>3.25% AER</strong></div><div class="payday-pot-summary-stat"><span>Est. next monthly interest</span><strong id="paydayEmergencyNextInterest">£0.00</strong></div><div class="payday-pot-summary-stat"><span>Last interest added</span><strong id="paydayEmergencyLastInterest">—</strong></div><div class="payday-pot-summary-stat"><span>Interest frequency</span><strong>Monthly</strong></div></div>`;
-    host.appendChild(card);
-    if(!document.getElementById('financeEmergencyInterestStyle')){const s=document.createElement('style');s.id='financeEmergencyInterestStyle';s.textContent='.payday-pot-summary.emergency:before{background:linear-gradient(90deg,#fb7185,#f59e0b)}.payday-pot-summary.emergency .payday-pot-summary-main{color:#f9c784}@media(min-width:761px){.payday-pot-summaries{grid-template-columns:repeat(3,minmax(0,1fr))}}';document.head.appendChild(s);}
-    return card;
-  }
-
-  function render(){
-    const A=window.AuroraClean;if(!A?.readState)return;
-    const state=A.readState(),pot=emergencyPot(state);if(!pot)return;
-    ensureCard();
-    const meta=state.finance?.emergencyInterest||{};
-    const balance=round(pot.balance),nextInterest=round(balance*MONTHLY_RATE);
-    const b=document.getElementById('paydayEmergencyBalance');if(b)b.textContent=money(balance);
-    const n=document.getElementById('paydayEmergencyNextInterest');if(n)n.textContent=money(nextInterest);
-    const l=document.getElementById('paydayEmergencyLastInterest');if(l)l.textContent=num(meta.lastInterestAmount)>0?money(meta.lastInterestAmount):'Tracking started';
-  }
-
-  function boot(){
-    if(!window.AuroraClean||!document.getElementById('paydayPotSummaries')){setTimeout(boot,75);return;}
-    initializeIfNeeded();
-    applyDueInterest();
-    render();
-    loadRoundups();
-    window.addEventListener('aurora-clean:state',()=>setTimeout(render,0));
-    window.addEventListener('pageshow',()=>{applyDueInterest();setTimeout(render,0)});
-    const timer=setInterval(()=>{applyDueInterest();render()},60*60*1000);
-    window.AuroraFinanceEmergencyInterest=Object.freeze({BUILD,AER,MONTHLY_RATE,render,applyDueInterest,timer});
-  }
+  function boot(){if(!window.AuroraClean||!document.getElementById('paydayPotSummaries')){setTimeout(boot,75);return;}initializeIfNeeded();applyDueInterest();render();loadRoundups();loadMonzoSync();window.addEventListener('aurora-clean:state',()=>setTimeout(render,0));window.addEventListener('pageshow',()=>{applyDueInterest();setTimeout(render,0)});const timer=setInterval(()=>{applyDueInterest();render()},60*60*1000);window.AuroraFinanceEmergencyInterest=Object.freeze({BUILD,AER,MONTHLY_RATE,render,applyDueInterest,timer});}
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
