@@ -1,7 +1,0 @@
-#engine .engine-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
-#engine .engine-grid>div{min-width:0;padding:13px;border:1px solid var(--inc-line);border-radius:12px;background:rgba(255,255,255,.025)}
-#engine .engine-grid small{display:block;color:var(--inc-muted);font-size:9px;text-transform:uppercase;letter-spacing:.07em;line-height:1.25}
-#engine .engine-grid strong{display:block;margin:7px 0 4px;font-size:17px;line-height:1.12;overflow-wrap:anywhere}
-#engine .engine-grid span{display:block;color:#7d718b;font-size:9px;line-height:1.35}
-@media(max-width:900px){#engine .engine-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:430px){#engine .engine-grid{grid-template-columns:1fr}}
