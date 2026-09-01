@@ -9,27 +9,28 @@
  * No browser holdings, no broker-price fallback, no last-known-good cache.
  */
 
+const AURORA_SQUAD_SPREADSHEET_ID = '10MdgQKc4tParno7pNkz40eBGz308wxHu1u3gvJe_WsE';
 const AURORA_SQUAD_HOLDINGS_SHEET = 'Holdings';
 const AURORA_SQUAD_PRICES_SHEET = 'LivePrices';
 
 function auroraGetSquadSnapshot_(payload) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(AURORA_SQUAD_SPREADSHEET_ID);
   const holdingsSheet = ss.getSheetByName(AURORA_SQUAD_HOLDINGS_SHEET);
   const pricesSheet = ss.getSheetByName(AURORA_SQUAD_PRICES_SHEET);
 
-  if (!holdingsSheet) throw new Error('Holdings sheet not found.');
-  if (!pricesSheet) throw new Error('LivePrices sheet not found.');
+  if (!holdingsSheet) throw new Error('Holdings sheet not found in AuroraData.');
+  if (!pricesSheet) throw new Error('LivePrices sheet not found in AuroraData.');
 
   const holdingsRows = auroraSquadObjects_(holdingsSheet);
   const priceRows = auroraSquadObjects_(pricesSheet);
   const priceMap = new Map();
 
   priceRows.forEach(function (row) {
-    const ticker = auroraSquadTicker_(row.Symbol || row.symbol || row.ticker);
-    const price = auroraSquadNumber_(row.Price || row.price);
+    const ticker = auroraSquadTicker_(row.symbol || row.ticker);
+    const price = auroraSquadNumber_(row.price);
     if (!ticker || !(price > 0)) return;
 
-    const dayRaw = row['Day Change %'] ?? row['Change %'] ?? row.dayChangePct;
+    const dayRaw = row.day_change_pct ?? row.change_pct ?? row.daychangepct;
     const dayChangePct = dayRaw === '' || dayRaw === null || dayRaw === undefined
       ? null
       : auroraSquadNumber_(dayRaw);
@@ -37,7 +38,7 @@ function auroraGetSquadSnapshot_(payload) {
     priceMap.set(ticker, {
       price: price,
       dayChangePct: dayChangePct,
-      tradeTime: auroraSquadTradeTime_(row['Trade Time'] || row.tradeTime)
+      tradeTime: auroraSquadTradeTime_(row.trade_time || row.tradetime)
     });
   });
 
@@ -53,21 +54,22 @@ function auroraGetSquadSnapshot_(payload) {
 
     const quote = priceMap.get(ticker);
     if (!quote || !(quote.price > 0)) {
-      throw new Error('No live price found for active holding ' + ticker + '.');
+      throw new Error('No LivePrices quote found for active holding ' + ticker + '.');
     }
 
-    const bookCostGbp = Math.max(0, auroraSquadNumber_(row.book_cost));
-    const annualDpsGbp = Math.max(0, auroraSquadNumber_(row.annual_dps));
-    const annualIncomeGbp = Math.max(
-      0,
-      auroraSquadNumber_(row.annual_dps_total) || (shares * annualDpsGbp)
-    );
+    const bookCostGbp = Math.max(0, auroraSquadNumber_(row.book_cost ?? row.bookcost));
+    const annualDpsGbp = Math.max(0, auroraSquadNumber_(row.annual_dps ?? row.annualdps));
+    const sheetAnnualIncome = Math.max(0, auroraSquadNumber_(row.annual_dps_total ?? row.annualdpstotal));
+    const annualIncomeGbp = sheetAnnualIncome || (shares * annualDpsGbp);
+
+    if (!(bookCostGbp > 0)) {
+      throw new Error('Book cost missing for active holding ' + ticker + ' (' + String(row.account || 'Unspecified') + ').');
+    }
+
     const livePriceGbp = quote.price;
     const marketValueGbp = shares * livePriceGbp;
     const profitLossGbp = marketValueGbp - bookCostGbp;
-    const profitLossPct = bookCostGbp > 0
-      ? (profitLossGbp / bookCostGbp) * 100
-      : 0;
+    const profitLossPct = (profitLossGbp / bookCostGbp) * 100;
 
     holdings.push({
       account: String(row.account || 'Unspecified'),
@@ -78,7 +80,7 @@ function auroraGetSquadSnapshot_(payload) {
       status: status,
       shares: shares,
       bookCostGbp: bookCostGbp,
-      avgCostGbp: shares > 0 ? bookCostGbp / shares : 0,
+      avgCostGbp: bookCostGbp / shares,
       livePriceGbp: livePriceGbp,
       marketValueGbp: marketValueGbp,
       profitLossGbp: profitLossGbp,
@@ -118,6 +120,7 @@ function auroraGetSquadSnapshot_(payload) {
   return {
     ok: true,
     source: 'AURORADATA_BACKEND_SINGLE_AUTHORITY',
+    spreadsheetId: AURORA_SQUAD_SPREADSHEET_ID,
     generatedAt: new Date().toISOString(),
     holdingCount: holdings.length,
     quoteCount: priceMap.size,
@@ -127,13 +130,10 @@ function auroraGetSquadSnapshot_(payload) {
 }
 
 function auroraSquadObjects_(sheet) {
-  const range = sheet.getDataRange();
-  const values = range.getValues();
+  const values = sheet.getDataRange().getValues();
   if (values.length < 2) return [];
 
-  const headers = values[0].map(function (v) {
-    return String(v || '').trim();
-  });
+  const headers = values[0].map(auroraSquadHeaderKey_);
 
   return values.slice(1).map(function (row) {
     const out = {};
@@ -142,6 +142,16 @@ function auroraSquadObjects_(sheet) {
     });
     return out;
   });
+}
+
+function auroraSquadHeaderKey_(value) {
+  return String(value || '')
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/%/g, 'pct')
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase();
 }
 
 function auroraSquadTicker_(value) {
@@ -154,6 +164,7 @@ function auroraSquadTicker_(value) {
 }
 
 function auroraSquadNumber_(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
   const n = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
   return Number.isFinite(n) ? n : 0;
 }
@@ -174,5 +185,6 @@ function auroraSquadTradeTime_(value) {
 }
 
 function testAuroraSquadSnapshot() {
-  Logger.log(JSON.stringify(auroraGetSquadSnapshot_({}), null, 2));
+  const result = auroraGetSquadSnapshot_({});
+  Logger.log(JSON.stringify(result, null, 2));
 }
