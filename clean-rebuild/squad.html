@@ -12,6 +12,7 @@
   <script src="aurora.js?v=20260829-sidebar-shell-3-direct-open" defer></script>
   <script src="chairman-settlement-authority.js?v=20260827-chairman-settlement-authority-1" defer></script>
   <script src="squad-engine.js?v=20260901-squad-data-reset-1" defer></script>
+  <script src="squad-backend-sync.js?v=20260901-squad-backend-sync-1" defer></script>
   <script src="squad-intelligence.js?v=20260827-squad-intelligence-market-after-1" defer></script>
   <script src="squad-matchday.js?v=20260828-squad-matchday-price-source-3" defer></script>
   <script src="squad-matchday-split.js?v=20260827-squad-matchday-split-market-first-2" defer></script>
@@ -21,10 +22,10 @@
 <nav id="auroraNav"></nav><hr>
 <header class="department-hero squad-hero">
   <div><p class="eyebrow">AURORA CITY FC · FIRST TEAM</p><h1>Squad Hub</h1><p class="department-lead">First-team command for live holdings, portfolio form, dividend income, Matchday XI and detailed player reports — all from the clean Squad authority.</p></div>
-  <button id="squadImportReal" type="button" disabled>Backend rebuild pending</button>
+  <button id="squadImportReal" type="button">Refresh Live Squad</button>
 </header>
-<section class="squad-status" aria-label="Squad data status"><p id="squadImportStatus">Rebuild in progress — old browser holdings and price fallbacks are disabled.</p><p id="squadSource">Squad data layer stripped · waiting for new Aurora backend authority</p></section>
+<section class="squad-status" aria-label="Squad data status"><p id="squadImportStatus">Connecting to the single Aurora Squad backend authority…</p><p id="squadSource">AuroraData Holdings + LivePrices via backend</p></section>
 <section id="squadCurrentMarketPosition" class="department-section"><div class="section-heading"><div><p class="eyebrow">PORTFOLIO VALUE</p><h2>Current market position</h2></div><p id="squadCount">0 account position(s)</p></div><div class="scouting-control-grid"><article class="scouting-control-card scouting-top-card"><span>TOTAL MARKET VALUE</span><strong id="squadMarketValue">£0.00</strong><small>Live price × active shares</small></article><article class="scouting-control-card"><span>BOOK COST</span><strong id="squadBookValue">£0.00</strong><small>Total invested cost basis</small></article><article class="scouting-control-card"><span>PROFIT / LOSS</span><strong id="squadProfitLoss">£0.00</strong><small id="squadProfitLossPct">0.00%</small></article></div><div class="finance-result-grid"><article class="finance-result-card"><span>ANNUAL INCOME</span><strong id="squadAnnualIncome">£0.00</strong><small>Confirmed forward income</small></article><article class="finance-result-card"><span>MONTHLY AVERAGE</span><strong id="squadMonthlyIncome">£0.00</strong><small>Annual income ÷ 12</small></article></div></section>
-<section class="department-section squad-register"><div class="section-heading"><div><p class="eyebrow">SQUAD TABLE</p><h2>Matchday XI & Bench</h2></div><p>Matchday XI first, then the bench. Tap any row to open the full Aurora Player Report.</p></div><div id="squadRows"><div class="squad-table-wrap"><div style="padding:22px"><strong>Squad data reset complete.</strong><br><span style="opacity:.75">Waiting for the new single backend feed from AuroraData Holdings + LivePrices.</span></div></div></div></section>
+<section class="department-section squad-register"><div class="section-heading"><div><p class="eyebrow">SQUAD TABLE</p><h2>Matchday XI & Bench</h2></div><p>Matchday XI first, then the bench. Tap any row to open the full Aurora Player Report.</p></div><div id="squadRows"><div class="squad-table-wrap"><div style="padding:22px"><strong>Waiting for backend Squad snapshot.</strong><br><span style="opacity:.75">Only AuroraData Holdings + LivePrices will be accepted.</span></div></div></div></section>
 </body>
 </html>
