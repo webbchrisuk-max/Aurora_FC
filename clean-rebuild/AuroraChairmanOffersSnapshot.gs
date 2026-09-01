@@ -1,102 +1,124 @@
-/* Aurora City FC — Chairman Offers clean rebuild, phase 1
+/* Aurora City FC — Chairman Offers clean rebuild, phase 2
  *
- * Read-only backend authority for the clean Transfer Centre.
+ * READ-ONLY backend authority for Chairman review candidates.
  *
- * Google Sheet authority: IncomingOffers
  * Action: getChairmanOffersSnapshot (READ)
  *
- * This phase does NOT create, update, withdraw or migrate offers.
- * It only reads rows explicitly owned by the new clean rebuild source.
+ * Source of truth:
+ *   auroraGetSquadSnapshot_() = Holdings + LivePrices backend authority
+ *
+ * This phase does NOT create, save, withdraw, accept or execute offers.
+ * It only identifies live holdings that have reached the Chairman review bands.
  */
 
-const AURORA_CHAIRMAN_V2_SPREADSHEET_ID = '10MdgQKc4tParno7pNkz40eBGz308wxHu1u3gvJe_WsE';
-const AURORA_CHAIRMAN_V2_SHEET = 'IncomingOffers';
-const AURORA_CHAIRMAN_V2_SOURCE = 'Aurora Chairman V2';
+const AURORA_CHAIRMAN_V2_SOURCE = 'AURORA_CHAIRMAN_V2_BACKEND';
+const AURORA_CHAIRMAN_V2_REVIEW_PCT = 6;
+const AURORA_CHAIRMAN_V2_STRONG_REVIEW_PCT = 10;
+const AURORA_CHAIRMAN_V2_EXCLUDED_TICKERS = ['TSCO'];
 
 function auroraGetChairmanOffersSnapshot_(payload) {
-  const ss = SpreadsheetApp.openById(AURORA_CHAIRMAN_V2_SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(AURORA_CHAIRMAN_V2_SHEET);
-  if (!sheet) throw new Error('IncomingOffers sheet not found.');
-
-  const values = sheet.getDataRange().getValues();
-  if (!values.length) {
-    return {
-      ok: true,
-      source: 'AURORA_CHAIRMAN_V2_BACKEND',
-      generatedAt: new Date().toISOString(),
-      offerCount: 0,
-      offers: []
-    };
+  if (typeof auroraGetSquadSnapshot_ !== 'function') {
+    throw new Error('Squad backend authority is unavailable.');
   }
 
-  const headers = values[0].map(v => String(v || '').trim());
-  const col = name => headers.indexOf(name);
+  const squad = auroraGetSquadSnapshot_({});
+  if (!squad || squad.ok !== true || !Array.isArray(squad.holdings)) {
+    throw new Error('Invalid Squad backend snapshot.');
+  }
 
-  const sourceCol = col('source');
-  if (sourceCol < 0) throw new Error('IncomingOffers is missing required source column.');
+  const reviews = squad.holdings
+    .filter(function (holding) {
+      const ticker = auroraChairmanV2Ticker_(holding.ticker);
+      const gainPct = auroraChairmanV2Num_(holding.profitLossPct);
+      if (!ticker) return false;
+      if (AURORA_CHAIRMAN_V2_EXCLUDED_TICKERS.indexOf(ticker) >= 0) return false;
+      return gainPct >= AURORA_CHAIRMAN_V2_REVIEW_PCT;
+    })
+    .map(function (holding) {
+      const ticker = auroraChairmanV2Ticker_(holding.ticker);
+      const gainPct = auroraChairmanV2Num_(holding.profitLossPct);
+      const tier = gainPct >= AURORA_CHAIRMAN_V2_STRONG_REVIEW_PCT
+        ? 'STRONG_REVIEW'
+        : 'REVIEW';
 
-  const rows = values.slice(1)
-    .filter(row => String(row[sourceCol] || '').trim() === AURORA_CHAIRMAN_V2_SOURCE)
-    .map(row => ({
-      id: auroraChairmanV2Text_(row[col('offer_id')]),
-      createdAt: auroraChairmanV2Iso_(row[col('created_at')]),
-      ticker: auroraChairmanV2Text_(row[col('ticker')]),
-      name: auroraChairmanV2Text_(row[col('name')]),
-      account: auroraChairmanV2Text_(row[col('account')]),
-      status: auroraChairmanV2Text_(row[col('status')]) || 'WATCHING',
-      shares: auroraChairmanV2Num_(row[col('requested_shares')]),
-      currentShares: auroraChairmanV2Num_(row[col('current_shares')]),
-      currentPrice: auroraChairmanV2Num_(row[col('current_price')]),
-      offerPrice: auroraChairmanV2Num_(row[col('offer_price')]),
-      premiumPct: auroraChairmanV2Pct_(row[col('premium_pct')]),
-      currentValueGbp: auroraChairmanV2Num_(row[col('current_value_gbp')]),
-      offerValueGbp: auroraChairmanV2Num_(row[col('offer_value_gbp')]),
-      bookCostReleasedGbp: auroraChairmanV2Num_(row[col('book_cost_released_gbp')]),
-      estimatedGainLossGbp: auroraChairmanV2Num_(row[col('est_gain_loss_gbp')]),
-      annualIncomeLostGbp: auroraChairmanV2Num_(row[col('annual_income_lost_gbp')]),
-      replacementIncomeNeededGbp: auroraChairmanV2Num_(row[col('replacement_income_needed_gbp')]),
-      reason: auroraChairmanV2Text_(row[col('reason')]),
-      directorVerdict: auroraChairmanV2Text_(row[col('director_verdict')]),
-      updatedAt: auroraChairmanV2Iso_(row[col('updated_at')]),
-      source: AURORA_CHAIRMAN_V2_SOURCE
-    }))
-    .filter(row => row.id && row.ticker);
+      return {
+        reviewId: 'CHAIRMAN-' + ticker + '-' + auroraChairmanV2AccountKey_(holding.account),
+        ticker: ticker,
+        name: String(holding.name || ticker),
+        account: String(holding.account || 'Unspecified'),
+        status: 'REVIEW',
+        tier: tier,
+        triggerPct: tier === 'STRONG_REVIEW'
+          ? AURORA_CHAIRMAN_V2_STRONG_REVIEW_PCT
+          : AURORA_CHAIRMAN_V2_REVIEW_PCT,
+        gainPct: gainPct,
+        shares: auroraChairmanV2Num_(holding.shares),
+        avgCostGbp: auroraChairmanV2Num_(holding.avgCostGbp),
+        livePriceGbp: auroraChairmanV2Num_(holding.livePriceGbp),
+        marketValueGbp: auroraChairmanV2Num_(holding.marketValueGbp),
+        bookCostGbp: auroraChairmanV2Num_(holding.bookCostGbp),
+        profitLossGbp: auroraChairmanV2Num_(holding.profitLossGbp),
+        annualIncomeGbp: auroraChairmanV2Num_(holding.annualIncomeGbp),
+        dayChangePct: holding.dayChangePct == null ? null : auroraChairmanV2Num_(holding.dayChangePct),
+        tradeTime: String(holding.tradeTime || ''),
+        replacementStatus: 'NOT_EVALUATED',
+        executable: false,
+        source: AURORA_CHAIRMAN_V2_SOURCE
+      };
+    });
 
-  rows.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  reviews.sort(function (a, b) {
+    if (b.gainPct !== a.gainPct) return b.gainPct - a.gainPct;
+    return b.marketValueGbp - a.marketValueGbp;
+  });
+
+  const strongReviewCount = reviews.filter(function (row) {
+    return row.tier === 'STRONG_REVIEW';
+  }).length;
 
   return {
     ok: true,
-    source: 'AURORA_CHAIRMAN_V2_BACKEND',
+    source: AURORA_CHAIRMAN_V2_SOURCE,
+    authority: squad.source || 'AURORADATA_BACKEND_SINGLE_AUTHORITY',
     generatedAt: new Date().toISOString(),
-    offerCount: rows.length,
-    offers: rows
+    thresholds: {
+      reviewPct: AURORA_CHAIRMAN_V2_REVIEW_PCT,
+      strongReviewPct: AURORA_CHAIRMAN_V2_STRONG_REVIEW_PCT
+    },
+    excludedTickers: AURORA_CHAIRMAN_V2_EXCLUDED_TICKERS.slice(),
+    holdingCount: squad.holdingCount || squad.holdings.length,
+    reviewCount: reviews.length,
+    strongReviewCount: strongReviewCount,
+    executableCount: 0,
+    reviews: reviews,
+    offerCount: 0,
+    offers: []
   };
 }
 
-function auroraChairmanV2Text_(value) {
-  return String(value == null ? '' : value).trim();
+function auroraChairmanV2Ticker_(value) {
+  return String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/^LON:/, '')
+    .replace(/\.L$/, '')
+    .replace(/\.GB$/, '');
+}
+
+function auroraChairmanV2AccountKey_(value) {
+  return String(value || 'UNSPECIFIED')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-');
 }
 
 function auroraChairmanV2Num_(value) {
-  if (value === '' || value == null) return 0;
-  const n = Number(String(value).replace(/[^0-9.-]/g, ''));
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  const n = Number(String(value == null ? '' : value).replace(/[^0-9.-]/g, ''));
   return Number.isFinite(n) ? n : 0;
 }
 
-function auroraChairmanV2Pct_(value) {
-  if (value === '' || value == null) return 0;
-  const text = String(value).trim();
-  const n = auroraChairmanV2Num_(value);
-  if (!Number.isFinite(n)) return 0;
-  return text.includes('%') ? n : (Math.abs(n) <= 1 ? n * 100 : n);
-}
-
-function auroraChairmanV2Iso_(value) {
-  if (!value) return '';
-  const d = value instanceof Date ? value : new Date(value);
-  return isNaN(d.getTime()) ? '' : d.toISOString();
-}
-
 function testAuroraChairmanOffersSnapshot() {
-  Logger.log(JSON.stringify(auroraGetChairmanOffersSnapshot_({}), null, 2));
+  const result = auroraGetChairmanOffersSnapshot_({});
+  Logger.log(JSON.stringify(result, null, 2));
 }
