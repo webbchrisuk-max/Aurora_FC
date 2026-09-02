@@ -14,7 +14,7 @@
   <script src="finance-manager.js?v=20260831-finance-manager-house-breakdown-1" defer></script>
   <script src="finance-house-room-breakdown.js?v=20260831-finance-house-room-breakdown-3-fresh-user-rooms" defer></script>
   <script src="finance-payday-summaries.js?v=20260902-payday-summary-cards-10-mission-breakdown" defer></script>
-  <script src="finance-payday-mission.js?v=20260902-payday-mission-breakdown-1" defer></script>
+  <script src="finance-payday-mission.js?v=20260902-payday-mission-breakdown-3-main-account-carryover" defer></script>
 </head>
 <body data-page="finance">
 <nav id="auroraNav"></nav><hr>
@@ -36,19 +36,20 @@
 </nav>
 
 <div class="finance-tab-panel-title" id="financeTabTitle">
-  <p class="eyebrow">PAYDAY MISSION CONTROL</p><h2>Payday allocation plan</h2><p>Confirm the wage received, then follow the exact moves Aurora calculates.</p>
+  <p class="eyebrow">PAYDAY MISSION CONTROL</p><h2>Payday allocation plan</h2><p>Confirm the wage received, add any money already left in your main account, then follow Aurora’s exact moves.</p>
 </div>
 
 <main data-finance-tab="payday">
 <section class="department-section finance-control">
-  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">PAYDAY MONEY RECEIVED</p><h2>Confirm the money that arrived</h2></div><p>Enter the actual wage received. Aurora will rebuild the full payday allocation automatically.</p></div>
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">PAYDAY MONEY RECEIVED</p><h2>Confirm the money that arrived</h2></div><p>Enter your actual wage and any money already left in your main account. Aurora adds them together automatically as your payday cash available.</p></div>
   <div class="finance-form-grid">
     <label>Expected Wages<input id="financeExpectedWages" type="number" min="0" step="0.01" inputmode="decimal"><small>What payday was expected to pay.</small></label>
     <label>Wages Received<input id="financeWagesReceived" type="number" min="0" step="0.01" inputmode="decimal"><small>The actual wage payment received.</small></label>
-    <label>Cash Available on Payday<input id="financeAvailable" type="number" min="0" step="0.01" inputmode="decimal"><small>Cash Finance can make decisions from.</small></label>
+    <label>Main Account Balance Left Over<input id="financeMainAccountLeftover" type="number" min="0" step="0.01" inputmode="decimal"><small>Money already sitting in your current account before this payday wage is added.</small></label>
+    <label class="payday-auto-total">Cash Available on Payday<input id="financeAvailable" type="number" min="0" step="0.01" inputmode="decimal" readonly aria-readonly="true"><small>Automatically calculated: Wages Received + Main Account Balance Left Over.</small></label>
     <label>Protected Cash<input id="financeProtected" type="number" min="0" step="0.01" inputmode="decimal"><small>Cash that must remain untouched.</small></label>
   </div>
-  <div class="finance-actions"><button id="financeUseActualPay" type="button">Use Actual Pay as Available Cash</button><button id="financeCalculate" type="button" class="finance-primary">Update Cash Truth</button></div>
+  <div class="finance-actions"><button id="financeCalculate" type="button" class="finance-primary">Update Cash Truth</button></div>
 </section>
 
 <section class="department-section finance-control" hidden>
@@ -119,7 +120,7 @@
 
 <script>
 (() => {
-  const meta={payday:['PAYDAY MISSION CONTROL','Payday allocation plan','Confirm the wage received, then follow the exact moves Aurora calculates.'],bills:['BILL CONTROL','Bills','Manage recurring bills and inspect the next payday cycle.'],pots:['POT CONTROL','Goal Pots','Manage pots and review the current funding plan.'],house:['HOUSE PROJECT','House Improvements','Renovation fund, room budgets and house payments.']};
+  const meta={payday:['PAYDAY MISSION CONTROL','Payday allocation plan','Confirm the wage received, add any money already left in your main account, then follow Aurora’s exact moves.'],bills:['BILL CONTROL','Bills','Manage recurring bills and inspect the next payday cycle.'],pots:['POT CONTROL','Goal Pots','Manage pots and review the current funding plan.'],house:['HOUSE PROJECT','House Improvements','Renovation fund, room budgets and house payments.']};
   function select(id){if(!meta[id])id='payday';document.querySelectorAll('.finance-tabbar button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===id?'true':'false'));document.querySelectorAll('[data-finance-tab]').forEach(p=>p.hidden=p.dataset.financeTab!==id);const t=document.getElementById('financeTabTitle'),m=meta[id];if(t)t.innerHTML=`<p class="eyebrow">${m[0]}</p><h2>${m[1]}</h2><p>${m[2]}</p>`;try{sessionStorage.setItem('aurora-clean:finance-tab',id)}catch(_){} }
   document.querySelectorAll('.finance-tabbar button').forEach(b=>b.addEventListener('click',()=>select(b.dataset.tab)));
   let saved='payday';try{saved=sessionStorage.getItem('aurora-clean:finance-tab')||'payday'}catch(_){}select(saved);
