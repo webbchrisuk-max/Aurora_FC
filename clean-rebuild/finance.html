@@ -13,7 +13,8 @@
   <script src="finance-house-baseline.js?v=20260831-house-baseline-no-default-rooms-1" defer></script>
   <script src="finance-manager.js?v=20260831-finance-manager-house-breakdown-1" defer></script>
   <script src="finance-house-room-breakdown.js?v=20260831-finance-house-room-breakdown-3-fresh-user-rooms" defer></script>
-  <script src="finance-payday-summaries.js?v=20260901-payday-summary-cards-9-holding-bill-deduction" defer></script>
+  <script src="finance-payday-summaries.js?v=20260902-payday-summary-cards-10-mission-breakdown" defer></script>
+  <script src="finance-payday-mission.js?v=20260902-payday-mission-breakdown-1" defer></script>
 </head>
 <body data-page="finance">
 <nav id="auroraNav"></nav><hr>
@@ -35,12 +36,12 @@
 </nav>
 
 <div class="finance-tab-panel-title" id="financeTabTitle">
-  <p class="eyebrow">PAYDAY MISSION CONTROL</p><h2>Stages 1–6</h2><p>Cash truth through mission release in one continuous flow.</p>
+  <p class="eyebrow">PAYDAY MISSION CONTROL</p><h2>Payday allocation plan</h2><p>Confirm the wage received, then follow the exact moves Aurora calculates.</p>
 </div>
 
 <main data-finance-tab="payday">
 <section class="department-section finance-control">
-  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 1 · CASH TRUTH</p><h2>Proved payday cash</h2></div><p>Your live payday cash inputs.</p></div>
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">PAYDAY MONEY RECEIVED</p><h2>Confirm the money that arrived</h2></div><p>Enter the actual wage received. Aurora will rebuild the full payday allocation automatically.</p></div>
   <div class="finance-form-grid">
     <label>Expected Wages<input id="financeExpectedWages" type="number" min="0" step="0.01" inputmode="decimal"><small>What payday was expected to pay.</small></label>
     <label>Wages Received<input id="financeWagesReceived" type="number" min="0" step="0.01" inputmode="decimal"><small>The actual wage payment received.</small></label>
@@ -50,14 +51,14 @@
   <div class="finance-actions"><button id="financeUseActualPay" type="button">Use Actual Pay as Available Cash</button><button id="financeCalculate" type="button" class="finance-primary">Update Cash Truth</button></div>
 </section>
 
-<section class="department-section finance-control">
+<section class="department-section finance-control" hidden>
   <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 2 · BILLS</p><h2>Proved recurring obligations</h2></div><p id="financeBillImportStatus">LIVE · AUTO UPDATED</p></div>
   <div class="finance-form-grid"><label>Payday Date<input id="financePaydayDate" type="date"><small>The 28-day cycle starts here.</small></label><label>Bill Window<strong id="financeBillWindow">—</strong><small>Payday through the day before next payday.</small></label></div>
   <div class="scouting-control-grid"><article class="scouting-control-card"><span>ACTIVE BILLS</span><strong id="financeBillCount">0</strong></article><article class="scouting-control-card"><span>CURRENT ACCOUNT · NEXT CYCLE</span><strong id="financeCurrentAccountDue">£0.00</strong></article><article class="scouting-control-card"><span>HOLDING POT · 13-PAY YEAR</span><strong id="financeHoldingAnnual">£0.00</strong></article></div>
   <div class="finance-result-grid"><article class="finance-result-card finance-safe-card"><span>BASE HOLDING POT FUNDING / PAYDAY</span><strong id="financeHoldingPerPayday">£0.00</strong></article></div>
 </section>
 
-<section class="department-section finance-control">
+<section class="department-section finance-control" hidden>
   <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 3 · HOLDING POT</p><h2>Protect the next bill cycle</h2></div><p id="financeHoldingImportStatus">LIVE · AUTO UPDATED</p></div>
   <div class="scouting-control-grid"><article class="scouting-control-card"><span>CURRENT HOLDING POT</span><strong id="financeHoldingBalanceStage3">£0.00</strong></article><article class="scouting-control-card"><span>SPEND BEFORE PAYDAY</span><strong id="financeHoldingSpendBeforePayday">£0.00</strong></article><article class="scouting-control-card"><span>PROJECTED PAYDAY BALANCE</span><strong id="financeHoldingProjectedPayday">£0.00</strong></article></div>
   <div class="finance-result-grid"><article class="finance-result-card"><span>BASE 13-PAY CONTRIBUTION</span><strong id="financeHoldingBaseContribution">£0.00</strong></article><article class="finance-result-card"><span>ONE-CYCLE DYNAMIC TARGET</span><strong id="financeHoldingDynamicTarget">£0.00</strong></article><article class="finance-result-card finance-safe-card"><span>SAFETY TOP-UP</span><strong id="financeHoldingTopUpStage3">£0.00</strong></article></div>
@@ -65,14 +66,14 @@
   <div class="finance-result-grid"><article class="finance-result-card"><span>PRE-PAYDAY SHORTFALL</span><strong id="financeHoldingPrePaydayShortfall">£0.00</strong></article><article class="finance-result-card"><span>TARGET HEADROOM</span><strong id="financeHoldingHeadroom">£0.00</strong></article></div>
 </section>
 
-<section class="department-section finance-control">
+<section class="department-section finance-control" hidden>
   <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 4 · POT FUNDING</p><h2>Fund goals in the correct order</h2></div><p id="financePotImportStatus">LIVE · AUTO UPDATED</p></div>
   <div class="scouting-control-grid"><article class="scouting-control-card"><span>ACTIVE POTS</span><strong id="financePotCount">0</strong></article><article class="scouting-control-card"><span>WAGE DIFFERENCE</span><strong id="financePotWageDifference">£0.00</strong></article><article class="scouting-control-card"><span>OPTIONAL ALLOWANCE</span><strong id="financePotOptionalBudget">£0.00</strong></article></div>
   <div class="finance-result-grid"><article class="finance-result-card"><span>REQUIRED / DEADLINE POTS</span><strong id="financePotRequired">£0.00</strong></article><article class="finance-result-card"><span>PAYDAY ROLLOVER</span><strong id="financePotRollover">£0.00</strong></article><article class="finance-result-card"><span>OPTIONAL PRIORITY POTS</span><strong id="financePotOptionalPriority">£0.00</strong></article></div>
   <div class="scouting-control-grid"><article class="scouting-control-card scouting-top-card"><span>TOTAL STAGE 4 POT FUNDING</span><strong id="financePotTotal">£0.00</strong></article></div>
 </section>
 
-<section class="department-section finance-control">
+<section class="department-section finance-control" hidden>
   <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 5 · PAYDAY DECISION</p><h2>Definitive Maximum Safe Release</h2></div><p id="financeDecisionStage1Comparison">LIVE · AUTO UPDATED</p></div>
   <div class="scouting-control-grid"><article class="scouting-control-card"><span>AVAILABLE PAYDAY CASH</span><strong id="financeDecisionCash">£0.00</strong></article><article class="scouting-control-card"><span>PROVED COMMITMENTS</span><strong id="financeDecisionCommitments">£0.00</strong></article><article class="scouting-control-card"><span>PROTECTED CASH</span><strong id="financeDecisionProtected">£0.00</strong></article></div>
   <div class="finance-result-grid"><article class="finance-result-card"><span>CURRENT ACCOUNT BILLS</span><strong id="financeDecisionBills">£0.00</strong></article><article class="finance-result-card"><span>BASE HOLDING POT</span><strong id="financeDecisionHoldingBase">£0.00</strong></article><article class="finance-result-card"><span>HOLDING POT TOP-UP</span><strong id="financeDecisionHoldingTopUp">£0.00</strong></article><article class="finance-result-card"><span>STAGE 4 POT FUNDING</span><strong id="financeDecisionPots">£0.00</strong></article><article class="finance-result-card"><span>TOTAL RESERVED</span><strong id="financeDecisionReserved">£0.00</strong></article></div>
@@ -85,8 +86,8 @@
   <div class="scouting-control-grid"><article class="scouting-control-card scouting-top-card"><span>MISSION BUDGET</span><strong id="financeStage6Amount">£0.00</strong></article><article class="scouting-control-card"><span>MISSION STATUS</span><strong id="financeStage6Status">READY TO RELEASE</strong><small id="financeStage6Detail">No investment mission has been released yet.</small></article></div>
 </section>
 
-<section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 5 AUDIT</p><h2>Where every pound goes</h2></div></div><ul id="financeStage5DecisionRows"><li>No Stage 5 decision loaded.</li></ul></section>
-<section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">BEFORE PAYDAY</p><h2>Projected Holding Pot spend</h2></div></div><ul id="financeStage3PrePaydayRows"><li>No Holding Pot projection loaded.</li></ul></section>
+<section class="department-section finance-breakdown" hidden><div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 5 AUDIT</p><h2>Where every pound goes</h2></div></div><ul id="financeStage5DecisionRows"><li>No Stage 5 decision loaded.</li></ul></section>
+<section class="department-section finance-breakdown" hidden><div class="section-heading"><div><p class="eyebrow finance-eyebrow">BEFORE PAYDAY</p><h2>Projected Holding Pot spend</h2></div></div><ul id="financeStage3PrePaydayRows"><li>No Holding Pot projection loaded.</li></ul></section>
 </main>
 
 <main data-finance-tab="bills" hidden>
@@ -118,8 +119,8 @@
 
 <script>
 (() => {
-  const meta={payday:['PAYDAY MISSION CONTROL','Stages 1–6','Cash truth through mission release in one continuous flow.'],bills:['BILL CONTROL','Bills','Manage recurring bills and inspect the next payday cycle.'],pots:['POT CONTROL','Goal Pots','Manage pots and review the current funding plan.'],house:['HOUSE PROJECT','House Improvements','Renovation fund, room budgets and house payments.']};
-  function select(id){if(!meta[id])id='payday';document.querySelectorAll('.finance-tabbar button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===id?'true':'false'));document.querySelectorAll('[data-finance-tab]').forEach(p=>p.hidden=p.dataset.financeTab!==id);const t=document.getElementById('financeTabTitle'),m=meta[id];if(t)t.innerHTML=`<p class="eyebrow">${m[0]}</p><h2>${m[1]}</h2><p>${m[2]}</p>`;try{sessionStorage.setItem('aurora-clean:finance-tab',id)}catch(_){}}
+  const meta={payday:['PAYDAY MISSION CONTROL','Payday allocation plan','Confirm the wage received, then follow the exact moves Aurora calculates.'],bills:['BILL CONTROL','Bills','Manage recurring bills and inspect the next payday cycle.'],pots:['POT CONTROL','Goal Pots','Manage pots and review the current funding plan.'],house:['HOUSE PROJECT','House Improvements','Renovation fund, room budgets and house payments.']};
+  function select(id){if(!meta[id])id='payday';document.querySelectorAll('.finance-tabbar button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===id?'true':'false'));document.querySelectorAll('[data-finance-tab]').forEach(p=>p.hidden=p.dataset.financeTab!==id);const t=document.getElementById('financeTabTitle'),m=meta[id];if(t)t.innerHTML=`<p class="eyebrow">${m[0]}</p><h2>${m[1]}</h2><p>${m[2]}</p>`;try{sessionStorage.setItem('aurora-clean:finance-tab',id)}catch(_){} }
   document.querySelectorAll('.finance-tabbar button').forEach(b=>b.addEventListener('click',()=>select(b.dataset.tab)));
   let saved='payday';try{saved=sessionStorage.getItem('aurora-clean:finance-tab')||'payday'}catch(_){}select(saved);
   document.addEventListener('aurora-clean:state',()=>{const A=window.AuroraFinanceManager;if(!A)return;const m=A.houseMetrics(window.AuroraClean.readState());const t=document.getElementById('houseTargetMirror'),f=document.getElementById('houseFundedMirror');if(t)t.textContent=new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(m.target);if(f)f.textContent=new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(m.funded)});
