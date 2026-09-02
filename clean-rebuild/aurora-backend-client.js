@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260901-clean-backend-client-1';
+  const BUILD='20260902-clean-backend-client-2-income-get';
   const CONNECTION_KEY='aurora:data2:registration-connection:v2';
 
   function config(){
@@ -57,5 +57,11 @@
     });
   }
 
-  window.AuroraData2Client=Object.freeze({BUILD,config,post,jsonp});
+  // Read actions use JSONP because the clean site is hosted on GitHub Pages.
+  // Keeping a get() alias preserves the existing Income Centre contract.
+  function get(action,payload){
+    return jsonp(action,payload||{});
+  }
+
+  window.AuroraData2Client=Object.freeze({BUILD,config,get,post,jsonp});
 })();
