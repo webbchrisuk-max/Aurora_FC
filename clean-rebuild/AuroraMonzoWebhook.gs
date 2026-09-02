@@ -9,6 +9,7 @@
 
 const AURORA_MONZO_SHEET = 'MonzoRoundups';
 const AURORA_MONZO_MULTIPLIER = 5;
+const AURORA_MONZO_MIN_ROUNDUP_PURCHASE_GBP = 1;
 
 function auroraMonzoSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -34,7 +35,11 @@ function auroraHandleMonzoCardPurchase_(payload) {
   if (!transactionId) throw new Error('Monzo transactionId is required.');
   if (!Number.isFinite(amount) || amount <= 0) throw new Error('Monzo purchase amount must be a positive number.');
 
-  const roundUpBase = Number((Math.ceil(amount) - amount).toFixed(2));
+  // Aurora rule: purchases below £1 never create a round-up.
+  // Whole-pound purchases also naturally produce a zero round-up.
+  const roundUpBase = amount < AURORA_MONZO_MIN_ROUNDUP_PURCHASE_GBP
+    ? 0
+    : Number((Math.ceil(amount) - amount).toFixed(2));
   const roundUpCredit = Number((roundUpBase * AURORA_MONZO_MULTIPLIER).toFixed(2));
   const sheet = auroraMonzoSheet_();
 
