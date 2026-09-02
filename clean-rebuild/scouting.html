@@ -7,34 +7,36 @@
   <link rel="stylesheet" href="aurora.css?v=20260827-clean-scouting-network-1">
   <link rel="stylesheet" href="scouting-network.css?v=20260827-scouting-network-1">
   <link rel="stylesheet" href="scouting-enrichment.css?v=20260827-scouting-enrichment-1">
+  <link rel="stylesheet" href="scouting-command.css?v=20260902-chief-scout-payday-command-1">
   <script src="aurora.js?v=20260829-sidebar-shell-3-direct-open" defer></script>
   <script src="scouting-universe.js?v=20260827-clean-universe-full-live-1" defer></script>
   <script src="scouting-market-watch.js?v=20260827-scouting-market-watch-2" defer></script>
   <script src="scouting-enrichment.js?v=20260827-scouting-enrichment-1" defer></script>
   <script src="scouting-network.js?v=20260827-scouting-network-1" defer></script>
   <script src="scouting-allocation.js?v=20260827-scouting-full-universe-allocation-1" defer></script>
+  <script src="scouting-command.js?v=20260902-chief-scout-payday-command-1" defer></script>
 </head>
 <body data-page="scouting">
 <nav id="auroraNav"></nav><hr>
 
 <header class="department-hero scouting-hero">
   <div>
-    <p class="eyebrow scouting-eyebrow">AURORA CITY FC · NATIONAL SCOUTING NETWORK</p>
+    <p class="eyebrow scouting-eyebrow">AURORA CITY FC · CHIEF SCOUT</p>
     <h1>Scouting Centre</h1>
-    <p class="department-lead">Aurora scans the full loaded stock universe, ranks every valid candidate through the clean scouting model, pushes the strongest cases through the recruitment pipeline, then builds one Finance-authorised payday plan for final approval.</p>
+    <p class="department-lead">Finance releases the payday investment budget. Aurora scouts the full opportunity pool in the background, ranks every eligible stock and brings the strongest picks to you with an exact allocation plan.</p>
   </div>
-  <span class="stage-badge scouting-stage-badge">SCAN · RANK · REPORT · RECRUIT</span>
+  <span class="stage-badge scouting-stage-badge">BUDGET → SCOUT → SELECT → APPROVE</span>
 </header>
 
-<section class="scouting-control-grid">
+<section class="scouting-control-grid scouting-top-summary">
   <article class="scouting-control-card"><span>FINANCE MISSION BUDGET</span><strong id="scoutingBudget">£0.00</strong><small>Official Stage 6 released mission</small></article>
   <article class="scouting-control-card"><span>CANDIDATE UNIVERSE</span><strong id="scoutingUniverseCount">0</strong><small>Unique shares available to rank</small></article>
   <article class="scouting-control-card scouting-top-card"><span>CURRENT TOP PICK</span><strong id="scoutingTopPick">Waiting for candidates</strong><small id="scoutingTopPickDetail">Loading the Aurora universe.</small></article>
 </section>
 
-<section class="department-section scouting-strategy-section"><div class="section-heading"><div><p class="eyebrow scouting-eyebrow">SCOUTING STRATEGY</p><h2>How should Aurora rank the opportunity pool?</h2></div><p id="scoutingStrategyNote">Sustainable balances income with concentration and diversification.</p></div><label class="scouting-strategy-control">Scouting Strategy<select id="scoutingStrategy"><option value="sustainable">Sustainable Income</option><option value="maximum">Maximum Income</option></select></label></section>
+<section class="department-section scouting-strategy-section"><div class="section-heading"><div><p class="eyebrow scouting-eyebrow">SCOUTING STRATEGY</p><h2>How should Aurora rank this payday?</h2></div><p id="scoutingStrategyNote">Sustainable balances income with concentration and diversification.</p></div><label class="scouting-strategy-control">Scouting Strategy<select id="scoutingStrategy"><option value="sustainable">Sustainable Income</option><option value="maximum">Maximum Income</option></select></label></section>
 
-<section class="department-section scouting-universe-section"><div class="section-heading"><div><p class="eyebrow scouting-eyebrow">UNIVERSE SOURCES</p><h2>Refresh the National Scouting Network</h2></div><p>Aurora-enriched Watchlist, Global Watchlist and AuroraScout intelligence is combined with a broad exchange-listed Market Watch. Market-watch-only names remain Development Watch until dividend data is available.</p></div><div class="scouting-actions"><button id="scoutingRefreshUniverse" type="button">Refresh Aurora Universe</button><span id="scoutingUniverseStatus">Loading Aurora universe…</span></div><div class="scouting-actions"><button id="scoutingSeedSquad" type="button">Add Current Squad</button><span id="scoutingSeedStatus">Current holdings can also be added directly to the candidate pool.</span></div><details class="scouting-add-candidate"><summary>Add External Candidate Manually</summary><div class="scouting-form-grid"><label>Ticker <input id="candidateTicker" autocomplete="off"></label><label>Name <input id="candidateName" autocomplete="off"></label><label>Forward Yield % <input id="candidateYield" type="number" min="0" step="0.01"></label><label>Sector <input id="candidateSector" autocomplete="off" placeholder="Optional"></label></div><button id="addCandidate" type="button">Add / Update Candidate</button></details></section>
+<section class="department-section scouting-universe-section"><div class="section-heading"><div><p class="eyebrow scouting-eyebrow">UNIVERSE SOURCES</p><h2>Scouting network controls</h2></div><p>Aurora-enriched Watchlist, Global Watchlist and AuroraScout intelligence is combined with the wider market universe. These controls are for maintenance, not the normal payday workflow.</p></div><div class="scouting-actions"><button id="scoutingRefreshUniverse" type="button">Refresh Aurora Universe</button><span id="scoutingUniverseStatus">Loading Aurora universe…</span></div><div class="scouting-actions"><button id="scoutingSeedSquad" type="button">Add Current Squad</button><span id="scoutingSeedStatus">Current holdings can also be added directly to the candidate pool.</span></div><details class="scouting-add-candidate"><summary>Add External Candidate Manually</summary><div class="scouting-form-grid"><label>Ticker <input id="candidateTicker" autocomplete="off"></label><label>Name <input id="candidateName" autocomplete="off"></label><label>Forward Yield % <input id="candidateYield" type="number" min="0" step="0.01"></label><label>Sector <input id="candidateSector" autocomplete="off" placeholder="Optional"></label></div><button id="addCandidate" type="button">Add / Update Candidate</button></details></section>
 
 <section class="department-section scouting-ranking-section"><div class="section-heading"><div><p class="eyebrow scouting-eyebrow">RECRUITMENT MEETING · PAYDAY PLAN</p><h2>Proposed use of the Finance mission</h2></div><p id="scoutingAllocationNote">Waiting for Finance Stage 6 to release an investment mission.</p></div><div class="scouting-control-grid"><article class="scouting-control-card"><span>AUTO-SELECTED PICKS</span><strong id="scoutingApprovedCount">0</strong><small>Strongest recruitment cases for the available budget</small></article><article class="scouting-control-card"><span>ALLOCATED BUDGET</span><strong id="scoutingAllocatedBudget">£0.00</strong><small>Full released Finance mission assigned by the optimiser</small></article><article class="scouting-control-card scouting-top-card"><span>PROJECTED EXTRA INCOME</span><strong id="scoutingProjectedIncome">£0.00</strong><small>Estimated annual income from the proposed payday allocation</small></article></div><p>Plan status: <strong id="scoutingPlanStatus">WAITING</strong></p><ul id="scoutingAllocationRows"><li>No Finance mission released yet.</li></ul><div class="finance-actions"><button id="scoutingApprovePlan" type="button" class="finance-primary" disabled>Approve Payday Plan</button></div></section>
 
