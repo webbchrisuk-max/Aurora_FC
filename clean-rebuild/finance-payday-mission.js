@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260902-payday-mission-breakdown-3-main-account-carryover';
+  const BUILD='20260902-payday-mission-breakdown-4-carryover-live-total-fix';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
@@ -42,13 +42,13 @@
       label.innerHTML='Main Account Balance Left Over<input id="financeMainAccountLeftover" type="number" min="0" step="0.01" inputmode="decimal"><small class="payday-carryover-note">Money already sitting in your current account before this payday wage is added.</small>';
       available.closest('label')?.insertAdjacentElement('beforebegin',label);
       carry=$('financeMainAccountLeftover');
-      carry?.addEventListener('input',syncAvailablePreview);
     }
+    if(carry&&!carry.dataset.paydayCarryoverBound){carry.dataset.paydayCarryoverBound='1';carry.addEventListener('input',syncAvailablePreview);carry.addEventListener('change',syncAvailablePreview)}
     const availableLabel=available.closest('label');
     if(availableLabel){availableLabel.classList.add('payday-auto-total');const small=availableLabel.querySelector('small');if(small)small.textContent='Automatically calculated: Wages Received + Main Account Balance Left Over.'}
     available.readOnly=true;
     available.setAttribute('aria-readonly','true');
-    const received=$('financeWagesReceived');if(received&&!received.dataset.paydayCarryoverBound){received.dataset.paydayCarryoverBound='1';received.addEventListener('input',syncAvailablePreview)}
+    const received=$('financeWagesReceived');if(received&&!received.dataset.paydayCarryoverBound){received.dataset.paydayCarryoverBound='1';received.addEventListener('input',syncAvailablePreview);received.addEventListener('change',syncAvailablePreview)}
     const useActual=$('financeUseActualPay');if(useActual)useActual.hidden=true;
   }
 
