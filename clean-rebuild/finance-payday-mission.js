@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260902-payday-mission-breakdown-1';
+  const BUILD='20260902-payday-mission-breakdown-2-manual-available-cash';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
@@ -29,8 +29,8 @@
       if(/^STAGE [2345]\b/.test(eyebrow)||eyebrow.includes('STAGE 5 AUDIT')||eyebrow.includes('BEFORE PAYDAY'))section.hidden=true;
     });
     const title=$('financeTabTitle');if(title){const h=title.querySelector('h2'),p=title.querySelector('p:last-child');if(h)h.textContent='Payday allocation plan';if(p)p.textContent='Confirm the wage received, then follow the exact moves Aurora calculates.'}
-    const stage1=[...main.querySelectorAll(':scope > section')].find(s=>String(s.querySelector('.eyebrow')?.textContent||'').toUpperCase().startsWith('STAGE 1'));
-    if(stage1){const eye=stage1.querySelector('.eyebrow'),h=stage1.querySelector('h2'),desc=stage1.querySelector('.section-heading > p');if(eye)eye.textContent='PAYDAY MONEY RECEIVED';if(h)h.textContent='Confirm the money that arrived';if(desc)desc.textContent='Enter the actual wage received. Aurora will rebuild the full payday allocation automatically.'}
+    const stage1=[...main.querySelectorAll(':scope > section')].find(s=>String(s.querySelector('.eyebrow')?.textContent||'').toUpperCase().startsWith('STAGE 1')||String(s.querySelector('.eyebrow')?.textContent||'').toUpperCase().startsWith('PAYDAY MONEY RECEIVED'));
+    if(stage1){const eye=stage1.querySelector('.eyebrow'),h=stage1.querySelector('h2'),desc=stage1.querySelector('.section-heading > p');if(eye)eye.textContent='PAYDAY MONEY RECEIVED';if(h)h.textContent='Confirm the money that arrived';if(desc)desc.textContent='Enter the actual wage received and the cash genuinely available on payday. Aurora will rebuild the full allocation from those figures.'}
   }
 
   function ensurePlan(){
@@ -43,11 +43,11 @@
   }
 
   function buildRows(state){
-    const f=state.finance||{},b=f.stage2Bills||{},h=f.stage3HoldingPot||{},p=f.stage4PotFunding||{},d=f.stage5PaydayDecision||{};
+    const f=state.finance||{},h=f.stage3HoldingPot||{},p=f.stage4PotFunding||{},d=f.stage5PaydayDecision||{};
     const rows=[];
-    const received=num(f.wagesReceived);
-    if(received>0)rows.push({name:'Payday received',detail:'Actual wage confirmed as the cash truth for this payday.',amount:received,type:'info'});
-    if(num(d.currentAccountBills)>0)rows.push({name:'Leave for Current Account bills',detail:`Bills due in this payday cycle.`,amount:d.currentAccountBills});
+    const received=num(f.wagesReceived),available=num(f.availableCash);
+    if(received>0)rows.push({name:'Payday received',detail:`Actual wage received ${money(received)} · cash available to allocate ${money(available)}.`,amount:received,type:'info'});
+    if(num(d.currentAccountBills)>0)rows.push({name:'Leave for Current Account bills',detail:'Bills due in this payday cycle.',amount:d.currentAccountBills});
     const holdingMove=num(d.baseHoldingContribution)+num(d.holdingSafetyTopUp);
     if(holdingMove>0)rows.push({name:'Move to Holding Pot',detail:`Required ${money(h.dynamicTarget||h.cycleRequired)} · projected after funding ${money(h.afterFunding)}.`,amount:holdingMove});
     (Array.isArray(p.rows)?p.rows:[]).filter(r=>num(r.amount)>0).forEach(r=>rows.push({name:`Move to ${String(r.name||'Pot')}`,detail:String(r.reason||'Payday pot allocation.'),amount:r.amount}));
@@ -60,13 +60,11 @@
     const A=window.AuroraClean;if(!A?.readState)return;
     ensureStyle();simplifyOldStages();const host=ensurePlan();if(!host)return;
     const state=A.readState(),d=state.finance?.stage5PaydayDecision||null,rows=d?buildRows(state):[];
-    host.innerHTML=`<div class="payday-mission-head"><div><p class="eyebrow">PAYDAY BREAKDOWN</p><h2>Where your payday money goes</h2><p>Update Cash Truth and Aurora recalculates every required move in order.</p></div><div class="payday-mission-ready"><span>READY FOR STAGE 6</span><strong>${money(d?.maximumSafeRelease||0)}</strong></div></div><div class="payday-mission-list">${rows.length?rows.map((r,i)=>`<div class="payday-mission-row ${r.type==='release'?'release':''}"><div class="step">${i+1}</div><div><strong>${esc(r.name)}</strong><small>${esc(r.detail)}</small></div><div class="amount">${r.type==='info'?'':r.type==='release'?'READY ':''}${money(r.amount)}</div></div>`).join(''):'<div class="payday-mission-empty">Enter the actual wages received and press <strong>Update Cash Truth</strong>. Aurora will then show the exact Holding Pot, bill, pot and Stage 6 release instructions here.</div>'}</div><p class="payday-mission-note">The detailed Stage 2–5 calculations still run in the background; they are simply hidden from Payday Control so you only see the actions you need to take.</p>`;
+    host.innerHTML=`<div class="payday-mission-head"><div><p class="eyebrow">PAYDAY BREAKDOWN</p><h2>Where your payday money goes</h2><p>Update Cash Truth and Aurora recalculates every required move in order.</p></div><div class="payday-mission-ready"><span>READY FOR STAGE 6</span><strong>${money(d?.maximumSafeRelease||0)}</strong></div></div><div class="payday-mission-list">${rows.length?rows.map((r,i)=>`<div class="payday-mission-row ${r.type==='release'?'release':''}"><div class="step">${i+1}</div><div><strong>${esc(r.name)}</strong><small>${esc(r.detail)}</small></div><div class="amount">${r.type==='info'?'':r.type==='release'?'READY ':''}${money(r.amount)}</div></div>`).join(''):'<div class="payday-mission-empty">Enter the actual wages received and cash available on payday, then press <strong>Update Cash Truth</strong>. Aurora will show the exact Holding Pot, bill, pot and Stage 6 release instructions here.</div>'}</div><p class="payday-mission-note">The detailed Stage 2–5 calculations still run in the background; they are simply hidden from Payday Control so you only see the actions you need to take.</p>`;
   }
 
   function rebuildFromPay(){
     const E=window.AuroraFinanceEngine;if(!E)return;
-    const received=$('financeWagesReceived'),available=$('financeAvailable');
-    if(received&&available)available.value=received.value;
     E.commitCashTruth();E.commitBills();E.commitHolding();E.commitPots();E.commitDecision();
     setTimeout(render,0);
   }
