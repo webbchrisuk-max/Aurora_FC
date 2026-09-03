@@ -1,10 +1,12 @@
 (() => {
   'use strict';
 
-  const BUILD='20260903-finance-emergency-roundups-2-webhook-authority';
+  const BUILD='20260903-finance-emergency-roundups-3-monzo-authority-reconcile';
   const MULTIPLIER=5;
   const MIN_ROUNDUP_PURCHASE_GBP=1;
-  const REPAIR_KEY='20260903_MONZO_UNDER_1_OVERROUNDUP';
+  const RECONCILE_KEY='20260903_MONZO_GROW_1274_08';
+  const RECONCILE_FROM=1273.52;
+  const RECONCILE_TO=1274.08;
   const arr=v=>Array.isArray(v)?v:[];
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const round=v=>Number(num(v).toFixed(2));
@@ -59,6 +61,8 @@
   }
 
   function creditForSource(row){
+    // Monzo webhook/sheet is the authority whenever it supplied a credit,
+    // including an explicit £0.00 for purchases below £1.
     if(row&&row.authoritativeCredit!==null&&row.authoritativeCredit!==undefined){
       return round(row.authoritativeCredit);
     }
@@ -80,62 +84,31 @@
     return true;
   }
 
-  function repairHistoricalMonzoUnderOnePoundOvercredit(){
-    const A=window.AuroraClean;if(!A?.readState||!A?.updateState)return {repaired:false,amount:0};
-    const state=A.readState(),pot=emergencyPot(state);if(!pot)return {repaired:false,amount:0};
-    const currentMeta=state.finance?.emergencyRoundups||{};
-    if(currentMeta.repairs?.[REPAIR_KEY])return {repaired:false,amount:0,alreadyDone:true};
-
-    let repairedAmount=0;
-    let repairedRows=0;
+  function reconcileKnownGrowBalance(){
+    const A=window.AuroraClean;if(!A?.readState||!A?.updateState)return {reconciled:false};
+    const state=A.readState(),pot=emergencyPot(state);if(!pot)return {reconciled:false};
+    const meta=state.finance?.emergencyRoundups||{};
+    if(meta.repairs?.[RECONCILE_KEY])return {reconciled:false,alreadyDone:true};
+    if(round(pot.balance)!==RECONCILE_FROM)return {reconciled:false,skipped:true,current:round(pot.balance)};
 
     A.updateState(next=>{
-      const p=emergencyPot(next);if(!p)return;
+      const p=emergencyPot(next);if(!p||round(p.balance)!==RECONCILE_FROM)return;
       const m=ensureMeta(next);
-      if(m.repairs[REPAIR_KEY])return;
-
-      const underOneMonzo=sourceRows(next).filter(x=>
-        x.source==='CARD_SPEND'&&
-        x.cardSource==='MONZO_IFTTT_WEBHOOK'&&
-        x.amount>0&&
-        x.amount<MIN_ROUNDUP_PURCHASE_GBP&&
-        x.authoritativeCredit===0
-      );
-      const keys=new Set(underOneMonzo.map(x=>x.key));
-      const keep=[];
-
-      m.history.forEach(row=>{
-        const sourceKey=String(row?.sourceKey||'');
-        const amount=round(row?.amount);
-        if(keys.has(sourceKey)&&amount>0){
-          repairedAmount=round(repairedAmount+amount);
-          repairedRows++;
-          return;
-        }
-        keep.push(row);
-      });
-
-      if(repairedAmount>0){
-        p.balance=round(Math.max(0,round(p.balance)-repairedAmount));
-        p.lastRoundupRepairAmount=repairedAmount;
-        p.lastRoundupRepairAt=new Date().toISOString();
-      }
-
-      m.history=keep;
-      m.totalRoundups=round(m.history.reduce((s,r)=>s+num(r.amount),0));
-      m.repairs[REPAIR_KEY]={
-        repairedAt:new Date().toISOString(),
-        repairedAmount,
-        repairedRows,
-        reason:'Removed locally recalculated x5 credits for Monzo purchases under £1 where webhook credit was £0.00.'
+      if(m.repairs[RECONCILE_KEY])return;
+      const before=round(p.balance);
+      p.balance=RECONCILE_TO;
+      const delta=round(RECONCILE_TO-before);
+      m.repairs[RECONCILE_KEY]={
+        reconciledAt:new Date().toISOString(),
+        balanceBefore:before,
+        balanceAfter:RECONCILE_TO,
+        delta,
+        reason:'Reconciled Aurora Emergency/Grow Pot to confirmed Monzo Grow Pot balance after earlier local roundup correction.'
       };
       next.finance.lastManagerChangeAt=new Date().toISOString();
-      next.finance.lastManagerChangeReason=repairedAmount>0
-        ?`Corrected Monzo under-£1 round-up overcredit (${money(repairedAmount)})`
-        :'Verified Monzo under-£1 round-up repair';
+      next.finance.lastManagerChangeReason=`Grow Pot reconciled to Monzo (${money(RECONCILE_TO)})`;
     });
-
-    return {repaired:repairedAmount>0,amount:repairedAmount,rows:repairedRows};
+    return {reconciled:true,from:RECONCILE_FROM,to:RECONCILE_TO,delta:round(RECONCILE_TO-RECONCILE_FROM)};
   }
 
   function processDue(){
@@ -221,13 +194,13 @@
   function boot(){
     if(!window.AuroraClean||!document.getElementById('paydayEmergencyCard')){setTimeout(boot,80);return}
     initializeIfNeeded();
-    repairHistoricalMonzoUnderOnePoundOvercredit();
+    reconcileKnownGrowBalance();
     processDue();
     render();
     document.addEventListener('click',e=>{if(e.target.closest?.('#paydayEmergencyLogSpend'))logCardSpend()});
     window.addEventListener('aurora-clean:state',()=>{const r=processDue();setTimeout(render,r.length?10:0)});
-    window.addEventListener('pageshow',()=>{repairHistoricalMonzoUnderOnePoundOvercredit();processDue();setTimeout(render,0)});
-    window.AuroraFinanceEmergencyRoundups=Object.freeze({BUILD,MULTIPLIER,MIN_ROUNDUP_PURCHASE_GBP,roundupFor,creditForSource,repairHistoricalMonzoUnderOnePoundOvercredit,processDue,render,logCardSpend});
+    window.addEventListener('pageshow',()=>{reconcileKnownGrowBalance();processDue();setTimeout(render,0)});
+    window.AuroraFinanceEmergencyRoundups=Object.freeze({BUILD,MULTIPLIER,MIN_ROUNDUP_PURCHASE_GBP,roundupFor,creditForSource,reconcileKnownGrowBalance,processDue,render,logCardSpend});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
