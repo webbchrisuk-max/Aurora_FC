@@ -1,13 +1,22 @@
 (() => {
   'use strict';
 
-  const BUILD='20260903-payday-mission-monzo-confirmed-import-2';
+  const BUILD='20260903-payday-mission-monzo-confirmed-import-3-bill-payment';
   const IMPORT_KEY='aurora-clean:payday-imported-event:v1';
   const CONNECTION_KEY='aurora:data2:registration-connection:v2';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
   const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
+  function ensureBillPaymentModule(){
+    if(window.AuroraFinanceBillPayment||document.querySelector('script[data-aurora-bill-payment]'))return;
+    const script=document.createElement('script');
+    script.dataset.auroraBillPayment='1';
+    script.src='finance-bill-payment.js?v=20260903-finance-bill-payment-1';
+    script.defer=true;
+    document.head.appendChild(script);
+  }
 
   function ensureStyle(){
     if($('financePaydayMissionStyle'))return;
@@ -60,7 +69,7 @@
     try{const result=await backendGet('listMonzoPaydayNotifications',{limit:20});const rows=Array.isArray(result?.notifications)?result.notifications:[];const confirmed=rows.find(r=>String(r?.status||'').toUpperCase()==='CONFIRMED'&&num(r?.detectedAmountGbp)>0);if(!confirmed){const candidate=rows.find(r=>String(r?.status||'').toUpperCase()==='PAYDAY_CANDIDATE');setMonzoStatus(candidate?'MONZO PAYDAY · candidate received · awaiting confirmation':'MONZO PAYDAY · waiting for confirmed wage','wait');return}const eventId=String(confirmed.eventId||''),previous=localStorage.getItem(IMPORT_KEY)||'';if(eventId&&eventId===previous){setMonzoStatus(`MONZO PAYDAY · imported ${money(confirmed.detectedAmountGbp)}`,'ok');return}const received=$('financeWagesReceived');if(!received)return;received.value=num(confirmed.detectedAmountGbp).toFixed(2);syncAvailablePreview();localStorage.setItem(IMPORT_KEY,eventId);setMonzoStatus(`MONZO PAYDAY · confirmed wage imported ${money(confirmed.detectedAmountGbp)}`,'ok');rebuildFromPay()}catch(err){setMonzoStatus(`MONZO PAYDAY · ${String(err?.message||'could not check backend')}`,'wait')}
   }
 
-  function boot(){if(!window.AuroraClean||!window.AuroraFinanceEngine){setTimeout(boot,60);return}ensureCashFields();simplifyOldStages();render();$('financeCalculate')?.addEventListener('click',()=>setTimeout(rebuildFromPay,0));window.addEventListener('aurora-clean:state',render);window.addEventListener('pageshow',()=>{render();syncConfirmedMonzoPayday()});window.addEventListener('focus',syncConfirmedMonzoPayday);window.AuroraFinancePaydayMission=Object.freeze({BUILD,render,rebuildFromPay,syncAvailablePreview,syncConfirmedMonzoPayday});setTimeout(syncConfirmedMonzoPayday,250)}
+  function boot(){if(!window.AuroraClean||!window.AuroraFinanceEngine){setTimeout(boot,60);return}ensureBillPaymentModule();ensureCashFields();simplifyOldStages();render();$('financeCalculate')?.addEventListener('click',()=>setTimeout(rebuildFromPay,0));window.addEventListener('aurora-clean:state',render);window.addEventListener('pageshow',()=>{render();syncConfirmedMonzoPayday()});window.addEventListener('focus',syncConfirmedMonzoPayday);window.AuroraFinancePaydayMission=Object.freeze({BUILD,render,rebuildFromPay,syncAvailablePreview,syncConfirmedMonzoPayday});setTimeout(syncConfirmedMonzoPayday,250)}
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
