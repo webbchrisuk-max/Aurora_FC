@@ -1,8 +1,10 @@
 (() => {
   'use strict';
 
-  const BUILD='20260901-finance-emergency-roundups-1';
+  const BUILD='20260903-finance-emergency-roundups-2-webhook-authority';
   const MULTIPLIER=5;
+  const MIN_ROUNDUP_PURCHASE_GBP=1;
+  const REPAIR_KEY='20260903_MONZO_UNDER_1_OVERROUNDUP';
   const arr=v=>Array.isArray(v)?v:[];
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const round=v=>Number(num(v).toFixed(2));
@@ -15,6 +17,7 @@
 
   function roundupFor(amount){
     const a=round(amount);
+    if(a<MIN_ROUNDUP_PURCHASE_GBP)return 0;
     const pennies=Math.round(a*100);
     const remainder=pennies%100;
     const base=remainder===0?0:(100-remainder)/100;
@@ -26,17 +29,40 @@
     state.finance.emergencyRoundups=state.finance.emergencyRoundups&&typeof state.finance.emergencyRoundups==='object'?state.finance.emergencyRoundups:{};
     const m=state.finance.emergencyRoundups;
     m.multiplier=MULTIPLIER;
+    m.minimumPurchaseGbp=MIN_ROUNDUP_PURCHASE_GBP;
     m.history=arr(m.history);
     m.processed=m.processed&&typeof m.processed==='object'?m.processed:{};
+    m.repairs=m.repairs&&typeof m.repairs==='object'?m.repairs:{};
     state.finance.cardSpends=arr(state.finance.cardSpends);
     return m;
   }
 
   function sourceRows(state){
-    const bills=arr(state.finance?.billPayments).map(p=>({key:`bill:${p.id}`,id:p.id,amount:round(p.amount),name:String(p.name||'Bill payment'),date:String(p.paidAt||''),source:'BILL_PAYMENT'}));
-    const house=arr(state.finance?.houseProject?.entries).filter(e=>e.status==='paid').map(e=>({key:`house:${e.id}:${e.paidDate||e.actual}`,id:e.id,amount:round(e.actual),name:String(e.name||'House payment'),date:String(e.paidDate||''),source:'HOUSE_PAYMENT'}));
-    const card=arr(state.finance?.cardSpends).map(p=>({key:`card:${p.id}`,id:p.id,amount:round(p.amount),name:String(p.name||'Card spend'),date:String(p.spentAt||''),source:'CARD_SPEND'}));
+    const bills=arr(state.finance?.billPayments).map(p=>({
+      key:`bill:${p.id}`,id:p.id,amount:round(p.amount),name:String(p.name||'Bill payment'),date:String(p.paidAt||''),source:'BILL_PAYMENT',authoritativeCredit:null
+    }));
+    const house=arr(state.finance?.houseProject?.entries).filter(e=>e.status==='paid').map(e=>({
+      key:`house:${e.id}:${e.paidDate||e.actual}`,id:e.id,amount:round(e.actual),name:String(e.name||'House payment'),date:String(e.paidDate||''),source:'HOUSE_PAYMENT',authoritativeCredit:null
+    }));
+    const card=arr(state.finance?.cardSpends).map(p=>({
+      key:`card:${p.id}`,
+      id:p.id,
+      amount:round(p.amount),
+      name:String(p.name||'Card spend'),
+      date:String(p.spentAt||''),
+      source:'CARD_SPEND',
+      cardSource:String(p.source||''),
+      monzoTransactionId:String(p.monzoTransactionId||''),
+      authoritativeCredit:p.webhookRoundUpCredit===undefined||p.webhookRoundUpCredit===null?null:round(p.webhookRoundUpCredit)
+    }));
     return [...bills,...house,...card].filter(x=>x.amount>0);
+  }
+
+  function creditForSource(row){
+    if(row&&row.authoritativeCredit!==null&&row.authoritativeCredit!==undefined){
+      return round(row.authoritativeCredit);
+    }
+    return roundupFor(row?.amount);
   }
 
   function initializeIfNeeded(){
@@ -54,6 +80,64 @@
     return true;
   }
 
+  function repairHistoricalMonzoUnderOnePoundOvercredit(){
+    const A=window.AuroraClean;if(!A?.readState||!A?.updateState)return {repaired:false,amount:0};
+    const state=A.readState(),pot=emergencyPot(state);if(!pot)return {repaired:false,amount:0};
+    const currentMeta=state.finance?.emergencyRoundups||{};
+    if(currentMeta.repairs?.[REPAIR_KEY])return {repaired:false,amount:0,alreadyDone:true};
+
+    let repairedAmount=0;
+    let repairedRows=0;
+
+    A.updateState(next=>{
+      const p=emergencyPot(next);if(!p)return;
+      const m=ensureMeta(next);
+      if(m.repairs[REPAIR_KEY])return;
+
+      const underOneMonzo=sourceRows(next).filter(x=>
+        x.source==='CARD_SPEND'&&
+        x.cardSource==='MONZO_IFTTT_WEBHOOK'&&
+        x.amount>0&&
+        x.amount<MIN_ROUNDUP_PURCHASE_GBP&&
+        x.authoritativeCredit===0
+      );
+      const keys=new Set(underOneMonzo.map(x=>x.key));
+      const keep=[];
+
+      m.history.forEach(row=>{
+        const sourceKey=String(row?.sourceKey||'');
+        const amount=round(row?.amount);
+        if(keys.has(sourceKey)&&amount>0){
+          repairedAmount=round(repairedAmount+amount);
+          repairedRows++;
+          return;
+        }
+        keep.push(row);
+      });
+
+      if(repairedAmount>0){
+        p.balance=round(Math.max(0,round(p.balance)-repairedAmount));
+        p.lastRoundupRepairAmount=repairedAmount;
+        p.lastRoundupRepairAt=new Date().toISOString();
+      }
+
+      m.history=keep;
+      m.totalRoundups=round(m.history.reduce((s,r)=>s+num(r.amount),0));
+      m.repairs[REPAIR_KEY]={
+        repairedAt:new Date().toISOString(),
+        repairedAmount,
+        repairedRows,
+        reason:'Removed locally recalculated x5 credits for Monzo purchases under £1 where webhook credit was £0.00.'
+      };
+      next.finance.lastManagerChangeAt=new Date().toISOString();
+      next.finance.lastManagerChangeReason=repairedAmount>0
+        ?`Corrected Monzo under-£1 round-up overcredit (${money(repairedAmount)})`
+        :'Verified Monzo under-£1 round-up repair';
+    });
+
+    return {repaired:repairedAmount>0,amount:repairedAmount,rows:repairedRows};
+  }
+
   function processDue(){
     const A=window.AuroraClean;if(!A?.readState||!A?.updateState)return [];
     const state=A.readState(),pot=emergencyPot(state);if(!pot)return [];
@@ -67,12 +151,25 @@
       const m=ensureMeta(next);
       due.forEach(x=>{
         if(m.processed[x.key])return;
-        const credit=roundupFor(x.amount);
+        const credit=creditForSource(x);
         m.processed[x.key]=true;
         const before=round(p.balance);
         if(credit>0){
           p.balance=round(before+credit);
-          const row={id:`ROUNDUP-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,sourceKey:x.key,source:x.source,name:x.name,spendAmount:x.amount,normalRoundup:round(credit/MULTIPLIER),multiplier:MULTIPLIER,amount:credit,balanceBefore:before,balanceAfter:round(p.balance),postedAt:new Date().toISOString()};
+          const row={
+            id:`ROUNDUP-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+            sourceKey:x.key,
+            source:x.source,
+            name:x.name,
+            spendAmount:x.amount,
+            normalRoundup:round(credit/MULTIPLIER),
+            multiplier:MULTIPLIER,
+            amount:credit,
+            balanceBefore:before,
+            balanceAfter:round(p.balance),
+            postedAt:new Date().toISOString(),
+            creditAuthority:x.authoritativeCredit!==null?'MONZO_WEBHOOK':'AURORA_LOCAL_RULE'
+          };
           m.history.push(row);results.push(row);
           p.lastRoundupAmount=credit;p.lastRoundupAt=row.postedAt;
         }
@@ -123,11 +220,14 @@
 
   function boot(){
     if(!window.AuroraClean||!document.getElementById('paydayEmergencyCard')){setTimeout(boot,80);return}
-    initializeIfNeeded();processDue();render();
+    initializeIfNeeded();
+    repairHistoricalMonzoUnderOnePoundOvercredit();
+    processDue();
+    render();
     document.addEventListener('click',e=>{if(e.target.closest?.('#paydayEmergencyLogSpend'))logCardSpend()});
     window.addEventListener('aurora-clean:state',()=>{const r=processDue();setTimeout(render,r.length?10:0)});
-    window.addEventListener('pageshow',()=>{processDue();setTimeout(render,0)});
-    window.AuroraFinanceEmergencyRoundups=Object.freeze({BUILD,MULTIPLIER,roundupFor,processDue,render,logCardSpend});
+    window.addEventListener('pageshow',()=>{repairHistoricalMonzoUnderOnePoundOvercredit();processDue();setTimeout(render,0)});
+    window.AuroraFinanceEmergencyRoundups=Object.freeze({BUILD,MULTIPLIER,MIN_ROUNDUP_PURCHASE_GBP,roundupFor,creditForSource,repairHistoricalMonzoUnderOnePoundOvercredit,processDue,render,logCardSpend});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
