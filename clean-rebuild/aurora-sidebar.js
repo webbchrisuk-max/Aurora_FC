@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD='20260829-aurora-sidebar-4-stable';
+  const BUILD='20260904-aurora-sidebar-5-mobile-drawer';
   const STORAGE_KEY='aurora-clean:sidebar-collapsed:v1';
   const LABELS={
     'index.html':['🏠','Nexus'],
@@ -14,9 +14,11 @@
     'club-control.html':['🧠','Club Control'],
     'system-health.html':['🩺','System Health']
   };
+
   function isDesktop(){return matchMedia('(min-width:900px)').matches;}
   function readCollapsed(){try{return localStorage.getItem(STORAGE_KEY)==='1';}catch(_){return false;}}
   function writeCollapsed(value){try{localStorage.setItem(STORAGE_KEY,value?'1':'0');}catch(_){}}
+
   function applyCollapsed(value){
     const collapsed=!!value&&isDesktop();
     document.documentElement.classList.toggle('aurora-sidebar-collapsed',collapsed);
@@ -28,6 +30,49 @@
       button.innerHTML=collapsed?'<span aria-hidden="true">›</span>':'<span aria-hidden="true">‹</span>';
     }
   }
+
+  function closeMobile(details){
+    if(isDesktop()||!details)return;
+    details.open=false;
+    document.documentElement.classList.remove('aurora-mobile-menu-open');
+    document.body.classList.remove('aurora-mobile-menu-open');
+  }
+
+  function openMobile(details){
+    if(isDesktop()||!details)return;
+    details.open=true;
+    document.documentElement.classList.add('aurora-mobile-menu-open');
+    document.body.classList.add('aurora-mobile-menu-open');
+  }
+
+  function ensureBackdrop(details){
+    let backdrop=document.getElementById('auroraSidebarBackdrop');
+    if(backdrop)return backdrop;
+    backdrop=document.createElement('button');
+    backdrop.id='auroraSidebarBackdrop';
+    backdrop.type='button';
+    backdrop.className='aurora-sidebar-backdrop';
+    backdrop.setAttribute('aria-label','Close Aurora menu');
+    backdrop.addEventListener('click',()=>closeMobile(details));
+    document.body.appendChild(backdrop);
+    return backdrop;
+  }
+
+  function ensureMobileClose(details){
+    const panel=details.querySelector(':scope > div');
+    if(!panel)return null;
+    let button=panel.querySelector('.aurora-mobile-close');
+    if(button)return button;
+    button=document.createElement('button');
+    button.type='button';
+    button.className='aurora-mobile-close';
+    button.setAttribute('aria-label','Close Aurora menu');
+    button.innerHTML='<span aria-hidden="true">×</span>';
+    button.addEventListener('click',()=>closeMobile(details));
+    panel.prepend(button);
+    return button;
+  }
+
   function ensureToggle(details){
     let button=document.getElementById('auroraSidebarToggle');
     if(button)return button;
@@ -44,9 +89,12 @@
     details.prepend(button);
     return button;
   }
+
   function decorateLinks(details){
     const current=String(location.pathname.split('/').pop()||'index.html').toLowerCase();
     details.querySelectorAll('a[href]').forEach(a=>{
+      if(a.dataset.auroraDecorated==='1')return;
+      a.dataset.auroraDecorated='1';
       const href=String(a.getAttribute('href')||'').split('?')[0].split('#')[0];
       const file=(href.split('/').pop()||'index.html').toLowerCase();
       const meta=LABELS[file];
@@ -58,21 +106,54 @@
       a.addEventListener('pointerdown',()=>a.classList.add('aurora-nav-pressed'));
       const clear=()=>{a.classList.remove('aurora-nav-pressed');a.blur();};
       a.addEventListener('pointerup',clear);a.addEventListener('pointercancel',clear);
-      a.addEventListener('click',()=>{clear();if(!isDesktop())details.open=false;});
+      a.addEventListener('click',()=>{clear();closeMobile(details);});
     });
   }
+
   function syncMode(details){
     if(isDesktop()){
-      details.open=true;details.setAttribute('data-sidebar-mode','desktop');applyCollapsed(readCollapsed());
+      details.open=true;
+      details.setAttribute('data-sidebar-mode','desktop');
+      document.documentElement.classList.remove('aurora-mobile-menu-open');
+      document.body.classList.remove('aurora-mobile-menu-open');
+      applyCollapsed(readCollapsed());
     }else{
-      details.removeAttribute('data-sidebar-mode');document.documentElement.classList.remove('aurora-sidebar-collapsed');
+      details.removeAttribute('data-sidebar-mode');
+      document.documentElement.classList.remove('aurora-sidebar-collapsed');
+      closeMobile(details);
     }
   }
+
   function enhance(){
     const details=document.getElementById('auroraCleanMenu');
     if(!details){setTimeout(enhance,50);return;}
-    ensureToggle(details);decorateLinks(details);
-    const summary=details.querySelector('summary');if(summary)summary.textContent='☰ Aurora Menu';
+
+    ensureToggle(details);
+    ensureBackdrop(details);
+    ensureMobileClose(details);
+    decorateLinks(details);
+
+    const summary=details.querySelector('summary');
+    if(summary){
+      summary.innerHTML='<span aria-hidden="true">☰</span><span>Aurora Menu</span>';
+      summary.setAttribute('aria-label','Open Aurora menu');
+      summary.addEventListener('click',event=>{
+        if(isDesktop())return;
+        event.preventDefault();
+        details.open?closeMobile(details):openMobile(details);
+      });
+    }
+
+    details.addEventListener('toggle',()=>{
+      if(isDesktop())return;
+      document.documentElement.classList.toggle('aurora-mobile-menu-open',details.open);
+      document.body.classList.toggle('aurora-mobile-menu-open',details.open);
+    });
+
+    document.addEventListener('keydown',event=>{
+      if(event.key==='Escape')closeMobile(details);
+    });
+
     syncMode(details);
     const media=matchMedia('(min-width:900px)');
     const onChange=()=>syncMode(details);
@@ -80,6 +161,7 @@
     window.addEventListener('pageshow',()=>syncMode(details));
     document.documentElement.dataset.auroraSidebar='ready';
   }
+
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enhance,{once:true});else enhance();
-  window.AuroraSidebar=Object.freeze({BUILD,enhance,applyCollapsed});
+  window.AuroraSidebar=Object.freeze({BUILD,enhance,applyCollapsed,openMobile,closeMobile});
 })();
