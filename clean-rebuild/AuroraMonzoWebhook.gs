@@ -4,8 +4,9 @@
  * POST actions:
  *   monzoCardPurchase
  *   monzoPaydayNotification
- * GET action:
+ * GET actions:
  *   listMonzoRoundups
+ *   listMonzoPaydayNotifications
  *
  * The existing Aurora token/authentication check must run before either handler.
  */
@@ -155,11 +156,10 @@ function auroraHandleMonzoPaydayNotification_(payload) {
     }
   }
 
-  // First capture safely. Finance should only auto-accept once the real Monzo wage
-  // notification wording/reference has been observed and a reliable rule is configured.
+  // First capture safely. Finance only imports events whose status is CONFIRMED.
   const status = detectedAmount !== null ? 'PAYDAY_CANDIDATE' : 'AMOUNT_NOT_DETECTED';
   const notes = detectedAmount !== null
-    ? 'Captured from Monzo Android notification; awaiting wage identity rule.'
+    ? 'Captured from Monzo Android notification; awaiting payday confirmation.'
     : 'Captured, but no GBP amount could be parsed from the notification.';
 
   sheet.appendRow([
@@ -207,6 +207,68 @@ function auroraListMonzoRoundups_(limit) {
   })).filter(r => r.transactionId);
 
   return { ok: true, count: roundups.length, roundups };
+}
+
+function auroraListMonzoPaydayNotifications_(limit) {
+  const sheet = auroraMonzoPaydaySheet_();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { ok: true, count: 0, notifications: [] };
+
+  limit = Math.max(1, Math.min(100, Number(limit) || 20));
+  const start = Math.max(2, lastRow - limit + 1);
+  const values = sheet.getRange(start, 1, lastRow - start + 1, 10).getValues();
+  const notifications = values.map(r => ({
+    eventId: String(r[0] || ''),
+    receivedAt: String(r[1] || ''),
+    notificationReceivedAt: String(r[2] || ''),
+    appName: String(r[3] || ''),
+    deviceName: String(r[4] || ''),
+    notificationTitle: String(r[5] || ''),
+    notificationMessage: String(r[6] || ''),
+    detectedAmountGbp: Number(r[7] || 0) || null,
+    status: String(r[8] || ''),
+    notes: String(r[9] || '')
+  })).filter(r => r.eventId).reverse();
+
+  return { ok: true, count: notifications.length, notifications };
+}
+
+function auroraConfirmMonzoPaydayCandidate_(eventId) {
+  const id = String(eventId || '').trim();
+  if (!id) throw new Error('Payday eventId is required.');
+  const sheet = auroraMonzoPaydaySheet_();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error('No payday notifications exist.');
+  const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues().flat().map(String);
+  const index = ids.indexOf(id);
+  if (index < 0) throw new Error('Payday event not found: ' + id);
+  const row = index + 2;
+  const values = sheet.getRange(row, 1, 1, 10).getValues()[0];
+  const amount = Number(values[7] || 0);
+  if (!(amount > 0)) throw new Error('Payday event has no detected GBP amount.');
+  const status = String(values[8] || '');
+  if (status !== 'CONFIRMED') {
+    sheet.getRange(row, 9).setValue('CONFIRMED');
+    sheet.getRange(row, 10).setValue('Confirmed for Finance wage import.');
+  }
+  return { ok: true, eventId: id, detectedAmountGbp: amount, status: 'CONFIRMED' };
+}
+
+function confirmLatestMonzoPaydayCandidate() {
+  const sheet = auroraMonzoPaydaySheet_();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error('No payday notifications exist.');
+  const rows = sheet.getRange(2, 1, lastRow - 1, 1, 10).getValues();
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const status = String(rows[i][8] || '');
+    const amount = Number(rows[i][7] || 0);
+    if (status === 'PAYDAY_CANDIDATE' && amount > 0) {
+      const result = auroraConfirmMonzoPaydayCandidate_(rows[i][0]);
+      Logger.log(JSON.stringify(result));
+      return result;
+    }
+  }
+  throw new Error('No PAYDAY_CANDIDATE with a detected amount was found.');
 }
 
 /* Manual Apps Script tests. These appear in the Run function selector. */
@@ -257,5 +319,8 @@ function testMonzoPaydayNotification() {
  * GET/JSONP router:
  *   if (action === 'listMonzoRoundups') {
  *     return auroraListMonzoRoundups_(params.limit);
+ *   }
+ *   if (action === 'listMonzoPaydayNotifications') {
+ *     return auroraListMonzoPaydayNotifications_(params.limit);
  *   }
  */
