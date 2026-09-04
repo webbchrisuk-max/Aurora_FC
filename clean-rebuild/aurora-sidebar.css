@@ -30,28 +30,28 @@
 @media (max-width:899px){
   html.aurora-mobile-menu-open,body.aurora-mobile-menu-open{overflow:hidden!important;overscroll-behavior:none}
   .aurora-sidebar-toggle{display:none!important}
-  body>nav#auroraNav{position:sticky!important;top:0!important;z-index:110!important;margin:0 -16px 14px!important;padding:9px 12px!important;background:rgba(4,10,18,.97)!important;border-bottom:1px solid #20344a!important;backdrop-filter:blur(14px)}
-  html.aurora-mobile-menu-open body>nav#auroraNav{z-index:150!important}
+  body>nav#auroraNav{position:sticky!important;top:0!important;z-index:110!important;margin:0 -16px 14px!important;padding:9px 12px!important;background:rgba(4,10,18,.97)!important;border-bottom:1px solid #20344a!important;backdrop-filter:none!important}
   #auroraCleanMenu{max-width:none!important;margin:0!important}
   #auroraCleanMenu>summary{display:inline-flex!important;align-items:center;justify-content:center;gap:9px;min-height:46px;width:auto!important;max-width:210px;padding:9px 14px!important;border:1px solid #29435f!important;border-radius:13px!important;background:#0c1b2d!important;color:#eef7ff!important;font-size:1rem!important;font-weight:850!important;line-height:1!important;outline:none!important;-webkit-tap-highlight-color:transparent;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.22)!important}
   #auroraCleanMenu>summary::-webkit-details-marker{display:none}
   #auroraCleanMenu>summary::marker{display:none;content:''}
-  #auroraCleanMenu>div{position:fixed!important;left:0!important;top:0!important;bottom:0!important;width:min(88vw,380px)!important;display:flex!important;flex-direction:column;gap:8px;margin:0!important;padding:72px 14px 18px!important;border:0!important;border-right:1px solid #29435f!important;border-radius:0 20px 20px 0!important;background:linear-gradient(180deg,#071321,#0a1929)!important;box-shadow:24px 0 70px rgba(0,0,0,.58)!important;overflow-y:auto;overscroll-behavior:contain;z-index:160!important;transform:translateX(0);animation:auroraDrawerIn .18s ease-out}
+  #auroraCleanMenu>div{position:fixed!important;left:0!important;top:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100dvh!important;display:flex!important;flex-direction:column;gap:8px;margin:0!important;padding:78px 16px 24px!important;border:0!important;border-radius:0!important;background:#071321!important;box-shadow:none!important;overflow-y:auto!important;overscroll-behavior:contain;z-index:2147483000!important;transform:none!important;animation:none!important}
   #auroraCleanMenu:not([open])>div{display:none!important}
-  #auroraCleanMenu>div:before{content:'AURORA CITY FC · DEPARTMENTS';display:block;margin:0 6px 10px;padding:0 40px 13px 0;border-bottom:1px solid #21364e;color:#70cfff;font-size:.69rem;font-weight:950;letter-spacing:.12em}
-  #auroraCleanMenu a{display:flex!important;align-items:center;gap:11px;min-height:50px;padding:13px 14px!important;border-radius:13px!important;background:#0e1f32!important;border:1px solid #1b3046!important;color:#c6d6e6!important;font-size:.96rem!important;font-weight:780!important;text-decoration:none!important;outline:none!important;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  #auroraCleanMenu>div:before{content:'AURORA CITY FC · DEPARTMENTS';display:block;margin:0 6px 10px;padding:0 48px 13px 0;border-bottom:1px solid #21364e;color:#70cfff;font-size:.72rem;font-weight:950;letter-spacing:.12em}
+  #auroraCleanMenu a{display:flex!important;align-items:center;gap:12px;min-height:54px;padding:14px 15px!important;border-radius:14px!important;background:#0e1f32!important;border:1px solid #1b3046!important;color:#d7e5f2!important;font-size:1rem!important;font-weight:800!important;text-decoration:none!important;outline:none!important;-webkit-tap-highlight-color:transparent;touch-action:manipulation;position:relative!important;z-index:1!important}
   #auroraCleanMenu a:active,#auroraCleanMenu a.aurora-nav-pressed{background:#15324a!important;border-color:#315c7e!important;color:#fff!important;transform:scale(.99)}
   #auroraCleanMenu a:focus,#auroraCleanMenu a:focus-visible{outline:none!important;box-shadow:none!important}
-  #auroraCleanMenu a[aria-current='page']{background:#143650!important;border-color:#2d668c!important;color:#fff!important;box-shadow:inset 3px 0 #45c6ff!important}
-  .aurora-nav-icon{display:inline-grid;place-items:center;width:27px;flex:0 0 27px;font-size:1.13rem}.aurora-nav-label{display:block;white-space:normal;line-height:1.18}
-  .aurora-mobile-close{display:grid!important;place-items:center;position:absolute;top:14px;right:14px;width:42px;height:42px;padding:0!important;border:1px solid #31516f!important;border-radius:12px!important;background:#0d2033!important;color:#eef7ff!important;font-size:1.75rem!important;font-weight:600!important;line-height:1!important;z-index:170!important;box-shadow:none!important}
-  .aurora-sidebar-backdrop{display:none;position:fixed;inset:0;width:100vw;height:100dvh;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:rgba(0,0,0,.42)!important;backdrop-filter:none!important;z-index:120!important}
-  html.aurora-mobile-menu-open .aurora-sidebar-backdrop{display:block!important}
-  @keyframes auroraDrawerIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+  #auroraCleanMenu a[aria-current='page']{background:#143650!important;border-color:#2d668c!important;color:#fff!important;box-shadow:inset 4px 0 #45c6ff!important}
+  .aurora-nav-icon{display:inline-grid;place-items:center;width:30px;flex:0 0 30px;font-size:1.2rem}.aurora-nav-label{display:block;white-space:normal;line-height:1.18}
+  .aurora-mobile-close{display:grid!important;place-items:center;position:fixed!important;top:14px!important;right:14px!important;width:46px!important;height:46px!important;padding:0!important;border:1px solid #31516f!important;border-radius:13px!important;background:#10263c!important;color:#fff!important;font-size:1.9rem!important;font-weight:600!important;line-height:1!important;z-index:2147483646!important;box-shadow:0 8px 24px rgba(0,0,0,.28)!important}
+  .aurora-sidebar-backdrop{display:none!important}
+  html.aurora-mobile-menu-open body>nav#auroraNav{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;margin:0!important;padding:0!important;z-index:2147482000!important;background:#071321!important;border:0!important}
+  html.aurora-mobile-menu-open #auroraCleanMenu{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;z-index:2147482500!important}
+  html.aurora-mobile-menu-open #auroraCleanMenu>summary{display:none!important}
 }
 @media (max-width:899px) and (orientation:landscape){
-  #auroraCleanMenu>div{width:min(92vw,700px)!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:8px 10px;padding:64px 14px 14px!important;border-radius:0 18px 18px 0!important}
+  #auroraCleanMenu>div{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:9px 10px;padding:66px 14px 16px!important}
   #auroraCleanMenu>div:before{grid-column:1/-1;margin:0 6px 4px;padding-bottom:10px}
-  #auroraCleanMenu a{min-height:46px;padding:10px 12px!important;font-size:.9rem!important}
-  .aurora-mobile-close{top:10px;right:12px;width:40px;height:40px}
+  #auroraCleanMenu a{min-height:48px;padding:11px 13px!important;font-size:.92rem!important}
+  .aurora-mobile-close{top:10px!important;right:12px!important;width:42px!important;height:42px!important}
 }
