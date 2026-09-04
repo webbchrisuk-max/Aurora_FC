@@ -1,8 +1,8 @@
 (() => {
   'use strict';
-  const BUILD='20260904-clean-bill-audit-5-fresh-payment-loader';
+  const BUILD='20260904-clean-bill-audit-6-direct-payment-loader';
   const MONTHLY_BILLS_SRC='finance-bills-monthly.js?v=20260904-finance-bills-monthly-3-display-only';
-  const BILL_PAYMENT_SRC='finance-bill-payment.js?v=20260904-finance-bill-payment-3-fresh-rebuild';
+  const BILL_PAYMENT_SRC='finance-bill-payment.js?v=20260904-finance-bill-payment-4-direct-button-handler';
   const norm=v=>String(v??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
