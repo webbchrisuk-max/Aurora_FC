@@ -11,7 +11,7 @@
   <script src="transfer-stage2.js?v=20260826-transfer-approved-plan-plus-broker-cash-2" defer></script>
   <script src="transfer-broker-reconcile-view.js?v=20260829-transfer-broker-reconcile-view-1" defer></script>
   <script src="transfer-chairman-reset.js?v=20260901-chairman-offers-reset-1" defer></script>
-  <script src="transfer-chairman-snapshot.js?v=20260901-chairman-snapshot-ui-2-actions" defer></script>
+  <script src="transfer-chairman-snapshot.js?v=20260904-chairman-snapshot-ui-3-replacement-eval" defer></script>
   <script src="transfer-chairman-actions.js?v=20260901-chairman-actions-1" defer></script>
   <script src="transfer-intelligence.js?v=20260827-transfer-intelligence-1" defer></script>
   <script src="transfer-pace-compound.js?v=20260827-transfer-pace-compound-1" defer></script>
@@ -31,9 +31,9 @@
   <span class="stage-badge">REVIEW · ROUTE · LOCK</span>
 </header>
 
-<section class="department-section chairman-section">
+<section id="chairmanLiveDesk" class="department-section chairman-section">
   <div class="section-heading">
-    <div><p class="eyebrow">CHAIRMAN'S OFFERS · CLEAN</p><h2>Profit Rotation Desk</h2><p>Live Chairman reviews from the same Holdings + LivePrices backend authority as Squad Hub. Executable cases can now be accepted and frozen directly for Registration.</p></div>
+    <div><p class="eyebrow">CHAIRMAN'S OFFERS · CLEAN</p><h2>Profit Rotation Desk</h2><p>Live Chairman reviews from the same Holdings + LivePrices backend authority as Squad Hub. Replacement candidates are evaluated against the current Scouting universe before a case can be accepted for Registration.</p></div>
     <div class="chairman-tools"><span id="chairmanSnapshotBadge" class="stage-badge">WAITING FOR BACKEND</span><button id="chairmanSnapshotRefresh" type="button">Refresh Reviews</button></div>
   </div>
   <div class="chairman-kpis">
@@ -73,5 +73,26 @@
     </section>
   </div>
 </div>
+<script>
+(() => {
+  'use strict';
+  function removeDuplicateProfitRotationDesk(){
+    const keep=document.getElementById('chairmanLiveDesk');
+    if(!keep)return;
+    document.querySelectorAll('h2').forEach(h=>{
+      if(h.textContent.trim()!=='Profit Rotation Desk'||keep.contains(h))return;
+      const panel=h.closest('section,.department-section,.transfer-intel-panel,.chairman-section');
+      if(panel&&panel!==keep&&!panel.contains(keep))panel.remove();
+    });
+  }
+  function boot(){
+    removeDuplicateProfitRotationDesk();
+    const observer=new MutationObserver(removeDuplicateProfitRotationDesk);
+    observer.observe(document.body,{childList:true,subtree:true});
+    window.AuroraProfitDeskDeduper={BUILD:'20260904-profit-desk-deduper-1',run:removeDuplicateProfitRotationDesk,observer};
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
 </body>
 </html>
