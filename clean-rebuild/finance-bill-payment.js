@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260904-finance-bill-payment-5-any-pot-source';
+  const BUILD='20260904-finance-bill-payment-6-pot-spend-tracking';
   const arr=v=>Array.isArray(v)?v:[];
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const round=v=>Number(num(v).toFixed(2));
@@ -133,6 +133,8 @@
         let potId='';
         let potBalanceBefore=null;
         let potBalanceAfter=null;
+        let potSpentBefore=null;
+        let potSpentAfter=null;
 
         if(!isCurrent(fundingSource)){
           const sourcePot=selectedSource.potId
@@ -144,7 +146,10 @@
           potBalanceBefore=round(sourcePot.balance);
           if(actual>potBalanceBefore)throw new Error(`${sourcePot.name} only has ${money(potBalanceBefore)} available.`);
           potBalanceAfter=round(potBalanceBefore-actual);
+          potSpentBefore=round(sourcePot.spent);
+          potSpentAfter=round(potSpentBefore+actual);
           sourcePot.balance=potBalanceAfter;
+          sourcePot.spent=potSpentAfter;
           sourcePot.lastSpendAt=paidAt;
           sourcePot.lastSpendAmount=actual;
           sourcePot.lastSpendBillId=String(b.id);
@@ -170,9 +175,11 @@
           sourcePotId:potId,
           due:previousDue,
           paidAt,
-          source:'FINANCE_BILL_PAYMENT_ANY_POT_V1',
+          source:'FINANCE_BILL_PAYMENT_ANY_POT_V2_SPEND_TRACKING',
           potBalanceBefore,
-          potBalanceAfter
+          potBalanceAfter,
+          potSpentBefore,
+          potSpentAfter
         });
 
         b.fundingSource=fundingSource;
@@ -200,6 +207,7 @@
 
       recalcAll();
       window.AuroraFinanceBillsMonthly?.render?.();
+      window.AuroraFinanceManager?.render?.();
     }catch(err){
       if(button){button.disabled=false;button.textContent='✓ Mark as Paid';}
       alert(String(err&&err.message?err.message:err));
