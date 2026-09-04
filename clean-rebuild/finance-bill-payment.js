@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260904-finance-bill-payment-3-fresh-rebuild';
+  const BUILD='20260904-finance-bill-payment-4-direct-button-handler';
   const arr=v=>Array.isArray(v)?v:[];
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const round=v=>Number(num(v).toFixed(2));
@@ -29,8 +29,7 @@
     else if(f==='5-weeks')d.setDate(d.getDate()+35);
     else if(f==='monthly'){
       const day=d.getDate();
-      d.setDate(1);
-      d.setMonth(d.getMonth()+1);
+      d.setDate(1);d.setMonth(d.getMonth()+1);
       d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));
     }else if(f==='yearly'){
       const day=d.getDate(),month=d.getMonth();
@@ -52,22 +51,6 @@
     document.head.appendChild(style);
   }
 
-  function injectButtons(){
-    ensureStyles();
-    document.querySelectorAll('[data-bill-card]').forEach(card=>{
-      const id=String(card.getAttribute('data-bill-card')||'').trim();
-      if(!id)return;
-      const actions=card.querySelector('.finance-manage-actions');
-      if(!actions||actions.querySelector('[data-bill-pay-fresh]'))return;
-      const button=document.createElement('button');
-      button.type='button';
-      button.className='bill-pay-fresh';
-      button.setAttribute('data-bill-pay-fresh',id);
-      button.textContent='✓ Mark as Paid';
-      actions.prepend(button);
-    });
-  }
-
   function recalcAll(){
     const E=window.AuroraFinanceEngine;
     if(!E)return;
@@ -79,100 +62,141 @@
 
   function payBill(id,button){
     const A=window.AuroraClean;
-    if(!A?.readState||!A?.updateState)return;
+    if(!A?.readState||!A?.updateState){
+      alert('Aurora Finance is not ready yet. Refresh the page and try again.');
+      return;
+    }
+
     const state=A.readState();
     const bill=arr(state.finance?.bills).find(b=>String(b.id)===String(id));
-    if(!bill){alert('This bill could not be found. Refresh and try again.');return;}
+    if(!bill){
+      alert('This bill could not be found. Refresh the page and try again.');
+      return;
+    }
 
     const expected=round(bill.amount);
     const raw=prompt(`Actual amount paid for ${bill.name||'this bill'}`,expected.toFixed(2));
     if(raw===null)return;
     const actual=round(raw);
-    if(!(actual>0)){alert('Enter the actual amount paid.');return;}
+    if(!(actual>0)){
+      alert('Enter the actual amount paid.');
+      return;
+    }
 
     const fundingSource=String(bill.fundingSource||'Holding Pot');
     const frequency=String(bill.frequency||'one-off').toLowerCase();
     const previousDue=String(bill.due||'').slice(0,10);
     const paidAt=new Date().toISOString();
 
-    if(button)button.disabled=true;
+    if(button){
+      button.disabled=true;
+      button.textContent='Saving…';
+    }
 
-    let holdingBefore=null;
-    let holdingAfter=null;
+    try{
+      A.updateState(next=>{
+        next.finance=next.finance||{};
+        next.finance.bills=arr(next.finance.bills);
+        next.finance.pots=arr(next.finance.pots);
 
-    A.updateState(next=>{
-      next.finance=next.finance||{};
-      next.finance.bills=arr(next.finance.bills);
-      const index=next.finance.bills.findIndex(b=>String(b.id)===String(id));
-      if(index<0)return;
-      const b=next.finance.bills[index];
+        const index=next.finance.bills.findIndex(b=>String(b.id)===String(id));
+        if(index<0)throw new Error('Bill disappeared before payment could be saved.');
+        const b=next.finance.bills[index];
 
-      if(isHolding(fundingSource)){
-        const holdingPot=arr(next.finance.pots).find(p=>!p?.archived&&isHolding(p?.name));
-        holdingBefore=round(holdingPot?.balance ?? next.finance.holdingPotBalance);
-        if(actual>holdingBefore){
-          throw new Error(`Holding Pot only has £${holdingBefore.toFixed(2)} available.`);
+        let holdingBefore=null;
+        let holdingAfter=null;
+
+        if(isHolding(fundingSource)){
+          const holdingPot=next.finance.pots.find(p=>!p?.archived&&isHolding(p?.name));
+          holdingBefore=round(holdingPot?.balance ?? next.finance.holdingPotBalance);
+          if(actual>holdingBefore){
+            throw new Error(`Holding Pot only has £${holdingBefore.toFixed(2)} available.`);
+          }
+          holdingAfter=round(holdingBefore-actual);
+          next.finance.holdingPotBalance=holdingAfter;
+          if(holdingPot)holdingPot.balance=holdingAfter;
+          next.finance.lastHoldingPotSpendAt=paidAt;
+          next.finance.lastHoldingPotSpendAmount=actual;
+          next.finance.lastHoldingPotSpendBillId=String(b.id);
         }
-        holdingAfter=round(holdingBefore-actual);
-        next.finance.holdingPotBalance=holdingAfter;
-        if(holdingPot)holdingPot.balance=holdingAfter;
-        next.finance.lastHoldingPotSpendAt=paidAt;
-        next.finance.lastHoldingPotSpendAmount=actual;
-        next.finance.lastHoldingPotSpendBillId=String(b.id);
-      }
 
-      next.finance.billPayments=arr(next.finance.billPayments);
-      next.finance.billPayments.push({
-        id:`BILLPAY-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
-        billId:String(b.id),
-        name:String(b.name||'Bill'),
-        amount:actual,
-        expectedAmount:expected,
-        variance:round(actual-expected),
-        frequency,
-        fundingSource,
-        due:previousDue,
-        paidAt,
-        source:'FINANCE_BILL_PAYMENT_FRESH_V1',
-        holdingBalanceBefore:holdingBefore,
-        holdingBalanceAfter:holdingAfter
+        next.finance.billPayments=arr(next.finance.billPayments);
+        next.finance.billPayments.push({
+          id:`BILLPAY-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+          billId:String(b.id),
+          name:String(b.name||'Bill'),
+          amount:actual,
+          expectedAmount:expected,
+          variance:round(actual-expected),
+          frequency,
+          fundingSource,
+          due:previousDue,
+          paidAt,
+          source:'FINANCE_BILL_PAYMENT_DIRECT_V2',
+          holdingBalanceBefore:holdingBefore,
+          holdingBalanceAfter:holdingAfter
+        });
+
+        if(recurring(frequency)){
+          b.lastPaidAt=paidAt;
+          b.lastPaidAmount=actual;
+          b.lastPaidDue=previousDue;
+          b.due=nextDue(previousDue,frequency);
+          b.paid=false;
+        }else{
+          next.finance.bills.splice(index,1);
+        }
+
+        next.finance.stage2Bills=null;
+        next.finance.stage3HoldingPot=null;
+        next.finance.stage4PotFunding=null;
+        next.finance.stage5PaydayDecision=null;
+        next.finance.lastSafeRelease=0;
+        next.finance.lastManagerChangeAt=paidAt;
+        next.finance.lastManagerChangeReason=`Bill paid: ${b.name}`;
       });
 
-      if(recurring(frequency)){
-        b.lastPaidAt=paidAt;
-        b.lastPaidAmount=actual;
-        b.lastPaidDue=previousDue;
-        b.due=nextDue(previousDue,frequency);
-        b.paid=false;
-      }else{
-        next.finance.bills.splice(index,1);
+      recalcAll();
+      window.AuroraFinanceBillsMonthly?.render?.();
+    }catch(err){
+      if(button){button.disabled=false;button.textContent='✓ Mark as Paid';}
+      alert(String(err&&err.message?err.message:err));
+    }
+  }
+
+  function injectButtons(){
+    ensureStyles();
+    document.querySelectorAll('[data-bill-card]').forEach(card=>{
+      const id=String(card.getAttribute('data-bill-card')||'').trim();
+      if(!id)return;
+      const actions=card.querySelector('.finance-manage-actions');
+      if(!actions)return;
+
+      let button=actions.querySelector('[data-bill-pay-fresh]');
+      if(!button){
+        button=document.createElement('button');
+        button.type='button';
+        button.className='bill-pay-fresh';
+        button.setAttribute('data-bill-pay-fresh',id);
+        button.textContent='✓ Mark as Paid';
+        actions.prepend(button);
       }
 
-      next.finance.stage2Bills=null;
-      next.finance.stage3HoldingPot=null;
-      next.finance.stage4PotFunding=null;
-      next.finance.stage5PaydayDecision=null;
-      next.finance.lastSafeRelease=0;
-      next.finance.lastManagerChangeAt=paidAt;
-      next.finance.lastManagerChangeReason=`Bill paid: ${b.name}`;
+      if(button.dataset.billPayBound==='1')return;
+      button.dataset.billPayBound='1';
+      button.addEventListener('click',event=>{
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        payBill(id,button);
+      });
     });
-
-    recalcAll();
-    setTimeout(()=>window.AuroraFinanceBillsMonthly?.render?.(),0);
   }
 
   function boot(){
     injectButtons();
     window.addEventListener('aurora-finance:bills-rendered',injectButtons);
     window.addEventListener('pageshow',()=>setTimeout(injectButtons,0));
-    document.addEventListener('click',e=>{
-      const button=e.target.closest?.('[data-bill-pay-fresh]');
-      if(!button)return;
-      e.preventDefault();
-      e.stopPropagation();
-      const id=button.getAttribute('data-bill-pay-fresh');
-      try{payBill(id,button);}catch(err){button.disabled=false;alert(String(err&&err.message?err.message:err));}
-    });
+    window.addEventListener('aurora-clean:state',()=>setTimeout(injectButtons,0));
     window.AuroraFinanceBillPayment=Object.freeze({BUILD,injectButtons,payBill});
   }
 
