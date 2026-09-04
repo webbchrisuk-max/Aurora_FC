@@ -10,4 +10,47 @@ body[data-page="finance"] .finance-stage-track{display:none!important}
 .finance-tab-panel-title .eyebrow{margin:0 0 5px;color:#6fe9f2;font-size:10px;font-weight:950;letter-spacing:.14em}
 .finance-tab-panel-title h2{margin:0;font-size:22px;letter-spacing:-.5px}
 .finance-tab-panel-title p{margin:6px 0 0;color:#8da2bb;font-size:13px}
+
+/* Finance editor close buttons — neutral single-outline treatment */
+body[data-page="finance"] .aurora-bill-edit-close,
+body[data-page="finance"] .aurora-pot-edit-close{
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  box-sizing:border-box!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:40px!important;
+  height:40px!important;
+  min-width:40px!important;
+  min-height:40px!important;
+  padding:0!important;
+  margin:0!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  border-radius:11px!important;
+  background:rgba(255,255,255,.045)!important;
+  color:#f5fbff!important;
+  font:800 24px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  box-shadow:none!important;
+  outline:none!important;
+  cursor:pointer!important;
+  -webkit-tap-highlight-color:transparent!important;
+}
+body[data-page="finance"] .aurora-bill-edit-close:hover,
+body[data-page="finance"] .aurora-pot-edit-close:hover{
+  border-color:rgba(103,232,249,.42)!important;
+  background:rgba(103,232,249,.08)!important;
+}
+body[data-page="finance"] .aurora-bill-edit-close:focus,
+body[data-page="finance"] .aurora-pot-edit-close:focus{
+  outline:none!important;
+  box-shadow:none!important;
+}
+body[data-page="finance"] .aurora-bill-edit-close:focus-visible,
+body[data-page="finance"] .aurora-pot-edit-close:focus-visible{
+  outline:2px solid rgba(103,232,249,.55)!important;
+  outline-offset:2px!important;
+  box-shadow:none!important;
+}
+
 @media(max-width:760px){.finance-tabbar{grid-template-columns:repeat(2,minmax(0,1fr));position:sticky;top:8px;z-index:40;backdrop-filter:blur(18px)}}
