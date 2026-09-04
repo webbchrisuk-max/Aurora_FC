@@ -1,13 +1,15 @@
 (() => {
   'use strict';
 
-  const BUILD='20260904-finance-bill-payment-4-direct-button-handler';
+  const BUILD='20260904-finance-bill-payment-5-any-pot-source';
   const arr=v=>Array.isArray(v)?v:[];
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const round=v=>Number(num(v).toFixed(2));
   const norm=v=>String(v??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const isHolding=v=>norm(v)==='holding pot';
+  const isCurrent=v=>norm(v)==='current account';
   const recurring=f=>['weekly','4-weeks','5-weeks','monthly','yearly'].includes(String(f||'').toLowerCase());
+  const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
 
   function parseDate(v){
     if(!v)return null;
@@ -51,6 +53,28 @@
     document.head.appendChild(style);
   }
 
+  function paymentSources(state,bill){
+    const pots=arr(state.finance?.pots).filter(p=>!p?.archived&&String(p?.name||'').trim());
+    const sources=[{type:'current',name:'Current Account',potId:'',balance:null}];
+    pots.forEach(p=>sources.push({type:'pot',name:String(p.name),potId:String(p.id||''),balance:round(p.balance)}));
+
+    const preferred=norm(bill?.fundingSource||'Holding Pot');
+    let defaultIndex=sources.findIndex(s=>norm(s.name)===preferred);
+    if(defaultIndex<0)defaultIndex=sources.findIndex(s=>isHolding(s.name));
+    if(defaultIndex<0)defaultIndex=0;
+    return {sources,defaultIndex};
+  }
+
+  function choosePaymentSource(state,bill){
+    const {sources,defaultIndex}=paymentSources(state,bill);
+    const lines=sources.map((s,i)=>`${i+1}. ${s.name}${s.type==='pot'?` · ${money(s.balance)}`:''}${i===defaultIndex?'  ← current':''}`);
+    const raw=prompt(`Where was ${bill.name||'this bill'} paid from?\n\n${lines.join('\n')}\n\nEnter the number:`,String(defaultIndex+1));
+    if(raw===null)return null;
+    const n=Number(String(raw).trim());
+    if(!Number.isInteger(n)||n<1||n>sources.length){alert('Choose one of the numbered payment sources.');return choosePaymentSource(state,bill);}
+    return sources[n-1];
+  }
+
   function recalcAll(){
     const E=window.AuroraFinanceEngine;
     if(!E)return;
@@ -83,7 +107,10 @@
       return;
     }
 
-    const fundingSource=String(bill.fundingSource||'Holding Pot');
+    const selectedSource=choosePaymentSource(state,bill);
+    if(!selectedSource)return;
+
+    const fundingSource=selectedSource.name;
     const frequency=String(bill.frequency||'one-off').toLowerCase();
     const previousDue=String(bill.due||'').slice(0,10);
     const paidAt=new Date().toISOString();
@@ -103,21 +130,31 @@
         if(index<0)throw new Error('Bill disappeared before payment could be saved.');
         const b=next.finance.bills[index];
 
-        let holdingBefore=null;
-        let holdingAfter=null;
+        let potId='';
+        let potBalanceBefore=null;
+        let potBalanceAfter=null;
 
-        if(isHolding(fundingSource)){
-          const holdingPot=next.finance.pots.find(p=>!p?.archived&&isHolding(p?.name));
-          holdingBefore=round(holdingPot?.balance ?? next.finance.holdingPotBalance);
-          if(actual>holdingBefore){
-            throw new Error(`Holding Pot only has £${holdingBefore.toFixed(2)} available.`);
+        if(!isCurrent(fundingSource)){
+          const sourcePot=selectedSource.potId
+            ? next.finance.pots.find(p=>String(p?.id||'')===String(selectedSource.potId)&&!p?.archived)
+            : next.finance.pots.find(p=>!p?.archived&&norm(p?.name)===norm(fundingSource));
+
+          if(!sourcePot)throw new Error(`${fundingSource} could not be found.`);
+          potId=String(sourcePot.id||'');
+          potBalanceBefore=round(sourcePot.balance);
+          if(actual>potBalanceBefore)throw new Error(`${sourcePot.name} only has ${money(potBalanceBefore)} available.`);
+          potBalanceAfter=round(potBalanceBefore-actual);
+          sourcePot.balance=potBalanceAfter;
+          sourcePot.lastSpendAt=paidAt;
+          sourcePot.lastSpendAmount=actual;
+          sourcePot.lastSpendBillId=String(b.id);
+
+          if(isHolding(sourcePot.name)){
+            next.finance.holdingPotBalance=potBalanceAfter;
+            next.finance.lastHoldingPotSpendAt=paidAt;
+            next.finance.lastHoldingPotSpendAmount=actual;
+            next.finance.lastHoldingPotSpendBillId=String(b.id);
           }
-          holdingAfter=round(holdingBefore-actual);
-          next.finance.holdingPotBalance=holdingAfter;
-          if(holdingPot)holdingPot.balance=holdingAfter;
-          next.finance.lastHoldingPotSpendAt=paidAt;
-          next.finance.lastHoldingPotSpendAmount=actual;
-          next.finance.lastHoldingPotSpendBillId=String(b.id);
         }
 
         next.finance.billPayments=arr(next.finance.billPayments);
@@ -130,12 +167,17 @@
           variance:round(actual-expected),
           frequency,
           fundingSource,
+          sourcePotId:potId,
           due:previousDue,
           paidAt,
-          source:'FINANCE_BILL_PAYMENT_DIRECT_V2',
-          holdingBalanceBefore:holdingBefore,
-          holdingBalanceAfter:holdingAfter
+          source:'FINANCE_BILL_PAYMENT_ANY_POT_V1',
+          potBalanceBefore,
+          potBalanceAfter
         });
+
+        b.fundingSource=fundingSource;
+        b.lastFundingSource=fundingSource;
+        b.lastSourcePotId=potId;
 
         if(recurring(frequency)){
           b.lastPaidAt=paidAt;
@@ -153,7 +195,7 @@
         next.finance.stage5PaydayDecision=null;
         next.finance.lastSafeRelease=0;
         next.finance.lastManagerChangeAt=paidAt;
-        next.finance.lastManagerChangeReason=`Bill paid: ${b.name}`;
+        next.finance.lastManagerChangeReason=`Bill paid: ${b.name} · ${fundingSource}`;
       });
 
       recalcAll();
@@ -197,7 +239,7 @@
     window.addEventListener('aurora-finance:bills-rendered',injectButtons);
     window.addEventListener('pageshow',()=>setTimeout(injectButtons,0));
     window.addEventListener('aurora-clean:state',()=>setTimeout(injectButtons,0));
-    window.AuroraFinanceBillPayment=Object.freeze({BUILD,injectButtons,payBill});
+    window.AuroraFinanceBillPayment=Object.freeze({BUILD,injectButtons,payBill,paymentSources});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
