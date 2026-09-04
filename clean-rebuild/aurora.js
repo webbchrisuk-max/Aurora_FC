@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260829-sidebar-shell-3-direct-open';
+  const BUILD = '20260904-sidebar-shell-4-mobile-nav-cachefix';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -149,10 +149,10 @@
   function currentPageFile(){return String(location.pathname.split('/').pop()||'index.html').toLowerCase()||'index.html';}
   function ensureSidebarAssets(){
     if(!document.querySelector('link[data-aurora-sidebar]')){
-      const link=document.createElement('link');link.rel='stylesheet';link.href='aurora-sidebar.css?v=20260829-aurora-sidebar-1';link.dataset.auroraSidebar='style';document.head.appendChild(link);
+      const link=document.createElement('link');link.rel='stylesheet';link.href='aurora-sidebar.css?v=20260904-mobile-nav-6';link.dataset.auroraSidebar='style';document.head.appendChild(link);
     }
     if(!document.querySelector('script[data-aurora-sidebar]')){
-      const script=document.createElement('script');script.src='aurora-sidebar.js?v=20260829-aurora-sidebar-2-desktop-open';script.defer=true;script.dataset.auroraSidebar='script';document.head.appendChild(script);
+      const script=document.createElement('script');script.src='aurora-sidebar.js?v=20260904-mobile-nav-6';script.defer=true;script.dataset.auroraSidebar='script';document.head.appendChild(script);
     }
   }
   function renderNavigation(){
