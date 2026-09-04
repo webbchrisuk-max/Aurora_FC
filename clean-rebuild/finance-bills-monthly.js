@@ -1,12 +1,13 @@
 (() => {
   'use strict';
 
-  const BUILD='20260829-finance-bills-monthly-paid-1';
+  const BUILD='20260904-finance-bills-monthly-paid-2-authoritative';
   const $=id=>document.getElementById(id);
   const arr=v=>Array.isArray(v)?v:[];
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const round=v=>Number(num(v).toFixed(2));
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+  const norm=v=>String(v??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
   const parseDate=v=>{if(!v)return null;const d=new Date(`${String(v).slice(0,10)}T12:00:00`);return Number.isNaN(d.getTime())?null:d};
   const iso=d=>d&&!Number.isNaN(d.getTime())?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';
@@ -15,6 +16,7 @@
   const monthLabel=key=>{if(key==='undated')return'Date not set';const [y,m]=key.split('-').map(Number);return new Date(y,m-1,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});};
   const dueLabel=v=>{const d=parseDate(v);return d?d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}):'No due date';};
   const recurring=f=>['weekly','4-weeks','5-weeks','monthly','yearly'].includes(String(f||'').toLowerCase());
+  const isHolding=v=>norm(v)==='holding pot';
 
   function nextDue(value,frequency){
     const f=String(frequency||'one-off').toLowerCase();
@@ -88,21 +90,81 @@
   }
 
   function markPaid(id){
-    const A=window.AuroraClean;if(!A)return;
-    const state=A.readState(),bill=arr(state.finance?.bills).find(b=>String(b.id)===String(id));if(!bill)return;
-    const paidAt=new Date().toISOString(),amount=round(bill.amount),previousDue=String(bill.due||'').slice(0,10),frequency=String(bill.frequency||'one-off').toLowerCase();
+    const A=window.AuroraClean;if(!A?.readState||!A?.updateState)return;
+    const state=A.readState();
+    const bill=arr(state.finance?.bills).find(b=>String(b.id)===String(id));
+    if(!bill)return;
+
+    const expected=round(bill.amount);
+    const raw=prompt(`Actual amount paid for ${bill.name||'this bill'}`,expected.toFixed(2));
+    if(raw===null)return;
+    const actual=round(raw);
+    if(!(actual>0)){alert('Enter the actual amount paid.');return;}
+
+    const paidAt=new Date().toISOString();
+    const previousDue=String(bill.due||'').slice(0,10);
+    const frequency=String(bill.frequency||'one-off').toLowerCase();
+    const fundingSource=String(bill.fundingSource||'Holding Pot');
+
     A.updateState(next=>{
-      const b=arr(next.finance?.bills).find(x=>String(x.id)===String(id));if(!b)return;
-      next.finance.billPayments=arr(next.finance.billPayments);
-      next.finance.billPayments.push({id:`BILLPAY-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,billId:String(b.id),name:String(b.name||'Bill'),amount,frequency,fundingSource:String(b.fundingSource||'Holding Pot'),due:previousDue,paidAt,source:'FINANCE_BILLS_MARK_PAID'});
-      b.lastPaidAt=paidAt;b.lastPaidAmount=amount;b.lastPaidDue=previousDue;
-      if(recurring(frequency)){
-        b.due=nextDue(previousDue,frequency);b.paid=false;
-      }else{
-        b.paid=true;b.paidDate=paidAt.slice(0,10);
+      next.finance=next.finance||{};
+      const b=arr(next.finance.bills).find(x=>String(x.id)===String(id));
+      if(!b)return;
+
+      let holdingBalanceBefore=null;
+      let holdingBalanceAfter=null;
+
+      if(isHolding(fundingSource)){
+        const holdingPot=arr(next.finance.pots).find(p=>!p?.archived&&isHolding(p?.name));
+        holdingBalanceBefore=round(holdingPot?.balance ?? next.finance.holdingPotBalance);
+        holdingBalanceAfter=round(Math.max(0,holdingBalanceBefore-actual));
+        next.finance.holdingPotBalance=holdingBalanceAfter;
+        if(holdingPot)holdingPot.balance=holdingBalanceAfter;
+        next.finance.lastHoldingPotSpendAt=paidAt;
+        next.finance.lastHoldingPotSpendAmount=actual;
+        next.finance.lastHoldingPotSpendBillId=String(b.id);
       }
-      next.finance.stage2Bills=null;next.finance.stage3HoldingPot=null;next.finance.stage4PotFunding=null;next.finance.stage5PaydayDecision=null;next.finance.lastSafeRelease=0;next.finance.lastManagerChangeAt=paidAt;next.finance.lastManagerChangeReason=`Bill paid: ${b.name}`;
+
+      next.finance.billPayments=arr(next.finance.billPayments);
+      next.finance.billPayments.push({
+        id:`BILLPAY-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+        billId:String(b.id),
+        name:String(b.name||'Bill'),
+        amount:actual,
+        expectedAmount:expected,
+        variance:round(actual-expected),
+        frequency,
+        fundingSource,
+        due:previousDue,
+        paidAt,
+        source:'FINANCE_BILLS_GREEN_MARK_PAID',
+        holdingBalanceBefore,
+        holdingBalanceAfter
+      });
+
+      b.lastPaidAt=paidAt;
+      b.lastPaidAmount=actual;
+      b.lastExpectedAmount=expected;
+      b.lastPaidVariance=round(actual-expected);
+      b.lastPaidDue=previousDue;
+
+      if(recurring(frequency)){
+        b.due=nextDue(previousDue,frequency);
+        b.paid=false;
+      }else{
+        b.paid=true;
+        b.paidDate=paidAt.slice(0,10);
+      }
+
+      next.finance.stage2Bills=null;
+      next.finance.stage3HoldingPot=null;
+      next.finance.stage4PotFunding=null;
+      next.finance.stage5PaydayDecision=null;
+      next.finance.lastSafeRelease=0;
+      next.finance.lastManagerChangeAt=paidAt;
+      next.finance.lastManagerChangeReason=`Bill paid: ${b.name}${isHolding(fundingSource)?` · Holding Pot ${money(holdingBalanceBefore)} → ${money(holdingBalanceAfter)}`:''}`;
     });
+
     recalcAll();
     setTimeout(render,0);
   }
@@ -110,7 +172,13 @@
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,60);return;}
     render();
-    document.addEventListener('click',e=>{const btn=e.target.closest?.('[data-paid-bill]');if(btn)markPaid(btn.dataset.paidBill);});
+    document.addEventListener('click',e=>{
+      const btn=e.target.closest?.('[data-paid-bill]');
+      if(!btn)return;
+      e.preventDefault();
+      e.stopPropagation();
+      markPaid(btn.dataset.paidBill);
+    });
     window.addEventListener('aurora-clean:state',()=>setTimeout(render,0));
     window.AuroraFinanceBillsMonthly=Object.freeze({BUILD,render,markPaid});
   }
