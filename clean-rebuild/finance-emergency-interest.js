@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const BUILD='20260901-finance-emergency-interest-3-monzo-sync';
-  const ROUNDUPS_SRC='finance-emergency-roundups.js?v=20260901-finance-emergency-roundups-1';
+  const BUILD='20260905-finance-emergency-interest-4-current-roundup-authority';
+  const ROUNDUPS_SRC='finance-emergency-roundups.js?v=20260905-finance-emergency-roundups-4-monzo-only-authority';
   const MONZO_SYNC_SRC='finance-monzo-webhook-sync.js?v=20260901-finance-monzo-webhook-sync-1';
   const AER=0.0325;
   const MONTHLY_RATE=Math.pow(1+AER,1/12)-1;
