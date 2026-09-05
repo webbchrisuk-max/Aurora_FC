@@ -1,12 +1,15 @@
 (() => {
   'use strict';
 
-  const BUILD='20260903-finance-emergency-roundups-3-monzo-authority-reconcile';
+  const BUILD='20260905-finance-emergency-roundups-4-monzo-only-authority';
   const MULTIPLIER=5;
   const MIN_ROUNDUP_PURCHASE_GBP=1;
   const RECONCILE_KEY='20260903_MONZO_GROW_1274_08';
   const RECONCILE_FROM=1273.52;
   const RECONCILE_TO=1274.08;
+  const CURRENT_RECONCILE_KEY='20260905_MONZO_GROW_1283_88';
+  const CURRENT_RECONCILE_FROM=1286.38;
+  const CURRENT_RECONCILE_TO=1283.88;
   const arr=v=>Array.isArray(v)?v:[];
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
   const round=v=>Number(num(v).toFixed(2));
@@ -40,12 +43,9 @@
   }
 
   function sourceRows(state){
-    const bills=arr(state.finance?.billPayments).map(p=>({
-      key:`bill:${p.id}`,id:p.id,amount:round(p.amount),name:String(p.name||'Bill payment'),date:String(p.paidAt||''),source:'BILL_PAYMENT',authoritativeCredit:null
-    }));
-    const house=arr(state.finance?.houseProject?.entries).filter(e=>e.status==='paid').map(e=>({
-      key:`house:${e.id}:${e.paidDate||e.actual}`,id:e.id,amount:round(e.actual),name:String(e.name||'House payment'),date:String(e.paidDate||''),source:'HOUSE_PAYMENT',authoritativeCredit:null
-    }));
+    // Automatic Emergency Pot credits now come from card-spend rows only.
+    // Monzo webhook/sheet rows carry webhookRoundUpCredit and are authoritative.
+    // Paid bills and paid house-project entries must NEVER generate a local roundup.
     const card=arr(state.finance?.cardSpends).map(p=>({
       key:`card:${p.id}`,
       id:p.id,
@@ -57,7 +57,7 @@
       monzoTransactionId:String(p.monzoTransactionId||''),
       authoritativeCredit:p.webhookRoundUpCredit===undefined||p.webhookRoundUpCredit===null?null:round(p.webhookRoundUpCredit)
     }));
-    return [...bills,...house,...card].filter(x=>x.amount>0);
+    return card.filter(x=>x.amount>0);
   }
 
   function creditForSource(row){
@@ -66,6 +66,7 @@
     if(row&&row.authoritativeCredit!==null&&row.authoritativeCredit!==undefined){
       return round(row.authoritativeCredit);
     }
+    // Manual card spends can still use the explicit Aurora x5 rule.
     return roundupFor(row?.amount);
   }
 
@@ -79,7 +80,7 @@
       const m=ensureMeta(next);
       sourceRows(next).forEach(x=>{m.processed[x.key]=true});
       m.initializedAt=now;
-      m.source='AURORA_EMERGENCY_ROUNDUP_X5';
+      m.source='MONZO_ROUNDUP_AUTHORITY';
     });
     return true;
   }
@@ -97,7 +98,7 @@
       if(m.repairs[RECONCILE_KEY])return;
       const before=round(p.balance);
       p.balance=RECONCILE_TO;
-      const delta=round(RECONCILE_TO-before);
+      const delta=Number((RECONCILE_TO-before).toFixed(2));
       m.repairs[RECONCILE_KEY]={
         reconciledAt:new Date().toISOString(),
         balanceBefore:before,
@@ -108,7 +109,34 @@
       next.finance.lastManagerChangeAt=new Date().toISOString();
       next.finance.lastManagerChangeReason=`Grow Pot reconciled to Monzo (${money(RECONCILE_TO)})`;
     });
-    return {reconciled:true,from:RECONCILE_FROM,to:RECONCILE_TO,delta:round(RECONCILE_TO-RECONCILE_FROM)};
+    return {reconciled:true,from:RECONCILE_FROM,to:RECONCILE_TO,delta:Number((RECONCILE_TO-RECONCILE_FROM).toFixed(2))};
+  }
+
+  function reconcileCurrentConfirmedMonzoBalance(){
+    const A=window.AuroraClean;if(!A?.readState||!A?.updateState)return {reconciled:false};
+    const state=A.readState(),pot=emergencyPot(state);if(!pot)return {reconciled:false};
+    const meta=state.finance?.emergencyRoundups||{};
+    if(meta.repairs?.[CURRENT_RECONCILE_KEY])return {reconciled:false,alreadyDone:true};
+    if(round(pot.balance)!==CURRENT_RECONCILE_FROM)return {reconciled:false,skipped:true,current:round(pot.balance)};
+
+    A.updateState(next=>{
+      const p=emergencyPot(next);if(!p||round(p.balance)!==CURRENT_RECONCILE_FROM)return;
+      const m=ensureMeta(next);
+      if(m.repairs[CURRENT_RECONCILE_KEY])return;
+      const before=round(p.balance);
+      p.balance=CURRENT_RECONCILE_TO;
+      const delta=Number((CURRENT_RECONCILE_TO-before).toFixed(2));
+      m.repairs[CURRENT_RECONCILE_KEY]={
+        reconciledAt:new Date().toISOString(),
+        balanceBefore:before,
+        balanceAfter:CURRENT_RECONCILE_TO,
+        delta,
+        reason:'One-time reconciliation to the user-confirmed Monzo Grow Pot balance. Future automatic credits are sourced from Monzo webhook/sheet rows only.'
+      };
+      next.finance.lastManagerChangeAt=new Date().toISOString();
+      next.finance.lastManagerChangeReason=`Grow Pot reconciled to confirmed Monzo balance (${money(CURRENT_RECONCILE_TO)})`;
+    });
+    return {reconciled:true,from:CURRENT_RECONCILE_FROM,to:CURRENT_RECONCILE_TO,delta:Number((CURRENT_RECONCILE_TO-CURRENT_RECONCILE_FROM).toFixed(2))};
   }
 
   function processDue(){
@@ -141,7 +169,7 @@
             balanceBefore:before,
             balanceAfter:round(p.balance),
             postedAt:new Date().toISOString(),
-            creditAuthority:x.authoritativeCredit!==null?'MONZO_WEBHOOK':'AURORA_LOCAL_RULE'
+            creditAuthority:x.authoritativeCredit!==null?'MONZO_WEBHOOK':'AURORA_MANUAL_CARD_SPEND'
           };
           m.history.push(row);results.push(row);
           p.lastRoundupAmount=credit;p.lastRoundupAt=row.postedAt;
@@ -149,8 +177,9 @@
       });
       m.lastProcessedAt=new Date().toISOString();
       m.totalRoundups=round(m.history.reduce((s,r)=>s+num(r.amount),0));
+      m.source='MONZO_ROUNDUP_AUTHORITY';
       next.finance.lastManagerChangeAt=m.lastProcessedAt;
-      next.finance.lastManagerChangeReason=results.length?`Emergency Pot round-up x5 added (${results.length})`:'Emergency Pot round-up scan';
+      next.finance.lastManagerChangeReason=results.length?`Emergency Pot Monzo round-up added (${results.length})`:'Emergency Pot Monzo round-up scan';
     });
     return results;
   }
@@ -161,7 +190,7 @@
     const amount=round(raw);if(amount<=0){alert('Enter a card spend above £0.00.');return}
     const name=prompt('What was the spend?','Card purchase');if(name===null)return;
     const credit=roundupFor(amount);
-    if(!confirm(`${money(amount)} spend\nRound-up x5: ${money(credit)} to Emergency Pot\n\nAdd this spend?`))return;
+    if(!confirm(`${money(amount)} spend\nRound-up x5: ${money(credit)} to Emergency Pot\n\nAdd this manual spend?`))return;
     A.updateState(next=>{
       ensureMeta(next);
       next.finance.cardSpends.push({id:`CARDSPEND-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,name:String(name||'Card purchase'),amount,spentAt:new Date().toISOString(),source:'MANUAL_CARD_SPEND'});
@@ -195,12 +224,13 @@
     if(!window.AuroraClean||!document.getElementById('paydayEmergencyCard')){setTimeout(boot,80);return}
     initializeIfNeeded();
     reconcileKnownGrowBalance();
+    reconcileCurrentConfirmedMonzoBalance();
     processDue();
     render();
     document.addEventListener('click',e=>{if(e.target.closest?.('#paydayEmergencyLogSpend'))logCardSpend()});
     window.addEventListener('aurora-clean:state',()=>{const r=processDue();setTimeout(render,r.length?10:0)});
-    window.addEventListener('pageshow',()=>{reconcileKnownGrowBalance();processDue();setTimeout(render,0)});
-    window.AuroraFinanceEmergencyRoundups=Object.freeze({BUILD,MULTIPLIER,MIN_ROUNDUP_PURCHASE_GBP,roundupFor,creditForSource,reconcileKnownGrowBalance,processDue,render,logCardSpend});
+    window.addEventListener('pageshow',()=>{reconcileKnownGrowBalance();reconcileCurrentConfirmedMonzoBalance();processDue();setTimeout(render,0)});
+    window.AuroraFinanceEmergencyRoundups=Object.freeze({BUILD,MULTIPLIER,MIN_ROUNDUP_PURCHASE_GBP,roundupFor,creditForSource,reconcileKnownGrowBalance,reconcileCurrentConfirmedMonzoBalance,processDue,render,logCardSpend});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
