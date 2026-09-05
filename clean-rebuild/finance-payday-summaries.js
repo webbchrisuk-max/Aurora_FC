@@ -1,11 +1,11 @@
 (() => {
   'use strict';
 
-  const BUILD='20260905-payday-summary-cards-11-emergency-roundup-cachefix';
+  const BUILD='20260905-payday-summary-cards-12-emergency-loader-chainfix';
   const BILL_AUDIT_SRC='finance-bill-audit.js?v=20260901-clean-bill-audit-4-holding-deduction-loader';
   const HOUSE_BREAKDOWN_SRC='finance-house-room-breakdown.js?v=20260831-finance-house-room-breakdown-3-fresh-user-rooms';
-  const EMERGENCY_INTEREST_SRC='finance-emergency-interest.js?v=20260901-finance-emergency-interest-3-monzo-sync';
-  const EMERGENCY_ROUNDUPS_SRC='finance-emergency-roundups.js?v=20260905-finance-emergency-roundups-4-monzo-only-reconcile';
+  const EMERGENCY_INTEREST_SRC='finance-emergency-interest.js?v=20260905-finance-emergency-interest-4-current-roundup-authority';
+  const EMERGENCY_ROUNDUPS_SRC='finance-emergency-roundups.js?v=20260905-finance-emergency-roundups-4-monzo-only-authority';
   const PAYDAY_MISSION_SRC='finance-payday-mission.js?v=20260902-payday-mission-breakdown-1';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
