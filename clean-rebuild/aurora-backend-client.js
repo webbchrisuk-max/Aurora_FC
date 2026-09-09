@@ -1,8 +1,9 @@
 (() => {
   'use strict';
 
-  const BUILD='20260902-clean-backend-client-2-income-get';
+  const BUILD='20260909-clean-backend-client-3-read-route-guard';
   const CONNECTION_KEY='aurora:data2:registration-connection:v2';
+  const READ_ONLY_ACTIONS=new Set(['brokerCashSnapshot']);
 
   function config(){
     try{
@@ -18,14 +19,16 @@
   }
 
   async function post(action,payload){
+    const actionName=String(action||'').trim();
+    if(READ_ONLY_ACTIONS.has(actionName))return jsonp(actionName,payload||{});
     const c=endpoint();
     const body=new URLSearchParams();
     body.set('token',c.token);
-    body.set('payload',JSON.stringify({...(payload||{}),action:String(action||'').trim()}));
+    body.set('payload',JSON.stringify({...(payload||{}),action:actionName}));
     const response=await fetch(c.url,{method:'POST',body,redirect:'follow',credentials:'omit'});
     if(!response.ok)throw new Error(`Aurora backend HTTP ${response.status}`);
     const result=await response.json();
-    if(result?.ok===false)throw new Error(result.message||`Aurora backend action failed: ${action}`);
+    if(result?.ok===false)throw new Error(result.message||`Aurora backend action failed: ${actionName}`);
     return result;
   }
 
@@ -57,8 +60,6 @@
     });
   }
 
-  // Read actions use JSONP because the clean site is hosted on GitHub Pages.
-  // Keeping a get() alias preserves the existing Income Centre contract.
   function get(action,payload){
     return jsonp(action,payload||{});
   }
