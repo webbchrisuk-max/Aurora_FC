@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD='20260910-chief-scout-payday-command-2-readiness';
+  const BUILD='20260910-chief-scout-payday-command-3-intelligence-visibility';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
@@ -14,24 +14,44 @@
     hero.insertAdjacentElement('afterend',host);return host;
   }
 
-  function ensureIntelligence(){
-    let details=$('scoutingIntelligence');if(details)return details;
-    const anchor=document.querySelector('.scouting-universe-section')||document.body.lastElementChild;
-    details=document.createElement('details');details.id='scoutingIntelligence';details.className='scouting-compact';
-    details.innerHTML='<summary>Scouting Intelligence · View full opportunity pool</summary><div class="scouting-compact-body" id="scoutingIntelligenceBody"></div>';
-    anchor.insertAdjacentElement('afterend',details);return details;
+  function ensureAdminWrap(){
+    const section=document.querySelector('.scouting-universe-section');
+    if(!section)return null;
+    let details=$('scoutingAdmin');
+    if(!details){
+      details=document.createElement('details');details.id='scoutingAdmin';details.className='scouting-compact';
+      details.innerHTML='<summary>Scouting Administration</summary><div class="scouting-compact-body"></div>';
+      section.parentNode.insertBefore(details,section);
+      details.querySelector('.scouting-compact-body').appendChild(section);
+    }
+    return details;
   }
 
-  function ensureAdminWrap(){
-    const section=document.querySelector('.scouting-universe-section');if(!section||section.closest('#scoutingAdmin'))return;
-    const details=document.createElement('details');details.id='scoutingAdmin';details.className='scouting-compact';
-    details.innerHTML='<summary>Scouting Administration</summary><div class="scouting-compact-body"></div>';
-    section.parentNode.insertBefore(details,section);details.querySelector('.scouting-compact-body').appendChild(section);
+  function ensureIntelligence(){
+    const admin=ensureAdminWrap();
+    let details=$('scoutingIntelligence');
+    if(!details){
+      details=document.createElement('details');details.id='scoutingIntelligence';details.className='scouting-compact';details.open=true;
+      details.innerHTML='<summary>Scouting Intelligence · View full opportunity pool</summary><div class="scouting-compact-body" id="scoutingIntelligenceBody"><div id="scoutingIntelligenceLoading" class="scouting-empty">Loading full opportunity pool…</div></div>';
+    }
+    if(admin&&details.parentNode!==admin.parentNode){admin.insertAdjacentElement('afterend',details);}
+    else if(admin&&details.previousElementSibling!==admin){admin.insertAdjacentElement('afterend',details);}
+    return details;
   }
 
   function moveNetwork(){
+    const details=ensureIntelligence();
     const network=$('scoutingNetwork'),body=$('scoutingIntelligenceBody');
-    if(network&&body&&network.parentNode!==body)body.appendChild(network);
+    if(!details||!body)return false;
+    if(network){
+      if(network.parentNode!==body)body.appendChild(network);
+      $('scoutingIntelligenceLoading')?.remove();
+      return network.parentNode===body;
+    }
+    if(!$('scoutingIntelligenceLoading')){
+      const loading=document.createElement('div');loading.id='scoutingIntelligenceLoading';loading.className='scouting-empty';loading.textContent='Loading full opportunity pool…';body.appendChild(loading);
+    }
+    return false;
   }
 
   function reason(row){
@@ -70,10 +90,13 @@
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,60);return}
     ensureAdminWrap();ensureIntelligence();render();
-    const timer=setInterval(()=>{moveNetwork();if($('scoutingNetwork'))clearInterval(timer)},100);
+    let attempts=0;
+    const timer=setInterval(()=>{attempts++;if(moveNetwork()||attempts>100)clearInterval(timer)},100);
+    const observer=new MutationObserver(()=>moveNetwork());
+    observer.observe(document.body,{childList:true,subtree:true});
     window.addEventListener('aurora-clean:state',()=>{render();setTimeout(moveNetwork,0)});
-    window.addEventListener('pageshow',render);
-    window.AuroraScoutingCommand=Object.freeze({BUILD,render});
+    window.addEventListener('pageshow',()=>{render();setTimeout(moveNetwork,0)});
+    window.AuroraScoutingCommand=Object.freeze({BUILD,render,moveNetwork});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
