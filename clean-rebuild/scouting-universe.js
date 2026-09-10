@@ -1,10 +1,10 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260827-clean-universe-full-live-1';
+  const BUILD = '20260910-scouting-universe-2-auroradata2';
   const STATE_KEY = 'aurora-clean:state:v1';
-  const MASTER_URL = '../AuroraMaster.json?v=20260827-clean-universe-full-live-1';
-  const SHEET_ID = '10MdgQKc4tParno7pNkz40eBGz308wxHu1u3gvJe_WsE';
+  const MASTER_URL = '../AuroraMaster.json?v=20260910-scouting-universe-2';
+  const SHEET_ID = '1ZDdYmyDrvNuz3utKmgsToKL7NqsibzbWyIo0vg-TjcA';
   const GLOBAL_SHEET_ID = '1N_kmoc9fwnwuWR1Jo0Qwi_0wF3Ifb5bTApnzlRNUSYk';
   const LIVE_FEEDS = {
     Watchlist: `https://opensheet.elk.sh/${SHEET_ID}/Watchlist`,
@@ -83,20 +83,24 @@
     const sheetYield = num(cell(row,['yield_pct','yield pct','yield','dividend yield','dividend_yield','forward yield','forward_yield']));
     const yieldPct = livePrice > 0 && annualDps > 0 ? (annualDps / livePrice) * 100 : (sheetYield > 0 && sheetYield < 1 ? sheetYield * 100 : sheetYield);
     const buyStrength = Math.max(0, Math.min(100, num(cell(row,['buy_strength','buy strength','score','watch pressure','watch_pressure']))));
+    const sourceUpdatedAt = String(cell(row,['last_updated','last updated','date_checked','date checked','trade time','trade_time','generated_at']) || '').trim();
     return {
       id:`UNIVERSE-${ticker}`, ticker, name,
       sector:String(cell(row,['sector','industry']) || '').trim(),
-      role:String(cell(row,['role']) || '').trim(),
+      role:String(cell(row,['role','squad_role','squad role']) || '').trim(),
       market:String(cell(row,['market','exchange']) || '').trim(),
       currency:String(cell(row,['currency']) || '').trim(),
       payoutRisk:String(cell(row,['payout_risk','payout risk','risk']) || '').trim(),
-      notes:String(cell(row,['notes','note']) || '').trim(),
+      notes:String(cell(row,['notes','note','manager_note','manager note']) || '').trim(),
       fairValueGbp:num(cell(row,['fair_value_gbp','fair value gbp','fair_value','fair value','target price','target_price'])),
       livePriceGbp:livePrice,
       annualDpsGbp:annualDps,
       yieldPct:Number(Math.max(0,yieldPct).toFixed(4)),
       buyStrength:Number(buyStrength.toFixed(1)),
-      source, approved:false, updatedAt:new Date().toISOString()
+      source,
+      sourceUpdatedAt,
+      approved:false,
+      updatedAt:new Date().toISOString()
     };
   }
 
@@ -118,7 +122,7 @@
   async function fetchPools() {
     const masterPools = Object.fromEntries(SOURCE_NAMES.map(name => [name, []]));
     const livePools = Object.fromEntries(SOURCE_NAMES.map(name => [name, []]));
-    const diagnostics = {master:false, live:{}, errors:{}};
+    const diagnostics = {build:BUILD, primaryWorkbook:'AuroraData 2 — Consolidated', primarySheetId:SHEET_ID, master:false, live:{}, errors:{}};
 
     try {
       const master = await fetchJson(MASTER_URL);
@@ -141,7 +145,6 @@
 
     const pools = {};
     SOURCE_NAMES.forEach(name => {
-      // Master is the cached baseline; live rows come second so fresher sheet data wins on duplicate tickers.
       pools[name] = dedupeRaw([...(masterPools[name] || []), ...(livePools[name] || [])]);
     });
 
@@ -150,7 +153,7 @@
     }
 
     const liveNames = SOURCE_NAMES.filter(name => (diagnostics.live[name] || 0) > 0);
-    const source = [diagnostics.master ? 'AuroraMaster' : '', liveNames.length ? `live feeds ${liveNames.join(' + ')}` : ''].filter(Boolean).join(' + ');
+    const source = [diagnostics.master ? 'AuroraMaster baseline' : '', liveNames.length ? `live ${liveNames.join(' + ')}` : ''].filter(Boolean).join(' + ');
     return {pools, source:source || 'scouting universe', diagnostics};
   }
 
@@ -170,7 +173,10 @@
         combined.yieldPct = next.yieldPct > 0 ? next.yieldPct : old.yieldPct;
         combined.livePriceGbp = next.livePriceGbp > 0 ? next.livePriceGbp : old.livePriceGbp;
         combined.annualDpsGbp = next.annualDpsGbp > 0 ? next.annualDpsGbp : old.annualDpsGbp;
+        combined.fairValueGbp = next.fairValueGbp > 0 ? next.fairValueGbp : old.fairValueGbp;
         combined.buyStrength = Math.max(num(old.buyStrength), num(next.buyStrength));
+        combined.payoutRisk = next.payoutRisk || old.payoutRisk || '';
+        combined.sourceUpdatedAt = next.sourceUpdatedAt || old.sourceUpdatedAt || '';
         merged.set(next.ticker, combined);
       });
     });
@@ -192,7 +198,7 @@
   async function refresh() {
     const button = document.getElementById('scoutingRefreshUniverse');
     if (button) { button.disabled = true; button.textContent = 'Loading Universe…'; }
-    setStatus('Loading AuroraMaster plus all live scouting feeds…');
+    setStatus('Loading AuroraData 2 live scouting feeds plus AuroraMaster fallback…');
     try {
       const {pools, source, diagnostics} = await fetchPools();
       const state = readState();
@@ -204,13 +210,14 @@
       state.scouting.universeCounts = {
         watchlist:pools.Watchlist?.length || 0,
         global:pools['Global Watchlist']?.length || 0,
-        scout:pools.AuroraScout?.length || 0
+        scout:pools.AuroraScout?.length || 0,
+        marketWatch:Number(state.scouting?.universeCounts?.marketWatch || 0)
       };
       writeState(state);
       const unique = new Set(state.scouting.candidates.map(row => upper(row?.ticker)).filter(Boolean)).size;
       const counts = state.scouting.universeCounts;
       const globalLive = diagnostics.live['Global Watchlist'] || 0;
-      setStatus(`Loaded ${unique} unique candidates · Watchlist ${counts.watchlist} · Global ${counts.global} (${globalLive} live) · Scout ${counts.scout} · ${source}`);
+      setStatus(`AuroraData 2 live · ${unique} unique candidates · Watchlist ${counts.watchlist} · Global ${counts.global} (${globalLive} live) · Scout ${counts.scout}`);
     } catch (error) {
       console.error('[Aurora Clean Scouting Universe]', error);
       setStatus(`Universe load failed: ${String(error?.message || error)}`, true);
@@ -222,7 +229,7 @@
   function boot() {
     document.getElementById('scoutingRefreshUniverse')?.addEventListener('click', refresh);
     refresh();
-    window.AuroraScoutingUniverse = Object.freeze({BUILD,refresh,fetchPools});
+    window.AuroraScoutingUniverse = Object.freeze({BUILD,refresh,fetchPools,SHEET_ID});
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
