@@ -1,8 +1,9 @@
 (() => {
   'use strict';
-  const BUILD='20260902-chief-scout-payday-command-1';
+  const BUILD='20260910-chief-scout-payday-command-2-readiness';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
+  const upper=v=>String(v||'').trim().toUpperCase();
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
   const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
@@ -39,6 +40,7 @@
     if(num(row.networkScore||row.score)>0)bits.push(`${num(row.networkScore||row.score).toFixed(1)}/100 network score`);
     if(row.held)bits.push('existing holding');else bits.push('new opportunity');
     if(row.pipelineStage)bits.push(String(row.pipelineStage).toLowerCase());
+    if(row.readiness&&row.readiness!=='COMPLETE')bits.push(String(row.readiness).toLowerCase());
     return bits.join(' · ');
   }
 
@@ -54,9 +56,14 @@
     const host=ensureCommand();if(!host)return;
     const strategy=state.scouting?.strategy==='maximum'?'Maximum Income':'Sustainable Income';
     const universe=window.AuroraScoutingNetwork?.rankings?.(state)||[];
-    const strong=universe.filter(r=>num(r.networkScore||r.score)>=78).length;
-    const buy=universe.filter(r=>num(r.networkScore||r.score)>=68&&num(r.networkScore||r.score)<78).length;
-    host.innerHTML=`<div class="scouting-mission"><div class="scouting-mission-head"><div><p class="eyebrow scouting-eyebrow">PAYDAY SCOUTING MISSION</p><h2>${budget>0?'Aurora has your approved payday budget':'Waiting for the Finance mission'}</h2><p>${budget>0?`Aurora has ranked the full opportunity pool and selected the strongest ${alloc.length||'available'} option${alloc.length===1?'':'s'} for this payday.`:'Release the investment budget from Payday Mission Control and the Chief Scout will build the shortlist automatically.'}</p></div><div class="scouting-budget-pill"><span>APPROVED INVESTMENT BUDGET</span><strong>${money(budget)}</strong></div></div><div class="scouting-mission-kpis"><article class="scouting-mission-kpi"><span>SCOUTING STRATEGY</span><strong>${strategy}</strong></article><article class="scouting-mission-kpi"><span>OPPORTUNITIES SCOUTED</span><strong>${universe.length.toLocaleString('en-GB')}</strong></article><article class="scouting-mission-kpi"><span>PROJECTED EXTRA INCOME</span><strong>${money(plan.projectedAnnualIncome)}</strong></article></div><div class="scouting-picks">${alloc.length?alloc.map(pickCard).join(''):`<div class="scouting-empty">No payday shortlist yet. Once Finance releases the mission, Aurora will automatically scout the universe, choose the strongest candidates and show exactly how much to allocate to each.</div>`}</div><div class="scouting-command-actions"><div><span class="scouting-plan-status">${esc(plan.status||'WAITING')}</span><p class="scouting-admin-note">Strong Buy: ${strong} · Buy: ${buy} · Full universe remains available below when you want to inspect it.</p></div><button id="scoutingCommandApprove" type="button" class="finance-primary" ${!alloc.length||plan.status==='APPROVED'?'disabled':''}>${plan.status==='APPROVED'?'Payday Plan Approved ✓':'Approve Payday Plan'}</button></div></div>`;
+    const strong=universe.filter(r=>upper(r.verdict)==='STRONG BUY').length;
+    const buy=universe.filter(r=>upper(r.verdict)==='BUY').length;
+    const watch=universe.filter(r=>upper(r.verdict)==='WATCH').length;
+    const blocked=universe.filter(r=>upper(r.verdict)==='BLOCKED').length;
+    const fullEvidence=universe.filter(r=>r.evidenceComplete).length;
+    const enrichment=state.scouting?.enrichment||{};
+    const sourceLabel=enrichment.workbook||state.scouting?.universeDiagnostics?.primaryWorkbook||'Scouting data';
+    host.innerHTML=`<div class="scouting-mission"><div class="scouting-mission-head"><div><p class="eyebrow scouting-eyebrow">PAYDAY SCOUTING MISSION</p><h2>${budget>0?'Aurora has your approved payday budget':'Waiting for the Finance mission'}</h2><p>${budget>0?`Aurora has ranked the full opportunity pool and selected ${alloc.length||'no'} buy-ready option${alloc.length===1?'':'s'} for this payday.`:'Release the investment budget from Payday Mission Control and the Chief Scout will build the shortlist automatically.'}</p></div><div class="scouting-budget-pill"><span>APPROVED INVESTMENT BUDGET</span><strong>${money(budget)}</strong></div></div><div class="scouting-mission-kpis"><article class="scouting-mission-kpi"><span>SCOUTING STRATEGY</span><strong>${strategy}</strong></article><article class="scouting-mission-kpi"><span>OPPORTUNITIES SCOUTED</span><strong>${universe.length.toLocaleString('en-GB')}</strong></article><article class="scouting-mission-kpi"><span>BUY-READY</span><strong>${(buy+strong).toLocaleString('en-GB')}</strong></article><article class="scouting-mission-kpi"><span>FULL EVIDENCE</span><strong>${fullEvidence.toLocaleString('en-GB')}</strong></article><article class="scouting-mission-kpi"><span>PROJECTED EXTRA INCOME</span><strong>${money(plan.projectedAnnualIncome)}</strong></article></div><div class="scouting-picks">${alloc.length?alloc.map(pickCard).join(''):`<div class="scouting-empty">No buy-ready payday shortlist yet. Finance can release a mission, but Scouting will only allocate it when candidates pass all evidence and decision gates.</div>`}</div><div class="scouting-command-actions"><div><span class="scouting-plan-status">${esc(plan.status||'WAITING')}</span><p class="scouting-admin-note">Strong Buy: ${strong} · Buy: ${buy} · Watch: ${watch} · Blocked: ${blocked} · Source: ${esc(sourceLabel)}${enrichment.lastRunAt?` · enrichment ${new Date(enrichment.lastRunAt).toLocaleString('en-GB')}`:''}</p></div><button id="scoutingCommandApprove" type="button" class="finance-primary" ${!alloc.length||plan.status==='APPROVED'?'disabled':''}>${plan.status==='APPROVED'?'Payday Plan Approved ✓':'Approve Payday Plan'}</button></div></div>`;
     $('scoutingCommandApprove')?.addEventListener('click',()=>$('scoutingApprovePlan')?.click());
   }
 
