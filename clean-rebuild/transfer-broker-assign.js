@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260910-transfer-broker-assign-1';
+  const BUILD='20260910-transfer-broker-assign-2-broker-cash-rebuild';
   const upper=v=>String(v||'').trim().toUpperCase();
   const brokerCode=row=>{
     const a=upper(row?.lockedAccount||row?.account||row?.broker||row?.preferredBroker||row?.platform);
@@ -26,6 +26,12 @@
       row.brokerAssignedAt=new Date().toISOString();
       changed=true;
     });
+    if(changed){
+      setTimeout(()=>{
+        window.AuroraTransferStage2?.rebuildBrokerCash?.();
+        window.AuroraTransferStage2?.render?.();
+      },0);
+    }
     return changed;
   }
 
@@ -62,14 +68,11 @@
 
   function render(){
     const A=window.AuroraClean;if(!A?.readState)return;
-    const state=A.readState();
-    injectPreview(state);
-    injectShortlist(state);
+    const state=A.readState();injectPreview(state);injectShortlist(state);
   }
 
   function onClick(event){
-    const btn=event.target.closest('[data-assign-broker]');
-    if(!btn)return;
+    const btn=event.target.closest('[data-assign-broker]');if(!btn)return;
     event.preventDefault();
     const account=upper(btn.dataset.assignBroker);
     if(assign(btn.dataset.legId||'',btn.dataset.ticker||'',account))setTimeout(render,0);
@@ -78,14 +81,10 @@
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,60);return;}
     document.addEventListener('click',onClick);
-    const observer=new MutationObserver(()=>render());
-    observer.observe(document.body,{childList:true,subtree:true});
-    window.addEventListener('aurora-clean:state',()=>setTimeout(render,0));
-    window.addEventListener('pageshow',render);
-    render();
-    window.AuroraTransferBrokerAssign=Object.freeze({BUILD,render,assign});
+    const observer=new MutationObserver(()=>render());observer.observe(document.body,{childList:true,subtree:true});
+    window.addEventListener('aurora-clean:state',()=>setTimeout(render,0));window.addEventListener('pageshow',render);
+    render();window.AuroraTransferBrokerAssign=Object.freeze({BUILD,render,assign});
   }
 
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
-  else boot();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
