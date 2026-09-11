@@ -1,9 +1,12 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260910-scouting-allocation-2-buy-ready-only';
+  const BUILD = '20260911-scouting-allocation-3-buying-power-aware';
+  const CASH_CACHE = 'aurora-clean:transfer-broker-cash:v1';
+  const BROKER_CASH_MIN_GBP = 200;
+  const BUYING_POWER_TARGET_GBP = 1000;
   const money = value => new Intl.NumberFormat('en-GB', {
-    style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2
+    style:'currency', currency:'GBP', minimumFractionDigits:2, maximumFractionDigits:2
   }).format(Number(value || 0));
   const round2 = value => Number(Number(value || 0).toFixed(2));
   const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -21,6 +24,17 @@
     return 5;
   }
 
+  function eligibleBrokerCash() {
+    try {
+      const snapshot = JSON.parse(localStorage.getItem(CASH_CACHE) || 'null')?.snapshot || null;
+      const ig = Math.max(0, Number(snapshot?.balances?.IG || 0));
+      const t212 = Math.max(0, Number(snapshot?.balances?.T212 || 0));
+      return round2((ig >= BROKER_CASH_MIN_GBP ? ig : 0) + (t212 >= BROKER_CASH_MIN_GBP ? t212 : 0));
+    } catch (_) {
+      return 0;
+    }
+  }
+
   function signature(plan) {
     if (!plan) return '';
     return JSON.stringify({
@@ -36,11 +50,15 @@
     if (!aurora) return null;
     const mission = state.transfer?.mission;
     const budget = missionIsUsable(mission) ? round2(Math.max(0, Number(mission.budget || 0))) : 0;
+    const brokerCashEligible = budget > 0 ? eligibleBrokerCash() : 0;
+    const selectionBuyingPower = budget > 0
+      ? round2(Math.min(BUYING_POWER_TARGET_GBP, budget + brokerCashEligible))
+      : 0;
     const strategy = state.scouting?.strategy === 'maximum' ? 'maximum' : 'sustainable';
     const rankingAuthority = window.AuroraScoutingNetwork?.rankings;
     const ranked = typeof rankingAuthority === 'function' ? rankingAuthority(state) : aurora.scoutingRankings(state);
     const eligible = ranked.filter(row => Number(row.yieldPct) > 0 && ['BUY','STRONG BUY'].includes(upper(row.verdict)) && row.evidenceComplete !== false);
-    const targetCount = budget > 0 ? Math.min(pickCountForBudget(budget), eligible.length) : 0;
+    const targetCount = selectionBuyingPower > 0 ? Math.min(pickCountForBudget(selectionBuyingPower), eligible.length) : 0;
     const rows = eligible.slice(0, targetCount);
 
     if (!budget || !rows.length) {
@@ -48,6 +66,7 @@
         build: BUILD,
         budget, strategy, selectedCount: rows.length, targetCount, allocated: 0, projectedAnnualIncome: 0,
         allocations: [], missionId: missionIsUsable(mission) ? mission.id : null,
+        brokerCashEligible, selectionBuyingPower,
         authority: missionIsUsable(mission) ? 'Finance Stage 6 + Buy-ready National Scouting Network' : 'WAITING FOR FINANCE STAGE 6',
         status: 'WAITING'
       };
@@ -116,6 +135,8 @@
       selectedCount: allocations.length,
       targetCount,
       allocated,
+      brokerCashEligible,
+      selectionBuyingPower,
       projectedAnnualIncome: round2(allocations.reduce((sum, row) => sum + row.expectedAnnualIncome, 0)),
       allocations,
       missionId: mission.id,
@@ -143,7 +164,7 @@
     setText('scoutingProjectedIncome', money(plan.projectedAnnualIncome));
     setText('scoutingPlanStatus', plan.status === 'APPROVED' ? 'APPROVED FOR TRANSFER' : plan.allocations.length ? 'PROPOSED · REVIEW REQUIRED' : 'WAITING');
     setText('scoutingAllocationNote', plan.allocations.length
-      ? `${plan.strategy === 'maximum' ? 'Maximum Income' : 'Sustainable Income'} selected ${plan.allocations.length} buy-ready candidate${plan.allocations.length === 1 ? '' : 's'} with complete evidence for ${money(plan.budget)}. Review the proposal, then approve the whole plan once.`
+      ? `${plan.strategy === 'maximum' ? 'Maximum Income' : 'Sustainable Income'} selected ${plan.allocations.length} buy-ready candidate${plan.allocations.length === 1 ? '' : 's'}. Pick count is based on ${money(plan.selectionBuyingPower || plan.budget)} deployment buying power, including eligible £200+ broker cash, while only ${money(plan.budget)} of new Finance money is allocated here.`
       : plan.budget > 0
         ? 'No BUY / STRONG BUY candidates with complete evidence are currently available for the released mission.'
         : 'Waiting for Finance Stage 6 to release an investment mission.');
@@ -196,7 +217,8 @@
     document.getElementById('scoutingApprovePlan')?.addEventListener('click', approvePlan);
     refresh();
     window.addEventListener('aurora-clean:state', refresh);
-    window.AuroraScoutingAllocation = Object.freeze({BUILD,buildPlan,refresh,approvePlan,pickCountForBudget});
+    window.addEventListener('storage', event => { if (event.key === CASH_CACHE) refresh(); });
+    window.AuroraScoutingAllocation = Object.freeze({BUILD,BROKER_CASH_MIN_GBP,BUYING_POWER_TARGET_GBP,buildPlan,refresh,approvePlan,pickCountForBudget,eligibleBrokerCash});
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
