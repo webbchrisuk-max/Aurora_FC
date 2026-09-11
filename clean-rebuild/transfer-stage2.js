@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260911-transfer-funding-plan-7-consolidated';
+  const BUILD='20260911-transfer-funding-plan-8-locked-authority';
   const CASH_CACHE='aurora-clean:transfer-broker-cash:v1';
   const BROKER_CASH_MIN_GBP=200;
   const TARGET_BUYING_POWER_GBP=1000;
@@ -233,22 +233,26 @@
     const state=A.readState(),mission=state.transfer?.mission,source=state.scouting?.allocationPlan,route=state.transfer?.route,preview=fundedPlan(state);
     const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};
     const rows=document.getElementById('transferStage2Rows'),build=document.getElementById('transferStage2Build'),lock=document.getElementById('transferStage2Lock');
-    const observed=cashBalances(),eligible=usableCashBalances(),plan=preview||route||{};
-    const cashUsed=plan.brokerCash||route?.brokerCashPlanned||{IG:0,T212:0};
-    const tp=plan.transferPlan||{IG:0,T212:0,total:0,untransferred:Number(mission?.budget||0)};
+    const observed=cashBalances(),eligible=usableCashBalances();
+    const locked=route?.locked===true;
+    const plan=locked?(route||{}):(preview||route||{});
+    const cashUsed=locked?(route?.brokerCashPlanned||{IG:0,T212:0}):(plan.brokerCash||route?.brokerCashPlanned||{IG:0,T212:0});
+    const tp=locked?(route?.transferPlan||{IG:0,T212:0,total:0,untransferred:Math.max(0,Number(mission?.budget||0)-Number(route?.financeAllocated||mission?.budget||0))}):(plan.transferPlan||{IG:0,T212:0,total:0,untransferred:Number(mission?.budget||0)});
 
     set('transferCashIG',money(observed.IG));set('transferCashT212',money(observed.T212));
-    set('transferBuyingPower',money(plan.totalBuyingPower??route?.totalAllocated??mission?.budget??0));
-    set('transferCashIGUse',eligible.IG?`${money(eligible.IG)} eligible · ${money(cashUsed.IG||0)} planned for this route`:`Not used until balance reaches ${wholeMoney(BROKER_CASH_MIN_GBP)}`);
-    set('transferCashT212Use',eligible.T212?`${money(eligible.T212)} eligible · ${money(cashUsed.T212||0)} planned for this route`:`Not used until balance reaches ${wholeMoney(BROKER_CASH_MIN_GBP)}`);
+    set('transferBuyingPower',money(locked?(route?.totalAllocated??route?.financeAllocated??mission?.budget??0):(plan.totalBuyingPower??route?.totalAllocated??mission?.budget??0)));
+    set('transferCashIGUse',eligible.IG?`${money(eligible.IG)} eligible · ${money(cashUsed.IG||0)} ${locked?'locked':'planned'} for this route`:`Not used until balance reaches ${wholeMoney(BROKER_CASH_MIN_GBP)}`);
+    set('transferCashT212Use',eligible.T212?`${money(eligible.T212)} eligible · ${money(cashUsed.T212||0)} ${locked?'locked':'planned'} for this route`:`Not used until balance reaches ${wholeMoney(BROKER_CASH_MIN_GBP)}`);
     set('transferToIG',wholeMoney(tp.IG||0));set('transferToT212',wholeMoney(tp.T212||0));set('transferPenceLeft',money(tp.untransferred||0));
 
-    const used=Number(plan.financeUsed??route?.financeAllocated??mission?.budget??0),left=Number(plan.financeLeftBehind??route?.financeLeftBehind??0);
-    set('transferStage2Mission',mission?`${mission.status} · Payday available ${money(mission.budget)} · using ${money(used)}${left>0?` · keeping ${money(left)}`:''}`:'No Finance mission');
+    const used=Number(locked?(route?.financeAllocated??mission?.budget??0):(plan.financeUsed??route?.financeAllocated??mission?.budget??0));
+    const left=Number(locked?(route?.financeLeftBehind??Math.max(0,Number(mission?.budget||0)-used)):(plan.financeLeftBehind??route?.financeLeftBehind??0));
+    const legacyLocked=locked&&route?.targetBuyingPower!==TARGET_BUYING_POWER_GBP;
+    set('transferStage2Mission',mission?`${mission.status} · Payday available ${money(mission.budget)} · using ${money(used)}${left>0?` · keeping ${money(left)}`:''}${legacyLocked?' · locked before current £1,000 funding rules':''}`:'No Finance mission');
 
     if(route?.allocations?.length){
       const all=[...(route.allocations||[]).filter(r=>Number(r.amount||0)>0),...(route.brokerCashAllocations||[]).filter(r=>Number(r.amount||0)>0)];
-      set('transferStage2RouteStatus',route.locked?'LOCKED':routeBrokerReady(route)?'READY · BROKERS RESOLVED':'ROUTE BUILT · BROKER ASSIGNMENT REQUIRED');
+      set('transferStage2RouteStatus',route.locked?(legacyLocked?'LOCKED · LEGACY FUNDING PLAN':'LOCKED'):routeBrokerReady(route)?'READY · BROKERS RESOLVED':'ROUTE BUILT · BROKER ASSIGNMENT REQUIRED');
       if(rows)rows.innerHTML=all.length?all.map(r=>`<li><strong>${esc(r.ticker)}</strong> — ${money(r.amount)} — ${r.fundingSource==='BROKER_CASH'?`${esc(r.lockedAccount==='IG'?'IG ISA':'Trading 212 ISA')} CASH`:brokerCode(r)?esc(brokerCode(r)==='IG'?'IG ISA':'Trading 212 ISA'):'BROKER PENDING'} — projected annual income ${money(r.expectedAnnualIncome)}</li>`).join(''):'<li>No funded purchase legs yet.</li>';
     }else if(preview?.allocations?.length){
       set('transferStage2RouteStatus','APPROVED PLAN READY TO BUILD');
