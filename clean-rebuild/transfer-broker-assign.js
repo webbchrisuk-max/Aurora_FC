@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260911-transfer-broker-assign-3-switchable';
+  const BUILD='20260911-transfer-broker-assign-4-stable-render';
   const upper=v=>String(v||'').trim().toUpperCase();
   const brokerCode=row=>{
     const a=upper(row?.lockedAccount||row?.account||row?.broker||row?.preferredBroker||row?.platform);
@@ -21,13 +21,17 @@
       const rows=Array.isArray(route.allocations)?route.allocations:[];
       const row=rows.find(r=>(legId&&String(r.legId||'')===String(legId))||(!legId&&upper(r.ticker)===upper(ticker)));
       if(!row||brokerCode(row)===account)return;
-      row.lockedAccount=account;row.account=account;row.brokerAssignedAt=new Date().toISOString();changed=true;
+      row.lockedAccount=account;
+      row.account=account;
+      row.brokerAssignedAt=new Date().toISOString();
+      changed=true;
     });
     if(changed){
       setTimeout(()=>{
         window.AuroraTransferStage2?.rebuildBrokerCash?.();
         window.AuroraTransferStage2?.render?.();
         window.AuroraTransferIntelligence?.render?.();
+        render();
       },0);
     }
     return changed;
@@ -37,13 +41,14 @@
     if(!row)return'';
     const leg=String(row.legId||''),ticker=upper(row.ticker),current=brokerCode(row);
     const btn=(code,label)=>`<button type="button" data-assign-broker="${code}" data-leg-id="${leg}" data-ticker="${ticker}" class="${current===code?'is-selected':''}" aria-pressed="${current===code?'true':'false'}" ${current===code?'disabled':''}>${label}${current===code?' ✓':''}</button>`;
-    return `<div class="transfer-broker-assign" data-broker-controls="${leg||ticker}"><span>${current?'Broker':'Assign broker'}</span>${btn('IG','IG ISA')}${btn('T212','Trading 212 ISA')}</div>`;
+    return `<div class="transfer-broker-assign" data-broker-controls="${leg||ticker}" data-selected-broker="${current}"><span>${current?'Broker':'Assign broker'}</span>${btn('IG','IG ISA')}${btn('T212','Trading 212 ISA')}</div>`;
   }
 
   function upsert(host,row){
     if(!host||!row)return;
-    const key=String(row.legId||upper(row.ticker));
+    const key=String(row.legId||upper(row.ticker)),current=brokerCode(row);
     const existing=[...host.querySelectorAll('.transfer-broker-assign')].find(el=>String(el.dataset.brokerControls||'')===key);
+    if(existing&&String(existing.dataset.selectedBroker||'')===current)return;
     const html=buttons(row);
     if(existing)existing.outerHTML=html;else host.insertAdjacentHTML('beforeend',html);
   }
@@ -73,6 +78,11 @@
     const state=A.readState();injectPreview(state);injectShortlist(state);
   }
 
+  function scheduleRender(){
+    clearTimeout(scheduleRender.timer);
+    scheduleRender.timer=setTimeout(render,0);
+  }
+
   function onClick(event){
     const btn=event.target.closest('[data-assign-broker]');if(!btn)return;
     event.preventDefault();
@@ -82,9 +92,13 @@
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,60);return;}
     document.addEventListener('click',onClick);
-    const observer=new MutationObserver(()=>render());observer.observe(document.body,{childList:true,subtree:true});
-    window.addEventListener('aurora-clean:state',()=>setTimeout(render,0));window.addEventListener('pageshow',render);
-    render();window.AuroraTransferBrokerAssign=Object.freeze({BUILD,render,assign});
+    window.addEventListener('aurora-clean:state',scheduleRender);
+    window.addEventListener('aurora:market-prices',scheduleRender);
+    window.addEventListener('pageshow',scheduleRender);
+    render();
+    setTimeout(render,0);
+    setTimeout(render,100);
+    window.AuroraTransferBrokerAssign=Object.freeze({BUILD,render,assign});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
