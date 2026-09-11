@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260910-transfer-broker-assign-2-broker-cash-rebuild';
+  const BUILD='20260911-transfer-broker-assign-3-switchable';
   const upper=v=>String(v||'').trim().toUpperCase();
   const brokerCode=row=>{
     const a=upper(row?.lockedAccount||row?.account||row?.broker||row?.preferredBroker||row?.platform);
@@ -20,49 +20,51 @@
       if(!route||route.locked)return;
       const rows=Array.isArray(route.allocations)?route.allocations:[];
       const row=rows.find(r=>(legId&&String(r.legId||'')===String(legId))||(!legId&&upper(r.ticker)===upper(ticker)));
-      if(!row)return;
-      row.lockedAccount=account;
-      row.account=account;
-      row.brokerAssignedAt=new Date().toISOString();
-      changed=true;
+      if(!row||brokerCode(row)===account)return;
+      row.lockedAccount=account;row.account=account;row.brokerAssignedAt=new Date().toISOString();changed=true;
     });
     if(changed){
       setTimeout(()=>{
         window.AuroraTransferStage2?.rebuildBrokerCash?.();
         window.AuroraTransferStage2?.render?.();
+        window.AuroraTransferIntelligence?.render?.();
       },0);
     }
     return changed;
   }
 
   function buttons(row){
-    if(!row||brokerCode(row))return'';
-    const leg=String(row.legId||'');
-    const ticker=upper(row.ticker);
-    return `<div class="transfer-broker-assign" data-broker-controls="${leg||ticker}"><span>Assign broker</span><button type="button" data-assign-broker="IG" data-leg-id="${leg}" data-ticker="${ticker}">IG ISA</button><button type="button" data-assign-broker="T212" data-leg-id="${leg}" data-ticker="${ticker}">Trading 212 ISA</button></div>`;
+    if(!row)return'';
+    const leg=String(row.legId||''),ticker=upper(row.ticker),current=brokerCode(row);
+    const btn=(code,label)=>`<button type="button" data-assign-broker="${code}" data-leg-id="${leg}" data-ticker="${ticker}" class="${current===code?'is-selected':''}" aria-pressed="${current===code?'true':'false'}" ${current===code?'disabled':''}>${label}${current===code?' ✓':''}</button>`;
+    return `<div class="transfer-broker-assign" data-broker-controls="${leg||ticker}"><span>${current?'Broker':'Assign broker'}</span>${btn('IG','IG ISA')}${btn('T212','Trading 212 ISA')}</div>`;
+  }
+
+  function upsert(host,row){
+    if(!host||!row)return;
+    const key=String(row.legId||upper(row.ticker));
+    const existing=[...host.querySelectorAll('.transfer-broker-assign')].find(el=>String(el.dataset.brokerControls||'')===key);
+    const html=buttons(row);
+    if(existing)existing.outerHTML=html;else host.insertAdjacentHTML('beforeend',html);
   }
 
   function injectPreview(state){
-    const route=state.transfer?.route;
-    if(!route||route.locked)return;
+    const route=state.transfer?.route;if(!route||route.locked)return;
     const finance=financeRows(state);
     document.querySelectorAll('.transfer-deploy-list .transfer-deploy-row').forEach((el,index)=>{
       if(index>=finance.length)return;
-      const row=finance[index];
-      if(brokerCode(row)||el.querySelector('.transfer-broker-assign'))return;
-      const html=buttons(row);if(html)el.insertAdjacentHTML('beforeend',html);
+      upsert(el,finance[index]);
     });
   }
 
   function injectShortlist(state){
-    const route=state.transfer?.route;
-    if(!route||route.locked)return;
+    const route=state.transfer?.route;if(!route||route.locked)return;
     const finance=financeRows(state);
     document.querySelectorAll('.transfer-shortlist .transfer-short-row').forEach((el,index)=>{
-      const row=finance[index]||finance.find(r=>upper(r.ticker)===upper(el.querySelector('.transfer-short-name strong')?.textContent?.split('·')[0]));
-      if(!row||brokerCode(row)||el.querySelector('.transfer-broker-assign'))return;
-      const host=el.querySelector('.transfer-short-meta')||el;
-      const html=buttons(row);if(html)host.insertAdjacentHTML('beforeend',html);
+      const text=upper(el.querySelector('.transfer-short-name strong')?.textContent?.split('·')[0]);
+      const row=finance[index]||finance.find(r=>upper(r.ticker)===text);
+      if(!row)return;
+      upsert(el.querySelector('.transfer-short-meta')||el,row);
     });
   }
 
@@ -74,8 +76,7 @@
   function onClick(event){
     const btn=event.target.closest('[data-assign-broker]');if(!btn)return;
     event.preventDefault();
-    const account=upper(btn.dataset.assignBroker);
-    if(assign(btn.dataset.legId||'',btn.dataset.ticker||'',account))setTimeout(render,0);
+    assign(btn.dataset.legId||'',btn.dataset.ticker||'',upper(btn.dataset.assignBroker));
   }
 
   function boot(){
