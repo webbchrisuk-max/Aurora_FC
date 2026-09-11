@@ -1,10 +1,11 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260911-scouting-allocation-3-buying-power-aware';
+  const BUILD = '20260911-scouting-allocation-4-all-buy-ready';
   const CASH_CACHE = 'aurora-clean:transfer-broker-cash:v1';
   const BROKER_CASH_MIN_GBP = 200;
   const BUYING_POWER_TARGET_GBP = 1000;
+  const MAX_PAYDAY_PICKS = 5;
   const money = value => new Intl.NumberFormat('en-GB', {
     style:'currency', currency:'GBP', minimumFractionDigits:2, maximumFractionDigits:2
   }).format(Number(value || 0));
@@ -15,13 +16,8 @@
   const upper = value => String(value || '').trim().toUpperCase();
   const missionIsUsable = mission => !!mission && !['COMPLETE','CANCELLED'].includes(upper(mission.status)) && Number(mission.budget || 0) > 0;
 
-  function pickCountForBudget(budget) {
-    const value = Math.max(0, Number(budget || 0));
-    if (value < 500) return 1;
-    if (value < 1000) return 2;
-    if (value < 2000) return 3;
-    if (value < 3500) return 4;
-    return 5;
+  function pickCountForBuyReady(count) {
+    return Math.max(0, Math.min(MAX_PAYDAY_PICKS, Number(count || 0)));
   }
 
   function eligibleBrokerCash() {
@@ -58,13 +54,13 @@
     const rankingAuthority = window.AuroraScoutingNetwork?.rankings;
     const ranked = typeof rankingAuthority === 'function' ? rankingAuthority(state) : aurora.scoutingRankings(state);
     const eligible = ranked.filter(row => Number(row.yieldPct) > 0 && ['BUY','STRONG BUY'].includes(upper(row.verdict)) && row.evidenceComplete !== false);
-    const targetCount = selectionBuyingPower > 0 ? Math.min(pickCountForBudget(selectionBuyingPower), eligible.length) : 0;
+    const targetCount = selectionBuyingPower > 0 ? pickCountForBuyReady(eligible.length) : 0;
     const rows = eligible.slice(0, targetCount);
 
     if (!budget || !rows.length) {
       return {
         build: BUILD,
-        budget, strategy, selectedCount: rows.length, targetCount, allocated: 0, projectedAnnualIncome: 0,
+        budget, strategy, selectedCount: rows.length, targetCount, eligibleCount: eligible.length, allocated: 0, projectedAnnualIncome: 0,
         allocations: [], missionId: missionIsUsable(mission) ? mission.id : null,
         brokerCashEligible, selectionBuyingPower,
         authority: missionIsUsable(mission) ? 'Finance Stage 6 + Buy-ready National Scouting Network' : 'WAITING FOR FINANCE STAGE 6',
@@ -134,6 +130,7 @@
       strategy,
       selectedCount: allocations.length,
       targetCount,
+      eligibleCount: eligible.length,
       allocated,
       brokerCashEligible,
       selectionBuyingPower,
@@ -164,7 +161,7 @@
     setText('scoutingProjectedIncome', money(plan.projectedAnnualIncome));
     setText('scoutingPlanStatus', plan.status === 'APPROVED' ? 'APPROVED FOR TRANSFER' : plan.allocations.length ? 'PROPOSED · REVIEW REQUIRED' : 'WAITING');
     setText('scoutingAllocationNote', plan.allocations.length
-      ? `${plan.strategy === 'maximum' ? 'Maximum Income' : 'Sustainable Income'} selected ${plan.allocations.length} buy-ready candidate${plan.allocations.length === 1 ? '' : 's'}. Pick count is based on ${money(plan.selectionBuyingPower || plan.budget)} deployment buying power, including eligible £200+ broker cash, while only ${money(plan.budget)} of new Finance money is allocated here.`
+      ? `${plan.strategy === 'maximum' ? 'Maximum Income' : 'Sustainable Income'} selected ${plan.allocations.length} of ${plan.eligibleCount || plan.allocations.length} buy-ready candidates. Aurora now includes every current BUY / STRONG BUY candidate up to ${MAX_PAYDAY_PICKS} picks, while only ${money(plan.budget)} of new Finance money is allocated here.`
       : plan.budget > 0
         ? 'No BUY / STRONG BUY candidates with complete evidence are currently available for the released mission.'
         : 'Waiting for Finance Stage 6 to release an investment mission.');
@@ -218,7 +215,7 @@
     refresh();
     window.addEventListener('aurora-clean:state', refresh);
     window.addEventListener('storage', event => { if (event.key === CASH_CACHE) refresh(); });
-    window.AuroraScoutingAllocation = Object.freeze({BUILD,BROKER_CASH_MIN_GBP,BUYING_POWER_TARGET_GBP,buildPlan,refresh,approvePlan,pickCountForBudget,eligibleBrokerCash});
+    window.AuroraScoutingAllocation = Object.freeze({BUILD,BROKER_CASH_MIN_GBP,BUYING_POWER_TARGET_GBP,MAX_PAYDAY_PICKS,buildPlan,refresh,approvePlan,pickCountForBuyReady,eligibleBrokerCash});
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
