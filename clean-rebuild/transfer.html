@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="transfer-intelligence.css?v=20260827-transfer-intelligence-wide-2">
   <script src="aurora.js?v=20260904-sidebar-shell-5-fullscreen-mobile-nav" defer></script>
   <script src="squad-price-reconcile.js?v=20260901-transfer-squad-backend-bridge-3" defer></script>
-  <script src="transfer-stage2.js?v=20260911-transfer-funding-plan-5-threshold-whole-pounds" defer></script>
+  <script src="transfer-stage2.js?v=20260911-transfer-funding-plan-6-1000-cap" defer></script>
   <script src="transfer-broker-assign.js?v=20260910-transfer-broker-assign-2-broker-cash-rebuild" defer></script>
   <script src="transfer-unlock-mission.js?v=20260911-transfer-mission-controls-2-cancel-process" defer></script>
   <script src="transfer-broker-reconcile-view.js?v=20260829-transfer-broker-reconcile-view-1" defer></script>
@@ -52,16 +52,16 @@
 <div class="transfer-split">
   <div>
     <section class="department-section">
-      <div class="section-heading"><div><p class="eyebrow">BUYING POWER</p><h2>Finance + existing broker cash</h2><p>Existing broker cash is only added to the route when that broker already holds at least £200 cash.</p></div><button id="transferRefreshCash" type="button">Refresh Broker Cash</button></div>
+      <div class="section-heading"><div><p class="eyebrow">BUYING POWER</p><h2>Finance + existing broker cash</h2><p>Existing broker cash is only used when that broker holds at least £200. If combined buying power would exceed £1,000, Aurora reduces the payday contribution and keeps the unused payday cash in your main account.</p></div><button id="transferRefreshCash" type="button">Refresh Broker Cash</button></div>
       <div class="finance-result-grid">
         <article class="finance-result-card"><span>IG ISA CASH</span><strong id="transferCashIG">£0.00</strong><small id="transferCashIGUse">Not used until balance reaches £200</small></article>
         <article class="finance-result-card"><span>TRADING 212 ISA CASH</span><strong id="transferCashT212">£0.00</strong><small id="transferCashT212Use">Not used until balance reaches £200</small></article>
-        <article class="finance-result-card"><span>TOTAL BUYING POWER</span><strong id="transferBuyingPower">£0.00</strong><small>Finance mission + eligible broker cash</small></article>
+        <article class="finance-result-card"><span>TOTAL BUYING POWER</span><strong id="transferBuyingPower">£0.00</strong><small>Payday cash actually used + eligible broker cash · target about £1,000</small></article>
       </div>
       <div class="finance-result-grid transfer-instruction-grid">
         <article class="finance-result-card"><span>TRANSFER TO IG ISA</span><strong id="transferToIG">£0</strong><small>Whole pounds only</small></article>
         <article class="finance-result-card"><span>TRANSFER TO TRADING 212</span><strong id="transferToT212">£0</strong><small>Whole pounds only</small></article>
-        <article class="finance-result-card"><span>LEAVE IN MAIN ACCOUNT</span><strong id="transferPenceLeft">£0.00</strong><small>Pence that cannot be split as whole-pound transfers</small></article>
+        <article class="finance-result-card"><span>LEAVE IN MAIN ACCOUNT</span><strong id="transferPenceLeft">£0.00</strong><small>Unused payday cash stays behind when broker cash already lifts the route toward £1,000</small></article>
       </div>
       <p>Finance mission: <strong id="transferStage2Mission">No Finance mission</strong></p>
       <p>Route status: <strong id="transferStage2RouteStatus">WAITING</strong></p>
