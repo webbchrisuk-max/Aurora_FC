@@ -9,7 +9,7 @@
  * No browser holdings, no broker-price fallback, no last-known-good cache.
  */
 
-const AURORA_SQUAD_SPREADSHEET_ID = '10MdgQKc4tParno7pNkz40eBGz308wxHu1u3gvJe_WsE';
+const AURORA_SQUAD_SPREADSHEET_ID = '1ZDdYmyDrvNuz3utKmgsToKL7NqsibzbWyIo0vg-TjcA';
 const AURORA_SQUAD_HOLDINGS_SHEET = 'Holdings';
 const AURORA_SQUAD_PRICES_SHEET = 'LivePrices';
 
@@ -18,8 +18,8 @@ function auroraGetSquadSnapshot_(payload) {
   const holdingsSheet = ss.getSheetByName(AURORA_SQUAD_HOLDINGS_SHEET);
   const pricesSheet = ss.getSheetByName(AURORA_SQUAD_PRICES_SHEET);
 
-  if (!holdingsSheet) throw new Error('Holdings sheet not found in AuroraData.');
-  if (!pricesSheet) throw new Error('LivePrices sheet not found in AuroraData.');
+  if (!holdingsSheet) throw new Error('Holdings sheet not found in AuroraData 2.');
+  if (!pricesSheet) throw new Error('LivePrices sheet not found in AuroraData 2.');
 
   const holdingsRows = auroraSquadObjects_(holdingsSheet);
   const priceRows = auroraSquadObjects_(pricesSheet);
