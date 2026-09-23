@@ -1,14 +1,14 @@
 (() => {
   'use strict';
 
-  const BUILD='20260923-payday-checkout-1';
+  const BUILD='20260923-payday-checkout-2-tiered-scouting';
   const DEPENDENCIES=[
     ['AuroraData2Client','aurora-backend-client.js?v=20260910-registration-backend-client-path-fix-1'],
     ['AuroraScoutingUniverse','scouting-universe.js?v=20260910-scouting-universe-2-auroradata2'],
     ['AuroraScoutingMarketWatch','scouting-market-watch.js?v=20260910-scouting-market-watch-3-storage-safe'],
-    ['AuroraScoutingEnrichment','scouting-enrichment.js?v=20260910-scouting-enrichment-2-auroradata2'],
-    ['AuroraScoutingNetwork','scouting-network.js?v=20260910-scouting-network-4-render-fix'],
-    ['AuroraScoutingAllocation','scouting-allocation.js?v=20260911-scouting-allocation-4-all-buy-ready'],
+    ['AuroraScoutingEnrichment','scouting-enrichment.js?v=20260923-scouting-enrichment-3-evidence-priority'],
+    ['AuroraScoutingNetwork','scouting-network.js?v=20260923-scouting-network-5-ready-tiers'],
+    ['AuroraScoutingAllocation','scouting-allocation.js?v=20260923-scouting-allocation-5-tiered-ready'],
     ['AuroraTransferStage2','transfer-stage2.js?v=20260911-transfer-funding-plan-8-locked-authority'],
     ['AuroraTransferBrokerAssign','transfer-broker-assign.js?v=20260911-transfer-broker-assign-4-stable-render']
   ];
@@ -185,7 +185,7 @@
     if(!p?.allocations?.length)return'<li class="payday-checkout-row"><div>—</div><div>No plan built yet.</div><div class="amt">—</div></li>';
     return p.allocations.map(r=>{
       const c=candidateFor(state,r.ticker),price=num(c?.livePriceGbp),approx=price>0?num(r.amount)/price:0;
-      const why=[r.held?'Existing holding':'New opportunity',num(r.networkScore||r.score)>0?'Score '+num(r.networkScore||r.score).toFixed(1):'',num(r.yieldPct)>0?num(r.yieldPct).toFixed(2)+'% yield':'',r.verdict||''].filter(Boolean).join(' · ');
+      const why=[r.tier||'',r.held?'Existing holding':'New opportunity',num(r.networkScore||r.score)>0?'Score '+num(r.networkScore||r.score).toFixed(1):'',num(r.yieldPct)>0?num(r.yieldPct).toFixed(2)+'% yield':'',r.verdict||''].filter(Boolean).join(' · ');
       return '<li class="payday-checkout-row"><div><strong>#'+esc(r.selectionRank||'')+' '+esc(r.ticker)+'</strong><small>'+esc(r.name||'')+'</small></div><div>'+esc(why)+'<small>'+money(r.expectedAnnualIncome)+' projected annual income'+(approx>0?' · ~'+approx.toLocaleString('en-GB',{maximumFractionDigits:4})+' shares at current evidence price':'')+'</small></div><div class="amt">'+money(r.amount)+'</div></li>';
     }).join('');
   }
