@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260826-finance-window-boundaries-2-stage1-owner';
+  const BUILD='20260923-finance-engine-3-pot-types';
   const PAYDAYS_PER_YEAR=13, PAY_CYCLE_DAYS=28, OPTIONAL_CAP=300, ROLLOVER_TARGET=350, ROLLOVER_MAX=100;
   const LIVE_KEYS=['aurora2:state:v1','aurora2:state:backup:lastgood'];
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
@@ -11,6 +11,8 @@
   const norm=v=>String(v??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const upper=v=>String(v??'').trim().toUpperCase();
   const isHolding=v=>norm(v)==='holding pot', isRollover=v=>norm(v).includes('rollover');
+  const potType=p=>{const t=String(p?.type||'').trim().toLowerCase();if(['general_savings','goal','emergency','house_project','bills','fixed_isa','investment'].includes(t))return t;const n=norm(p?.name);if(n.includes('isa'))return'fixed_isa';if(n.includes('investment')||n==='ig trading')return'investment';if(n.includes('emergency'))return'emergency';if(n.includes('house'))return'house_project';if(n==='holding pot'||n==='spending pot')return'bills';return'goal'};
+  const excludedFromStage4=p=>potType(p)==='fixed_isa'||potType(p)==='investment'||p?.locked===true;
   const parseDate=v=>{if(!v)return null;const d=new Date(`${String(v).slice(0,10)}T12:00:00`);return Number.isNaN(d.getTime())?null:d};
   const iso=d=>d&&!Number.isNaN(d.getTime())?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';
   const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
@@ -49,7 +51,7 @@
   function readLive(){for(const key of LIVE_KEYS){try{const s=JSON.parse(localStorage.getItem(key)||'null');if(s?.finance)return{key,finance:s.finance}}catch(_){}}return{key:'',finance:null}}
   function liveHolding(){const live=readLive(),pot=(live.finance?.pots||[]).find(p=>!p?.archived&&isHolding(p?.name));return pot?{key:live.key,balance:round(pot.balance),target:round(pot.target)}:null}
   function normaliseBill(r,i){return{id:String(r?.id||`BILL-${i+1}`),name:String(r?.name||`Bill ${i+1}`),amount:round(r?.amount),due:String(r?.due||r?.dueDate||'').slice(0,10),frequency:String(r?.frequency||'monthly'),fundingSource:String(r?.fundingSource||'Holding Pot'),included:r?.included!==false,paid:!!r?.paid,archived:!!r?.archived}}
-  function normalisePot(r,i){return{id:String(r?.id||`POT-${i+1}`),name:String(r?.name||`Pot ${i+1}`),balance:round(r?.balance),target:round(r?.target),spent:round(r?.spent),goalMode:String(r?.goalMode||''),deadline:String(r?.deadline||r?.completeBy||r?.targetDate||'').slice(0,10),fundingOverride:round(r?.fundingOverride),priority:[1,2,3].includes(Number(r?.priority))?Number(r.priority):2,archived:!!r?.archived,note:String(r?.note||'')}}
+  function normalisePot(r,i){const type=potType(r);return{id:String(r?.id||`POT-${i+1}`),name:String(r?.name||`Pot ${i+1}`),balance:round(r?.balance),target:round(r?.target),spent:round(r?.spent),goalMode:String(r?.goalMode||''),deadline:String(r?.deadline||r?.completeBy||r?.targetDate||'').slice(0,10),fundingOverride:round(r?.fundingOverride),priority:[1,2,3].includes(Number(r?.priority))?Number(r.priority):2,archived:!!r?.archived,note:String(r?.note||''),type,locked:type==='fixed_isa'||r?.locked===true,annualRate:round(r?.annualRate),maturityDate:String(r?.maturityDate||'').slice(0,10),termMonths:Math.max(0,Math.round(num(r?.termMonths))),accountProvider:String(r?.accountProvider||'')}}
 
   function calcBills(state){
     const bills=(state.finance?.bills||[]).filter(b=>!b.archived&&b.included!==false&&!b.paid&&num(b.amount)>0);
@@ -71,12 +73,12 @@
   function calcPots(state){
     const pots=(state.finance?.pots||[]).filter(p=>!p.archived),expected=num(state.finance?.expectedWages),received=num(state.finance?.wagesReceived),wageDifference=round(received-expected),optionalBudget=round(Math.min(Math.max(0,wageDifference),OPTIONAL_CAP)),alloc=new Map(),payday=state.finance?.paydayDate||'';
     const rollover=pots.find(p=>isRollover(p.name)),rolloverGap=round(Math.max(0,ROLLOVER_TARGET-num(rollover?.balance))),rolloverContribution=rollover?round(Math.min(optionalBudget,ROLLOVER_MAX,rolloverGap)):0;
-    const candidates=pots.filter(p=>{const n=norm(p.name);return gap(p)>.009&&!isRollover(p.name)&&n!=='holding pot'&&n!=='spending pot'&&n!=='ig trading'}).map(p=>({pot:p,gap:gap(p),priority:p.priority||2,deadline:deadline(p,payday)}));
+    const candidates=pots.filter(p=>{const n=norm(p.name);return gap(p)>.009&&!excludedFromStage4(p)&&!isRollover(p.name)&&n!=='holding pot'&&n!=='spending pot'&&n!=='ig trading'}).map(p=>({pot:p,gap:gap(p),priority:p.priority||2,deadline:deadline(p,payday)}));
     let requiredFunding=0;candidates.forEach(r=>{const dn=r.deadline.has?Math.min(r.gap,Math.max(0,r.deadline.required)):0,manual=Math.min(r.gap,num(r.pot.fundingOverride)),required=Math.min(r.gap,Math.max(dn,manual));if(required>.009){alloc.set(r.pot.id,{amount:required,required:dn,reasons:[dn>.009?`Required for ${r.pot.deadline} · ${r.deadline.paydays} payday(s) left · pace only`:'Manual minimum']});requiredFunding+=required}});
     if(rollover&&rolloverContribution>.009)alloc.set(rollover.id,{amount:rolloverContribution,required:0,reasons:[`Payday Rollover · ${money(ROLLOVER_TARGET)} target · max ${money(ROLLOVER_MAX)} per payday`]});
     let remaining=Math.max(0,optionalBudget-rolloverContribution);for(const r of candidates.filter(r=>!r.deadline.has).sort((a,b)=>a.priority-b.priority||b.gap-a.gap)){if(remaining<=.009)break;const existing=alloc.get(r.pot.id)?.amount||0,take=Math.min(remaining,Math.max(0,r.gap-existing));if(take>.009){const a=alloc.get(r.pot.id)||{amount:0,required:0,reasons:[]};a.amount+=take;a.reasons.push(`P${r.priority} priority funding`);alloc.set(r.pot.id,a);remaining-=take}}
     const rows=pots.map(p=>{const a=alloc.get(p.id);return a?{id:p.id,name:p.name,amount:round(Math.min(gap(p),a.amount)),required:round(a.required),reason:a.reasons.join(' · ')}:null}).filter(Boolean),total=round(rows.reduce((s,r)=>s+r.amount,0));
-    return{potCount:pots.length,wageDifference,optionalBudget,requiredFunding:round(requiredFunding),rolloverContribution,optionalPriority:round(Math.max(0,optionalBudget-rolloverContribution-remaining)),total,rows,calculatedAt:new Date().toISOString(),build:BUILD};
+    return{potCount:pots.length,stage4EligibleCount:candidates.length,protectedPotCount:pots.filter(excludedFromStage4).length,wageDifference,optionalBudget,requiredFunding:round(requiredFunding),rolloverContribution,optionalPriority:round(Math.max(0,optionalBudget-rolloverContribution-remaining)),total,rows,calculatedAt:new Date().toISOString(),build:BUILD};
   }
 
   function calcDecision(state,bills,holding,pots){
