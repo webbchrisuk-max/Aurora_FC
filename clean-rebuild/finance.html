@@ -7,13 +7,14 @@
   <link rel="stylesheet" href="aurora.css?v=20260827-finance-tabs-static-1">
   <link rel="stylesheet" href="finance-payday-classic.css?v=20260827-payday-classic-3">
   <link rel="stylesheet" href="finance-tabs.css?v=20260827-finance-tabs-static-1">
-  <script src="aurora.js?v=20260904-sidebar-shell-4-mobile-nav-cachefix" defer></script>
+  <script src="aurora.js?v=20260904-sidebar-shell-5-fullscreen-mobile-nav" defer></script>
   <script src="finance-engine.js?v=20260923-finance-engine-4-investment-profile" defer></script>
   <script src="finance-stage6.js?v=20260827-clean-finance-stage6-tabs-static-1" defer></script>
   <script src="finance-manager.js?v=20260923-finance-manager-8-investment-profile" defer></script>
   <script src="finance-house-room-breakdown.js?v=20260831-finance-house-room-breakdown-3-fresh-user-rooms" defer></script>
   <script src="finance-payday-summaries.js?v=20260906-payday-summary-cards-13-loader-authority" defer></script>
   <script src="finance-payday-mission.js?v=20260902-payday-mission-breakdown-4-live-carryover-total" defer></script>
+  <script src="finance-payday-checkout.js?v=20260923-payday-checkout-1" defer></script>
 </head>
 <body data-page="finance">
 <nav id="auroraNav"></nav><hr>
@@ -80,7 +81,7 @@
   <div class="scouting-control-grid"><article class="scouting-control-card scouting-top-card"><span>MAXIMUM SAFE RELEASE</span><strong id="financeDecisionSafeRelease">£0.00</strong></article></div>
 </section>
 
-<section class="department-section finance-control">
+<section class="department-section finance-control" hidden>
   <div class="section-heading"><div><p class="eyebrow finance-eyebrow">STAGE 6 · MISSION RELEASE</p><h2>Release the proved investment budget</h2></div><p>Final approval only.</p></div>
   <div class="finance-actions"><button id="financeReleaseMission" type="button" class="finance-primary">Release Investment Mission</button></div>
   <div class="scouting-control-grid"><article class="scouting-control-card scouting-top-card"><span>MISSION BUDGET</span><strong id="financeStage6Amount">£0.00</strong></article><article class="scouting-control-card"><span>MISSION STATUS</span><strong id="financeStage6Status">READY TO RELEASE</strong><small id="financeStage6Detail">No investment mission has been released yet.</small></article></div>
@@ -119,7 +120,7 @@
 
 <script>
 (() => {
-  const meta={payday:['PAYDAY MISSION CONTROL','Payday allocation plan','Confirm the wage received, then follow the exact moves Aurora calculates.'],bills:['BILL CONTROL','Bills','Manage recurring bills and inspect the next payday cycle.'],pots:['POT CONTROL','Goal Pots','Manage pots and review the current funding plan.'],house:['HOUSE PROJECT','House Improvements','Renovation fund, room budgets and house payments.']};
+  const meta={payday:['PAYDAY INVESTMENT CHECKOUT','Payday allocation & investment checkout','Confirm the wage received, then let Aurora prepare the scouting plan, broker split and shopping list in one place.'],bills:['BILL CONTROL','Bills','Manage recurring bills and inspect the next payday cycle.'],pots:['POT CONTROL','Goal Pots','Manage pots and review the current funding plan.'],house:['HOUSE PROJECT','House Improvements','Renovation fund, room budgets and house payments.']};
   function select(id){if(!meta[id])id='payday';document.querySelectorAll('.finance-tabbar button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===id?'true':'false'));document.querySelectorAll('[data-finance-tab]').forEach(p=>p.hidden=p.dataset.financeTab!==id);const t=document.getElementById('financeTabTitle'),m=meta[id];if(t)t.innerHTML=`<p class="eyebrow">${m[0]}</p><h2>${m[1]}</h2><p>${m[2]}</p>`;try{sessionStorage.setItem('aurora-clean:finance-tab',id)}catch(_){} }
   document.querySelectorAll('.finance-tabbar button').forEach(b=>b.addEventListener('click',()=>select(b.dataset.tab)));
   let saved='payday';try{saved=sessionStorage.getItem('aurora-clean:finance-tab')||'payday'}catch(_){}select(saved);
@@ -128,6 +129,6 @@
 })();
 </script>
 
-<section class="finance-next-stage"><strong>Finance rebuild complete after mission release</strong><p>Once released, Scouting ranks and allocates only the official Stage 6 mission budget. Transfer then routes that same plan.</p></section>
+<section class="finance-next-stage"><strong>One payday workflow</strong><p>Finance, Scouting, Transfer and Registration remain available for full audit detail, while Payday Investment Checkout handles the normal hand-offs from one screen.</p></section>
 </body>
 </html>
