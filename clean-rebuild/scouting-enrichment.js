@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD='20260910-scouting-enrichment-2-auroradata2';
+  const BUILD='20260923-scouting-enrichment-3-evidence-priority';
   const SHEET_ID='1ZDdYmyDrvNuz3utKmgsToKL7NqsibzbWyIo0vg-TjcA';
   const GLOBAL_SHEET_ID='1N_kmoc9fwnwuWR1Jo0Qwi_0wF3Ifb5bTApnzlRNUSYk';
   const SOURCES={
@@ -32,6 +32,13 @@
     const p=price(row),y=yieldPct(row);return p>0&&y>0?p*y/100:0;
   }
   function evidenceTimestamp(row){return String(cell(row,['last_updated','last updated','date_checked','date checked','generated_at','trade time','trade_time'])||'').trim()}
+  function payoutRisk(value){
+    const r=upper(value);
+    if(['LOW','SAFE'].includes(r))return'LOW';
+    if(['MEDIUM','MED','MODERATE'].includes(r))return'MEDIUM';
+    if(['HIGH','SEVERE','VERY HIGH'].includes(r))return'HIGH';
+    return'';
+  }
   function evidence(row,source){
     const ticker=clean(cell(row,['ticker','Ticker','symbol','Symbol','code']));if(!ticker)return null;
     const p=price(row),y=yieldPct(row),a=dps(row),f=fair(row);
@@ -39,7 +46,7 @@
       name:String(cell(row,['name','Name','company','Company','company_name'])||'').trim(),
       sector:String(cell(row,['sector','Sector','industry'])||'').trim(),
       role:String(cell(row,['role','Role','squad_role','Squad_Role'])||'').trim(),
-      payoutRisk:String(cell(row,['payout_risk','Payout_Risk','risk_level','risk'])||'').trim(),
+      payoutRisk:payoutRisk(cell(row,['payout_risk','Payout_Risk','risk_level','risk'])),
       livePriceGbp:p,annualDpsGbp:a,yieldPct:y,fairValueGbp:f,
       buyStrength:Math.max(0,Math.min(100,num(cell(row,['buy_strength','buy strength','confidence_score','valuation_score'])))),
       buyPermission:String(cell(row,['buy_permission','Buy_Permission','buy permission'])||'').trim(),
@@ -55,7 +62,8 @@
     const old=map.get(next.ticker)||{ticker:next.ticker,sources:[]};
     const merged={...old,...next,sources:[...new Set([...(old.sources||[]),next.source])].filter(Boolean)};
     for(const field of ['name','sector','role','payoutRisk','buyPermission','valuationGate','decisionAction','decisionConfidence','dataQuality','evidenceUpdatedAt']) if(!next[field]&&old[field])merged[field]=old[field];
-    for(const field of ['livePriceGbp','annualDpsGbp','yieldPct','fairValueGbp','buyStrength']) if(!(next[field]>0)&&old[field]>0)merged[field]=old[field];
+    for(const field of ['livePriceGbp','annualDpsGbp','yieldPct','fairValueGbp']) if(!(next[field]>0)&&old[field]>0)merged[field]=old[field];
+    merged.buyStrength=Math.max(num(old.buyStrength),num(next.buyStrength));
     map.set(next.ticker,merged);
   }
   function ensurePanel(){
