@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260911-scouting-allocation-4-all-buy-ready';
+  const BUILD = '20260923-scouting-allocation-5-tiered-ready';
   const CASH_CACHE = 'aurora-clean:transfer-broker-cash:v1';
   const BROKER_CASH_MIN_GBP = 200;
   const BUYING_POWER_TARGET_GBP = 1000;
@@ -53,7 +53,7 @@
     const strategy = state.scouting?.strategy === 'maximum' ? 'maximum' : 'sustainable';
     const rankingAuthority = window.AuroraScoutingNetwork?.rankings;
     const ranked = typeof rankingAuthority === 'function' ? rankingAuthority(state) : aurora.scoutingRankings(state);
-    const eligible = ranked.filter(row => Number(row.yieldPct) > 0 && ['BUY','STRONG BUY'].includes(upper(row.verdict)) && row.evidenceComplete !== false);
+    const eligible = ranked.filter(row => Number(row.yieldPct) > 0 && (row.buyReady === true || (['BUY','STRONG BUY'].includes(upper(row.verdict)) && row.evidenceComplete !== false))).sort((a,b)=>{const order={PREMIER:0,ELITE:1,READY:2};return (order[a.tier]??3)-(order[b.tier]??3)||Number(b.networkScore||b.score||0)-Number(a.networkScore||a.score||0)||Number(b.yieldPct||0)-Number(a.yieldPct||0)});
     const targetCount = selectionBuyingPower > 0 ? pickCountForBuyReady(eligible.length) : 0;
     const rows = eligible.slice(0, targetCount);
 
@@ -110,6 +110,8 @@
       networkScore: Number(row.networkScore || row.score || 0),
       pipelineStage: row.stage || '',
       verdict: row.verdict || '',
+      tier: row.tier || (upper(row.verdict)==='STRONG BUY'?'PREMIER':'READY'),
+      buyReady: row.buyReady !== false,
       evidenceComplete: row.evidenceComplete !== false,
       held: !!row.held,
       amount: round2(row.amount),
