@@ -57,9 +57,9 @@ function auroraGetSquadSnapshot_(payload) {
       throw new Error('No LivePrices quote found for active holding ' + ticker + '.');
     }
 
-    const bookCostGbp = Math.max(0, auroraSquadNumber_(row.book_cost ?? row.bookcost));
-    const annualDpsGbp = Math.max(0, auroraSquadNumber_(row.annual_dps ?? row.annualdps));
-    const sheetAnnualIncome = Math.max(0, auroraSquadNumber_(row.annual_dps_total ?? row.annualdpstotal));
+    const bookCostGbp = Math.max(0, auroraSquadNumber_(row.book_cost_gbp ?? row.book_cost ?? row.bookcost));
+    const annualDpsGbp = Math.max(0, auroraSquadNumber_(row.annual_dps_gbp ?? row.annual_dps ?? row.annualdps));
+    const sheetAnnualIncome = Math.max(0, auroraSquadNumber_(row.annual_income_gbp ?? row.annual_dps_total ?? row.annualdpstotal));
     const annualIncomeGbp = sheetAnnualIncome || (shares * annualDpsGbp);
 
     if (!(bookCostGbp > 0)) {
