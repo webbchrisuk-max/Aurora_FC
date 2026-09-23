@@ -8,9 +8,9 @@
   <link rel="stylesheet" href="finance-payday-classic.css?v=20260827-payday-classic-3">
   <link rel="stylesheet" href="finance-tabs.css?v=20260827-finance-tabs-static-1">
   <script src="aurora.js?v=20260904-sidebar-shell-4-mobile-nav-cachefix" defer></script>
-  <script src="finance-engine.js?v=20260826-finance-window-boundaries-2-stage1-owner" defer></script>
+  <script src="finance-engine.js?v=20260923-finance-engine-3-pot-types" defer></script>
   <script src="finance-stage6.js?v=20260827-clean-finance-stage6-tabs-static-1" defer></script>
-  <script src="finance-manager.js?v=20260906-finance-manager-6-clean-state-only" defer></script>
+  <script src="finance-manager.js?v=20260923-finance-manager-7-pot-types" defer></script>
   <script src="finance-house-room-breakdown.js?v=20260831-finance-house-room-breakdown-3-fresh-user-rooms" defer></script>
   <script src="finance-payday-summaries.js?v=20260906-payday-summary-cards-13-loader-authority" defer></script>
   <script src="finance-payday-mission.js?v=20260902-payday-mission-breakdown-4-live-carryover-total" defer></script>
@@ -97,7 +97,7 @@
 </main>
 
 <main data-finance-tab="pots" hidden>
-<section class="department-section finance-manager-section"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">POT CONTROL</p><h2>Goal Pots</h2></div><button id="financeAddPot" type="button">+ Add Pot</button></div><p>Payday Control reads these pots automatically.</p><div id="financePotCards" class="finance-pot-grid"><p>Loading pots…</p></div></section>
+<section class="department-section finance-manager-section"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">POT CONTROL</p><h2>Pots & Accounts</h2></div><button id="financeAddPot" type="button">+ Add Pot</button></div><p>Each pot now has a type, so Aurora can protect locked savings and investment money from normal bill and payday funding logic.</p><div id="financePotCards" class="finance-pot-grid"><p>Loading pots…</p></div></section>
 <section class="department-section finance-breakdown"><div class="section-heading"><div><p class="eyebrow finance-eyebrow">POT FUNDING PLAN</p><h2>Where Stage 4 money goes</h2></div></div><ul id="financeStage4PotRows"><li>No pot plan loaded.</li></ul></section>
 <div class="finance-actions finance-manual-recovery" hidden><button id="financeImportPots" type="button">Import Live Aurora Pots</button><button id="financeRecalculatePots" type="button">Recalculate Pot Funding</button><button id="financeImportHoldingPot" type="button">Import Live Holding Pot</button><button id="financeRecalculateHolding" type="button">Recalculate Holding Pot</button><button id="financeRecalculateDecision" type="button">Recalculate Payday Decision</button></div>
 </main>
