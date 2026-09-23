@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260923-finance-engine-3-pot-types';
+  const BUILD='20260923-finance-engine-4-investment-profile';
   const PAYDAYS_PER_YEAR=13, PAY_CYCLE_DAYS=28, OPTIONAL_CAP=300, ROLLOVER_TARGET=350, ROLLOVER_MAX=100;
   const LIVE_KEYS=['aurora2:state:v1','aurora2:state:backup:lastgood'];
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?Math.max(0,n):0};
@@ -51,7 +51,7 @@
   function readLive(){for(const key of LIVE_KEYS){try{const s=JSON.parse(localStorage.getItem(key)||'null');if(s?.finance)return{key,finance:s.finance}}catch(_){}}return{key:'',finance:null}}
   function liveHolding(){const live=readLive(),pot=(live.finance?.pots||[]).find(p=>!p?.archived&&isHolding(p?.name));return pot?{key:live.key,balance:round(pot.balance),target:round(pot.target)}:null}
   function normaliseBill(r,i){return{id:String(r?.id||`BILL-${i+1}`),name:String(r?.name||`Bill ${i+1}`),amount:round(r?.amount),due:String(r?.due||r?.dueDate||'').slice(0,10),frequency:String(r?.frequency||'monthly'),fundingSource:String(r?.fundingSource||'Holding Pot'),included:r?.included!==false,paid:!!r?.paid,archived:!!r?.archived}}
-  function normalisePot(r,i){const type=potType(r);return{id:String(r?.id||`POT-${i+1}`),name:String(r?.name||`Pot ${i+1}`),balance:round(r?.balance),target:round(r?.target),spent:round(r?.spent),goalMode:String(r?.goalMode||''),deadline:String(r?.deadline||r?.completeBy||r?.targetDate||'').slice(0,10),fundingOverride:round(r?.fundingOverride),priority:[1,2,3].includes(Number(r?.priority))?Number(r.priority):2,archived:!!r?.archived,note:String(r?.note||''),type,locked:type==='fixed_isa'||r?.locked===true,annualRate:round(r?.annualRate),maturityDate:String(r?.maturityDate||'').slice(0,10),termMonths:Math.max(0,Math.round(num(r?.termMonths))),accountProvider:String(r?.accountProvider||'')}}
+  function normalisePot(r,i){const type=potType(r);return{id:String(r?.id||`POT-${i+1}`),name:String(r?.name||`Pot ${i+1}`),balance:round(r?.balance),target:round(r?.target),spent:round(r?.spent),goalMode:String(r?.goalMode||''),deadline:String(r?.deadline||r?.completeBy||r?.targetDate||'').slice(0,10),fundingOverride:round(r?.fundingOverride),priority:[1,2,3].includes(Number(r?.priority))?Number(r.priority):2,archived:!!r?.archived,note:String(r?.note||''),type,locked:type==='fixed_isa'||r?.locked===true,annualRate:round(r?.annualRate),maturityDate:String(r?.maturityDate||'').slice(0,10),termMonths:Math.max(0,Math.round(num(r?.termMonths))),accountProvider:String(r?.accountProvider||''),investmentProfile:String(r?.investmentProfile||'')}}
 
   function calcBills(state){
     const bills=(state.finance?.bills||[]).filter(b=>!b.archived&&b.included!==false&&!b.paid&&num(b.amount)>0);
