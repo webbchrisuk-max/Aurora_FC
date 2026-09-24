@@ -114,6 +114,7 @@
 
   function refreshFromState(){
     const saved=currentSaved();
+    try{localStorage.setItem(KEY,JSON.stringify(saved));}catch(_){}
     writeInputs(saved);
     render();
     const meta=document.getElementById('isaSavedAt');
