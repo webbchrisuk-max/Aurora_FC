@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260826-system-services-health-4-market-prices';
+  const BUILD = '20260924-system-services-health-5-backend-authority';
   const $ = id => document.getElementById(id);
   const arr = v => Array.isArray(v) ? v : [];
   const upper = v => String(v || '').trim().toUpperCase();
@@ -35,21 +35,18 @@
       catch (error) {rows.push(row('AuroraData 2 backend reachable', false, error?.message || error));}
 
       try {
-        const authority=window.AuroraMarketPriceAuthority||window.AuroraSquadLivePriceAuthority;
-        if(authority?.refresh)await authority.refresh('system-health');
-        rows.push(row('Live market-price authority loaded',!!authority,authority?`${authority.source||'price authority'} · ${authority.quoteCount||0} quote(s)`:'Market price authority unavailable'));
-        const A=window.AuroraClean;
-        if(A?.importRealHoldings)A.importRealHoldings();
-        const holdings=arr(A?.readState?.()?.squad?.holdings).filter(h=>!['SOLD','ARCHIVED','CLOSED','EXITED'].includes(upper(h.status))&&Number(h.shares)>0);
-        const priced=holdings.filter(h=>Number(h.livePriceGbp)>0);
+        const squad = await client.get('getSquadSnapshot', {});
+        const holdings=arr(squad?.holdings).filter(h=>!['SOLD','ARCHIVED','CLOSED','EXITED'].includes(upper(h.status))&&Number(h.shares)>0);
+        const priced=holdings.filter(h=>Number(h.livePriceGbp)>0||Number(h.marketValueGbp)>0);
         const market=holdings.reduce((s,h)=>s+Math.max(0,Number(h.marketValueGbp)||(Number(h.shares)||0)*(Number(h.livePriceGbp)||0)),0);
+        rows.push(row('Squad backend snapshot readable',Array.isArray(squad?.holdings),holdings.length?`${holdings.length} active position(s) returned`:'No active holdings returned'));
         rows.push(row('Active holdings have live prices',holdings.length===0||priced.length===holdings.length,holdings.length?`${priced.length}/${holdings.length} active position(s) priced`:'No active holdings to price',holdings.length>0&&priced.length<holdings.length));
         rows.push(row('Portfolio market value calculable',Number.isFinite(market)&&market>=0,`Current active market value ${money(market)}`));
-      } catch(error){rows.push(row('Live market-price authority loaded',false,error?.message||error));}
+      } catch(error){rows.push(row('Squad backend snapshot readable',false,error?.message||error));}
 
       let snapshot = null;
       try {
-        snapshot = await client.post('incomeSnapshot', {});const dividends = arr(snapshot?.dividends);
+        snapshot = await client.get('incomeSnapshot', {});const dividends = arr(snapshot?.dividends);
         rows.push(row('Income snapshot readable', Array.isArray(snapshot?.dividends), `${dividends.length} dividend record${dividends.length===1?'':'s'}`));
         const future = dividends.filter(d => {const pay = new Date(d.payDate || d.pay_date || 0).getTime();return Number.isFinite(pay) && pay >= new Date().setHours(0,0,0,0) && !['ARCHIVED','CANCELLED'].includes(upper(d.status));});
         rows.push(row('Upcoming dividend calendar available', future.length > 0, future.length ? `${future.length} future dated payment${future.length===1?'':'s'}` : 'No future dated dividend records currently returned', future.length === 0));
