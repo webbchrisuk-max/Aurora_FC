@@ -200,7 +200,7 @@
             postedAt:new Date().toISOString(),
             creditAuthority:x.authoritativeCredit!==null?'MONZO_WEBHOOK':'AURORA_MANUAL_CARD_SPEND'
           };
-          row.isaContributionAmount=addRoundupToIsaAllowance(next,m,x.key,credit,row.postedAt);
+          row.isaContributionAmount=x.authoritativeCredit!==null?addRoundupToIsaAllowance(next,m,x.key,credit,row.postedAt):0;
           m.history.push(row);results.push(row);
           p.lastRoundupAmount=credit;p.lastRoundupAt=row.postedAt;
         }
