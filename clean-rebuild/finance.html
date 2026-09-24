@@ -13,10 +13,10 @@
   <script src="finance-stage6.js?v=20260827-clean-finance-stage6-tabs-static-1" defer></script>
   <script src="finance-manager.js?v=20260923-finance-manager-8-investment-profile" defer></script>
   <script src="finance-house-room-breakdown.js?v=20260831-finance-house-room-breakdown-3-fresh-user-rooms" defer></script>
-  <script src="finance-payday-summaries.js?v=20260906-payday-summary-cards-13-loader-authority" defer></script>
+  <script src="finance-payday-summaries.js?v=20260924-payday-summary-cards-14-isa-roundup-sync" defer></script>
   <script src="finance-payday-mission.js?v=20260902-payday-mission-breakdown-4-live-carryover-total" defer></script>
   <script src="finance-payday-checkout.js?v=20260923-payday-checkout-2-tiered-scouting" defer></script>
-  <script src="finance-isa.js?v=20260924-1" defer></script>
+  <script src="finance-isa.js?v=20260924-2-roundup-sync" defer></script>
 </head>
 <body data-page="finance">
 <nav id="auroraNav"></nav><hr>
@@ -140,7 +140,7 @@
       <table class="isa-account-table">
         <thead><tr><th>Account</th><th>Counts toward 2026/27</th><th>Flexible replacement</th></tr></thead>
         <tbody>
-          <tr><td><b>Monzo Cash ISA</b><small>Current-year net contribution</small></td><td><input id="isaMonzoCash" type="number" min="0" step="0.01" value="753.04"></td><td>—</td></tr>
+          <tr><td><b>Monzo Cash ISA</b><small>Current-year net contribution · Emergency Pot roundups auto-add here</small></td><td><input id="isaMonzoCash" type="number" min="0" step="0.01" value="753.04"></td><td>—</td></tr>
           <tr><td><b>Monzo Stocks & Shares ISA</b><small>Current-year net contribution</small></td><td><input id="isaMonzoStocks" type="number" min="0" step="0.01" value="5200.00"></td><td>—</td></tr>
           <tr><td><b>Trading 212 Stocks ISA</b><small>Current-year amount shown by Trading 212</small></td><td><input id="isaTrading212" type="number" min="0" step="0.01" value="9440.00"></td><td>—</td></tr>
           <tr><td><b>IG Stocks & Shares ISA</b><small>Net current-year subscription after flexible withdrawals</small></td><td><input id="isaIgCurrentNet" type="number" min="0" step="0.01" value="0.00"></td><td><input id="isaIgFlexibleReplacement" type="number" min="0" step="0.01" value="50510.31"></td></tr>
@@ -166,7 +166,7 @@
       <div class="isa-guardrail purple"><b>Maximum additional into IG</b><strong id="isaIgGuard">£55,117.27</strong><p>IG replacement capacity plus your currently unused normal allowance, assuming you do not use that normal allowance elsewhere first.</p></div>
       <div class="isa-guardrail red" id="isaOverGuard" hidden><b>Normal allowance exceeded</b><strong id="isaExceededOut">£0.00</strong><p>Check the provider figures before making another normal ISA subscription.</p></div>
 
-      <div class="isa-warning"><b>Do not add each provider’s “allowance left” together.</b> Each provider may only know about subscriptions and withdrawals on its own platform. Aurora combines the figures you enter here.</div>
+      <div class="isa-warning"><b>Emergency Pot = Monzo Cash ISA.</b> Every new Monzo roundup transferred into the Emergency Pot is treated as a fresh Cash ISA subscription: Aurora increases Monzo Cash ISA used and reduces the remaining normal ISA allowance by the same amount. Interest earned inside the ISA does not count as a new subscription.</div><div class="isa-warning"><b>Do not add each provider’s “allowance left” together.</b> Each provider may only know about subscriptions and withdrawals on its own platform. Aurora combines the figures you enter here.</div>
       <div class="isa-warning"><b>IG flexible replacement:</b> previous-year money withdrawn from a flexible ISA must be replaced into the same flexible ISA during the same tax year for the replacement treatment to apply.</div>
     </section>
   </div>
