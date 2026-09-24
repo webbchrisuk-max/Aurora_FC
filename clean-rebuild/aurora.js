@@ -179,15 +179,25 @@
     setText('nexusIncome',`${money(income)} annual / ${money(income/12)} monthly`);
   }
 
+  const SCOUTING_TICKER_ALIASES=Object.freeze({
+    FVJ:'FMG',
+    FSUGY:'FMG'
+  });
+  function canonicalScoutingTicker(value){
+    const ticker=upper(value);
+    return SCOUTING_TICKER_ALIASES[ticker]||ticker;
+  }
   function aggregateSquadByTicker(state){
     const map=new Map();
     (state.squad?.holdings||[]).forEach(row=>{
-      const ticker=upper(row?.ticker);if(!ticker)return;
-      const current=map.get(ticker)||{ticker,name:String(row?.name||ticker),sector:String(row?.sector||''),bookCostGbp:0,marketValueGbp:0,annualIncomeGbp:0};
+      const executionTicker=upper(row?.ticker);if(!executionTicker)return;
+      const ticker=canonicalScoutingTicker(executionTicker);
+      const current=map.get(ticker)||{ticker,name:String(row?.name||ticker),sector:String(row?.sector||''),bookCostGbp:0,marketValueGbp:0,annualIncomeGbp:0,executionTickers:[]};
       current.bookCostGbp+=Math.max(0,num(row?.bookCostGbp));
       current.marketValueGbp+=Math.max(0,num(row?.marketValueGbp||(num(row?.shares)*num(row?.livePriceGbp))));
       current.annualIncomeGbp+=holdingAnnualIncome(row);
       if(!current.sector&&row?.sector)current.sector=String(row.sector);
+      if(!current.executionTickers.includes(executionTicker))current.executionTickers.push(executionTicker);
       map.set(ticker,current);
     });
     return[...map.values()];
@@ -289,7 +299,7 @@
 
   function boot(){
     renderNavigation();
-    window.AuroraClean=Object.freeze({BUILD,STATE_KEY,readState,writeState,updateState,safeRelease,financeSummary,releasedMissionBudget,annualIncome,importRealHoldings,scoutingRankings,seedScoutingFromSquad});
+    window.AuroraClean=Object.freeze({BUILD,STATE_KEY,readState,writeState,updateState,safeRelease,financeSummary,releasedMissionBudget,annualIncome,importRealHoldings,scoutingRankings,seedScoutingFromSquad,canonicalScoutingTicker,SCOUTING_TICKER_ALIASES});
     const page=document.body?.dataset?.page||'',handlers=pages[page];if(!handlers)return;
     handlers[1]?.();handlers[0]?.();
     if(handlers[0])window.addEventListener('aurora-clean:state',handlers[0]);
