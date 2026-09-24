@@ -1,0 +1,10 @@
+.income-route-isa-guard{margin-top:12px;border:1px solid rgba(94,234,212,.26);border-radius:16px;padding:14px;background:linear-gradient(135deg,rgba(12,74,65,.16),rgba(8,25,38,.78))}
+.income-route-isa-head{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.income-route-isa-head>div{border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:12px;background:rgba(255,255,255,.025)}
+.income-route-isa-head span{display:block;font-size:9px;font-weight:950;letter-spacing:.09em;color:#75d9cc}
+.income-route-isa-head strong{display:block;margin:5px 0;font-size:22px;color:#e8fff8}
+.income-route-isa-head small{display:block;color:#849aac}
+.income-route-isa-guard p{margin:12px 0;color:#a3b6c6;line-height:1.55}
+.income-route-isa-toggle{display:flex;gap:9px;align-items:center;color:#d4e6f0;font-weight:800;font-size:12px}
+.income-route-isa-toggle input{width:auto}
+@media(max-width:700px){.income-route-isa-head{grid-template-columns:1fr}}
