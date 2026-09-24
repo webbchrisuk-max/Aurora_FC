@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260911-transfer-broker-assign-4-stable-render';
+  const BUILD='20260924-transfer-broker-assign-5-security-map';
   const upper=v=>String(v||'').trim().toUpperCase();
   const brokerCode=row=>{
     const a=upper(row?.lockedAccount||row?.account||row?.broker||row?.preferredBroker||row?.platform);
@@ -10,6 +10,11 @@
     return'';
   };
   const financeRows=state=>Array.isArray(state?.transfer?.route?.allocations)?state.transfer.route.allocations:[];
+  function executionSpec(row,account){
+    const underlying=window.AuroraClean?.canonicalScoutingTicker?.(row?.underlyingTicker||row?.ticker)||upper(row?.underlyingTicker||row?.ticker);
+    if(underlying==='FMG'&&account==='T212')return{underlyingTicker:'FMG',executionTicker:'FVJ',executionMarket:'GETTEX',executionCurrency:'EUR',securityName:'Fortescue'};
+    return{underlyingTicker:underlying,executionTicker:upper(row?.ticker),executionMarket:'',executionCurrency:''};
+  }
 
   function assign(legId,ticker,account){
     const A=window.AuroraClean;
@@ -23,6 +28,7 @@
       if(!row||brokerCode(row)===account)return;
       row.lockedAccount=account;
       row.account=account;
+      Object.assign(row,executionSpec(row,account));
       row.brokerAssignedAt=new Date().toISOString();
       changed=true;
     });
@@ -98,7 +104,7 @@
     render();
     setTimeout(render,0);
     setTimeout(render,100);
-    window.AuroraTransferBrokerAssign=Object.freeze({BUILD,render,assign});
+    window.AuroraTransferBrokerAssign=Object.freeze({BUILD,render,assign,executionSpec});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
