@@ -8,7 +8,9 @@
   <link rel="stylesheet" href="finance-payday-classic.css?v=20260827-payday-classic-3">
   <link rel="stylesheet" href="finance-tabs.css?v=20260827-finance-tabs-static-1">
   <link rel="stylesheet" href="finance-isa.css?v=20260924-1">
+  <link rel="stylesheet" href="finance-overview.css?v=20260924-finance-overview-1">
   <script src="aurora.js?v=20260904-sidebar-shell-5-fullscreen-mobile-nav" defer></script>
+  <script src="aurora-backend-client.js?v=20260909-clean-backend-client-3-read-route-guard" defer></script>
   <script src="finance-engine.js?v=20260923-finance-engine-4-investment-profile" defer></script>
   <script src="finance-stage6.js?v=20260827-clean-finance-stage6-tabs-static-1" defer></script>
   <script src="finance-manager.js?v=20260923-finance-manager-8-investment-profile" defer></script>
@@ -17,6 +19,7 @@
   <script src="finance-payday-mission.js?v=20260902-payday-mission-breakdown-4-live-carryover-total" defer></script>
   <script src="finance-payday-checkout.js?v=20260923-payday-checkout-2-tiered-scouting" defer></script>
   <script src="finance-isa.js?v=20260924-2-roundup-sync" defer></script>
+  <script src="finance-overview.js?v=20260924-finance-overview-1" defer></script>
 </head>
 <body data-page="finance">
 <nav id="auroraNav"></nav><hr>
@@ -31,7 +34,8 @@
 </header>
 
 <nav class="finance-tabbar" aria-label="Finance sections">
-  <button type="button" data-tab="payday" aria-selected="true">Payday Control</button>
+  <button type="button" data-tab="overview" aria-selected="true">Finance Overview</button>
+  <button type="button" data-tab="payday" aria-selected="false">Payday Control</button>
   <button type="button" data-tab="bills" aria-selected="false">Bills</button>
   <button type="button" data-tab="pots" aria-selected="false">Pots</button>
   <button type="button" data-tab="house" aria-selected="false">House Improvements</button>
@@ -39,10 +43,38 @@
 </nav>
 
 <div class="finance-tab-panel-title" id="financeTabTitle">
-  <p class="eyebrow">PAYDAY MISSION CONTROL</p><h2>Payday allocation plan</h2><p>Confirm the wage received, add any money already left in your main account, then follow Aurora’s exact moves.</p>
+  <p class="eyebrow">FINANCE OVERVIEW</p><h2>Your complete financial position</h2><p>Pots, savings, investments, broker cash and Tesco in one place.</p>
 </div>
 
-<main data-finance-tab="payday">
+<main data-finance-tab="overview">
+<section class="department-section finance-manager-section">
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">WHOLE FINANCIAL POSITION</p><h2>Finance Overview</h2></div><div class="finance-overview-actions"><button id="financeOverviewRefresh" type="button">Refresh Investments</button><button id="financeOverviewEdit" type="button" class="finance-primary">Edit Finance Values</button></div></div>
+  <p>One consolidated view of your Aurora pots, Monzo investments, IG and Trading 212 portfolio, broker cash and Tesco. The grand total avoids counting your Monzo investment pot twice.</p>
+  <div class="finance-overview-hero">
+    <article class="finance-overview-total"><span>Total tracked finances</span><strong id="financeOverviewGrand">£0.00</strong><small id="financeOverviewDedupNote">Loading finance position…</small></article>
+    <div class="finance-overview-quick">
+      <article class="finance-overview-card"><span>All pots total</span><strong id="financeOverviewPotsTotal">£0.00</strong><small>All active Aurora pot balances</small></article>
+      <article class="finance-overview-card"><span>Annual share income</span><strong id="financeOverviewIncome">£0.00</strong><small>IG + Trading 212 holdings</small></article>
+      <article class="finance-overview-card"><span>Emergency Pot</span><strong id="financeOverviewEmergency">£0.00</strong><small>Monzo Cash ISA emergency balance</small></article>
+      <article class="finance-overview-card"><span>House Fund</span><strong id="financeOverviewHouse">£0.00</strong><small>Current renovation cash</small></article>
+    </div>
+  </div>
+
+  <div class="section-heading"><div><p class="eyebrow finance-eyebrow">INVESTMENTS & LEGACY ASSETS</p><h3>What your money is worth now</h3></div><p id="financeOverviewLiveStatus">Loading investments…</p></div>
+  <div class="finance-overview-investments">
+    <article class="finance-overview-card"><span>Monzo Investments · Balanced</span><strong id="financeOverviewMonzoCurrent">£5,249.97</strong><small>Invested <b id="financeOverviewMonzoInvested">£5,138.78</b></small><small class="finance-overview-gain" id="financeOverviewMonzoGain">+£111.19 · 1.82%</small></article>
+    <article class="finance-overview-card"><span>IG + Trading 212 shares</span><strong id="financeOverviewShares">£0.00</strong><small id="financeOverviewSharesBook">Loading live holdings…</small></article>
+    <article class="finance-overview-card"><span>Broker cash</span><strong id="financeOverviewBrokerCash">£828.86</strong><small>Uninvested IG + Trading 212 cash</small></article>
+    <article class="finance-overview-card"><span>Tesco</span><strong id="financeOverviewTesco">Set value</strong><small id="financeOverviewTescoForecast">Current Tesco value not set yet</small></article>
+  </div>
+
+  <div class="section-heading" style="margin-top:22px"><div><p class="eyebrow finance-eyebrow">POT BREAKDOWN</p><h3>All active pots</h3></div></div>
+  <div id="financeOverviewPotRows" class="finance-manage-list"><p>Loading pots…</p></div>
+  <p class="finance-overview-note">Tesco is included in the grand total only after you enter its current value. A future maturity estimate is shown separately and is never added to today’s total.</p>
+</section>
+</main>
+
+<main data-finance-tab="payday" hidden>
 <section class="department-section finance-control">
   <div class="section-heading"><div><p class="eyebrow finance-eyebrow">PAYDAY MONEY RECEIVED</p><h2>Confirm the money that arrived</h2></div><p>Enter your actual wage and any money already left in your main account. Aurora adds them together automatically as your payday cash available.</p></div>
   <div class="finance-form-grid">
@@ -175,15 +207,15 @@
 
 
 <style>
-.finance-manage-list{display:grid;gap:10px}.finance-manage-card{display:flex;justify-content:space-between;gap:16px;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;background:rgba(255,255,255,.025)}.finance-manage-card strong,.finance-manage-card span,.finance-manage-card small{display:block}.finance-manage-card span{margin-top:5px}.finance-manage-card small{margin-top:4px;opacity:.7}.finance-manage-actions{display:flex;gap:8px;flex-wrap:wrap}.finance-manage-actions .danger,.house-ledger-controls .danger{border-color:rgba(255,90,110,.35);color:#ff9bad}.finance-pot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.finance-pot-card{border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;background:rgba(255,255,255,.025)}.finance-pot-card-head{display:flex;justify-content:space-between;gap:10px}.finance-pot-card-head small{display:block;margin-top:4px}.finance-pot-balance{font-size:26px;font-weight:900;margin:13px 0 8px}.finance-pot-progress{height:8px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin:9px 0}.finance-pot-progress i{display:block;height:100%;background:linear-gradient(90deg,#62f3ff,#50ff8f)}.finance-pot-card .finance-manage-actions{margin-top:12px}.house-funded-banner{border:1px solid rgba(120,255,170,.3);border-radius:20px;padding:18px;margin:14px 0 18px;background:linear-gradient(135deg,rgba(45,110,90,.18),rgba(20,60,90,.18))}.house-funded-banner>strong{display:block;font-size:42px;line-height:1}.house-funded-banner>span{display:block;margin-top:8px}.house-progress-track{height:9px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:14px}.house-progress-track i{display:block;height:100%;background:linear-gradient(90deg,#76e9ff,#85ffc0)}.house-room-card{border-bottom:3px solid #69e5ff}.house-add-room{display:flex;align-items:center;justify-content:center;min-height:110px}.house-ledger-card{align-items:flex-start}.house-ledger-main{flex:1}.house-status{display:inline-block;margin-top:10px;padding:4px 10px;border:1px solid rgba(255,255,255,.22);border-radius:999px;font-style:normal;font-weight:800;font-size:12px}.house-ledger-controls{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.house-ledger-controls label{display:grid;gap:5px}.house-ledger-controls input{max-width:130px}.house-room-heading{margin-top:24px}.finance-tabbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:16px auto 10px;max-width:1200px}.finance-tabbar button{padding:13px 16px;border-radius:15px;border:1px solid rgba(255,255,255,.1);background:rgba(9,22,38,.86);color:#9eb1c7;font-weight:900}.finance-tabbar button[aria-selected="true"]{color:#eaffff;border-color:rgba(34,211,238,.45);background:linear-gradient(135deg,rgba(34,211,238,.15),rgba(52,211,153,.1));box-shadow:0 0 22px rgba(34,211,238,.1)}.finance-tab-panel-title{max-width:1200px;margin:8px auto 14px;padding:0 2px}.finance-tab-panel-title h2{margin:3px 0}.finance-tab-panel-title p{margin:0;color:#8ea2b8}[data-finance-tab][hidden]{display:none!important}@media(max-width:700px){.finance-tabbar{grid-template-columns:1fr 1fr}.finance-manage-card{align-items:flex-start;flex-direction:column}.house-ledger-controls{width:100%}}
+.finance-manage-list{display:grid;gap:10px}.finance-manage-card{display:flex;justify-content:space-between;gap:16px;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;background:rgba(255,255,255,.025)}.finance-manage-card strong,.finance-manage-card span,.finance-manage-card small{display:block}.finance-manage-card span{margin-top:5px}.finance-manage-card small{margin-top:4px;opacity:.7}.finance-manage-actions{display:flex;gap:8px;flex-wrap:wrap}.finance-manage-actions .danger,.house-ledger-controls .danger{border-color:rgba(255,90,110,.35);color:#ff9bad}.finance-pot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.finance-pot-card{border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;background:rgba(255,255,255,.025)}.finance-pot-card-head{display:flex;justify-content:space-between;gap:10px}.finance-pot-card-head small{display:block;margin-top:4px}.finance-pot-balance{font-size:26px;font-weight:900;margin:13px 0 8px}.finance-pot-progress{height:8px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin:9px 0}.finance-pot-progress i{display:block;height:100%;background:linear-gradient(90deg,#62f3ff,#50ff8f)}.finance-pot-card .finance-manage-actions{margin-top:12px}.house-funded-banner{border:1px solid rgba(120,255,170,.3);border-radius:20px;padding:18px;margin:14px 0 18px;background:linear-gradient(135deg,rgba(45,110,90,.18),rgba(20,60,90,.18))}.house-funded-banner>strong{display:block;font-size:42px;line-height:1}.house-funded-banner>span{display:block;margin-top:8px}.house-progress-track{height:9px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:14px}.house-progress-track i{display:block;height:100%;background:linear-gradient(90deg,#76e9ff,#85ffc0)}.house-room-card{border-bottom:3px solid #69e5ff}.house-add-room{display:flex;align-items:center;justify-content:center;min-height:110px}.house-ledger-card{align-items:flex-start}.house-ledger-main{flex:1}.house-status{display:inline-block;margin-top:10px;padding:4px 10px;border:1px solid rgba(255,255,255,.22);border-radius:999px;font-style:normal;font-weight:800;font-size:12px}.house-ledger-controls{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.house-ledger-controls label{display:grid;gap:5px}.house-ledger-controls input{max-width:130px}.house-room-heading{margin-top:24px}.finance-tabbar{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:16px auto 10px;max-width:1200px}.finance-tabbar button{padding:13px 16px;border-radius:15px;border:1px solid rgba(255,255,255,.1);background:rgba(9,22,38,.86);color:#9eb1c7;font-weight:900}.finance-tabbar button[aria-selected="true"]{color:#eaffff;border-color:rgba(34,211,238,.45);background:linear-gradient(135deg,rgba(34,211,238,.15),rgba(52,211,153,.1));box-shadow:0 0 22px rgba(34,211,238,.1)}.finance-tab-panel-title{max-width:1200px;margin:8px auto 14px;padding:0 2px}.finance-tab-panel-title h2{margin:3px 0}.finance-tab-panel-title p{margin:0;color:#8ea2b8}[data-finance-tab][hidden]{display:none!important}@media(max-width:700px){.finance-tabbar{grid-template-columns:1fr 1fr}.finance-manage-card{align-items:flex-start;flex-direction:column}.house-ledger-controls{width:100%}}
 </style>
 
 <script>
 (() => {
-  const meta={payday:['PAYDAY INVESTMENT CHECKOUT','Payday allocation & investment checkout','Confirm the wage received, then let Aurora prepare the scouting plan, broker split and shopping list in one place.'],bills:['BILL CONTROL','Bills','Manage recurring bills and inspect the next payday cycle.'],pots:['POT CONTROL','Goal Pots','Manage pots and review the current funding plan.'],house:['HOUSE PROJECT','House Improvements','Renovation fund, room budgets and house payments.'],isa:['ISA CONTROL','ISA Allowance','Track the 2026/27 allowance across Monzo, Trading 212 and IG, including IG flexible replacement capacity.']};
-  function select(id){if(!meta[id])id='payday';document.querySelectorAll('.finance-tabbar button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===id?'true':'false'));document.querySelectorAll('[data-finance-tab]').forEach(p=>p.hidden=p.dataset.financeTab!==id);const t=document.getElementById('financeTabTitle'),m=meta[id];if(t)t.innerHTML=`<p class="eyebrow">${m[0]}</p><h2>${m[1]}</h2><p>${m[2]}</p>`;try{sessionStorage.setItem('aurora-clean:finance-tab',id)}catch(_){} }
+  const meta={overview:['FINANCE OVERVIEW','Your complete financial position','Pots, savings, investments, broker cash and Tesco in one place.'],payday:['PAYDAY INVESTMENT CHECKOUT','Payday allocation & investment checkout','Confirm the wage received, then let Aurora prepare the scouting plan, broker split and shopping list in one place.'],bills:['BILL CONTROL','Bills','Manage recurring bills and inspect the next payday cycle.'],pots:['POT CONTROL','Goal Pots','Manage pots and review the current funding plan.'],house:['HOUSE PROJECT','House Improvements','Renovation fund, room budgets and house payments.'],isa:['ISA CONTROL','ISA Allowance','Track the 2026/27 allowance across Monzo, Trading 212 and IG, including IG flexible replacement capacity.']};
+  function select(id){if(!meta[id])id='overview';document.querySelectorAll('.finance-tabbar button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===id?'true':'false'));document.querySelectorAll('[data-finance-tab]').forEach(p=>p.hidden=p.dataset.financeTab!==id);const t=document.getElementById('financeTabTitle'),m=meta[id];if(t)t.innerHTML=`<p class="eyebrow">${m[0]}</p><h2>${m[1]}</h2><p>${m[2]}</p>`;try{sessionStorage.setItem('aurora-clean:finance-tab',id)}catch(_){} }
   document.querySelectorAll('.finance-tabbar button').forEach(b=>b.addEventListener('click',()=>select(b.dataset.tab)));
-  let saved='payday';try{saved=sessionStorage.getItem('aurora-clean:finance-tab')||'payday'}catch(_){}select(saved);
+  let saved='overview';try{saved=sessionStorage.getItem('aurora-clean:finance-tab')||'overview'}catch(_){}select(saved);
   document.addEventListener('aurora-clean:state',()=>{const A=window.AuroraFinanceManager;if(!A)return;const m=A.houseMetrics(window.AuroraClean.readState());const t=document.getElementById('houseTargetMirror'),f=document.getElementById('houseFundedMirror');if(t)t.textContent=new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(m.target);if(f)f.textContent=new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(m.funded)});
   setTimeout(()=>window.dispatchEvent(new CustomEvent('aurora-clean:state')),500);
 })();
