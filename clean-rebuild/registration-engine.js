@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260910-registration-broker-execution-4-transfer-authority';
+  const BUILD='20260924-registration-broker-execution-5-security-map';
   const EPS=0.005,$=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const round=v=>Number(Math.max(0,num(v)).toFixed(2));
@@ -14,6 +14,8 @@
   const accountLabel=v=>accountCode(v)==='IG'?'IG ISA':accountCode(v)==='T212'?'Trading 212 ISA':String(v||'');
   const isCashLeg=leg=>upper(leg?.fundingSource)==='BROKER_CASH';
   const lockedBroker=leg=>accountCode(leg?.lockedAccount||leg?.account||leg?.broker||leg?.preferredBroker||leg?.platform);
+  const executionTicker=leg=>upper(leg?.executionTicker||leg?.ticker);
+  const underlyingTicker=leg=>upper(leg?.underlyingTicker||window.AuroraClean?.canonicalScoutingTicker?.(leg?.ticker)||leg?.ticker);
 
   function routeContext(){
     const A=window.AuroraClean;if(!A)return null;
@@ -63,13 +65,13 @@
   function seedForm(ctx,leg){
     if(!leg)return;
     const existing=receiptFor(ctx,leg),broker=lockedBroker(leg),locked=accountLabel(broker);
-    $('regTicker').value=leg.ticker||'';
+    $('regTicker').value=executionTicker(leg)||'';
     $('regPlanned').value=round(leg.amount).toFixed(2);
     if(!$('regTradeDate').value)$('regTradeDate').value=today();
     if(existing){
       $('regAccount').value=accountLabel(existing.account);$('regShares').value=existing.shares;$('regPrice').value=existing.priceInput;$('regPriceUnit').value=existing.priceUnit||'GBP';$('regCurrency').value=existing.currency||'GBP';$('regFx').value=existing.fxRateToGbp||1;$('regFees').value=existing.feesNative||0;$('regTradeDate').value=existing.tradeDate||today();
     }else{
-      $('regAccount').value=locked;$('regShares').value='';$('regPrice').value='';$('regPriceUnit').value='GBP';$('regCurrency').value='GBP';$('regFx').value='1';$('regFees').value='0';
+      $('regAccount').value=locked;$('regShares').value='';$('regPrice').value='';$('regPriceUnit').value='GBP';$('regCurrency').value=upper(leg.executionCurrency||'GBP');$('regFx').value=upper(leg.executionCurrency||'GBP')==='GBP'?'1':'';$('regFees').value='0';
     }
     $('regAccount').disabled=!!broker;
     $('regAccount').title=broker?'Broker locked by Transfer route':'';
@@ -89,13 +91,13 @@
     }
     const old=select?.value;
     if(select){
-      select.innerHTML=ctx.allocations.map((r,i)=>{const broker=accountLabel(lockedBroker(r))||'BROKER PENDING';return `<option value="${esc(r.legId)}">#${i+1} ${esc(r.ticker)} · ${money(r.amount)} · ${esc(broker)}${isCashLeg(r)?' CASH':''}</option>`}).join('');
+      select.innerHTML=ctx.allocations.map((r,i)=>{const broker=accountLabel(lockedBroker(r))||'BROKER PENDING',exec=executionTicker(r),base=underlyingTicker(r),label=exec&&exec!==base?`${base} → ${exec}`:exec;return `<option value="${esc(r.legId)}">#${i+1} ${esc(label)} · ${money(r.amount)} · ${esc(broker)}${isCashLeg(r)?' CASH':''}</option>`}).join('');
       if(ctx.allocations.some(r=>r.legId===old))select.value=old;
     }
     const leg=selected(ctx),finance=financeConfirmed(ctx),broker=brokerConfirmed(ctx),all=round(finance+broker),remaining=round(num(ctx.mission.budget)-finance),done=ctx.allocations.filter(r=>receiptFor(ctx,r)).length;
     if(status)status.textContent=`${done}/${ctx.allocations.length} executions confirmed · Finance ${money(finance)} · broker cash ${money(broker)} · Finance remaining ${money(remaining)}`;
-    if(list)list.innerHTML=ctx.allocations.map((r,i)=>{const rec=receiptFor(ctx,r),plannedBroker=accountLabel(lockedBroker(r))||'BROKER PENDING',source=isCashLeg(r)?`${plannedBroker} CASH`:`FINANCE · ${plannedBroker}`;return `<li class="reg-route-row"><strong>#${i+1} ${esc(r.ticker)}</strong><span>${esc(source)} · planned ${money(r.amount)}</span><span>${rec?`${esc(accountLabel(rec.account))} · ${Number(rec.shares).toLocaleString('en-GB',{maximumFractionDigits:6})} shares · actual ${money(rec.totalCostGbp)}`:'WAITING FOR BROKER EXECUTION'}</span><strong>${rec?'CONFIRMED ✓':'WAITING'}</strong></li>`}).join('');
-    if(leg&&String($('regTicker')?.value||'')!==String(leg.ticker||''))seedForm(ctx,leg);
+    if(list)list.innerHTML=ctx.allocations.map((r,i)=>{const rec=receiptFor(ctx,r),plannedBroker=accountLabel(lockedBroker(r))||'BROKER PENDING',source=isCashLeg(r)?`${plannedBroker} CASH`:`FINANCE · ${plannedBroker}`,exec=executionTicker(r),base=underlyingTicker(r),label=exec&&exec!==base?`${base} → ${exec}`:exec;return `<li class="reg-route-row"><strong>#${i+1} ${esc(label)}</strong><span>${esc(source)}${r.executionMarket?` · ${esc(r.executionMarket)}`:''}${r.executionCurrency?` · ${esc(r.executionCurrency)}`:''} · planned ${money(r.amount)}</span><span>${rec?`${esc(accountLabel(rec.account))} · ${Number(rec.shares).toLocaleString('en-GB',{maximumFractionDigits:6})} shares · actual ${money(rec.totalCostGbp)}`:'WAITING FOR BROKER EXECUTION'}</span><strong>${rec?'CONFIRMED ✓':'WAITING'}</strong></li>`}).join('');
+    if(leg&&String($('regTicker')?.value||'')!==String(executionTicker(leg)||''))seedForm(ctx,leg);
     if(leg&&lockedBroker(leg)&&accountCode($('regAccount')?.value)!==lockedBroker(leg))seedForm(ctx,leg);
     const a=actual(),planned=round(leg?.amount),difference=Number((a.totalCostGbp-planned).toFixed(2));
     if($('regActualCost'))$('regActualCost').textContent=money(a.totalCostGbp);
@@ -111,9 +113,9 @@
   async function confirmExecution(){
     const ctx=routeContext(),leg=selected(ctx),a=actual(),errors=validation(ctx,leg,a);if(errors.length){alert(errors.join('\n'));return}
     const client=window.AuroraData2Client,config=client?.config?.()||{};if(!client?.post||!config.endpoint||!config.token){alert('AuroraData 2 is not connected. Nothing was registered.');return}
-    const stable=hash(`${ctx.mission.id}|${ctx.route.id}|${leg.legId}`),transactionId=`TX-CLEAN-${stable}`,clientRequestId=`REQ-CLEAN-${stable}`,account=lockedBroker(leg)||accountCode(a.account),ticker=upper(leg.ticker),planned=round(leg.amount),prior=(ctx.state.squad?.holdings||[]).find(h=>accountCode(h.account)===account&&upper(h.ticker)===ticker&&!['SOLD','ARCHIVED'].includes(upper(h.status)));
+    const stable=hash(`${ctx.mission.id}|${ctx.route.id}|${leg.legId}`),transactionId=`TX-CLEAN-${stable}`,clientRequestId=`REQ-CLEAN-${stable}`,account=lockedBroker(leg)||accountCode(a.account),ticker=executionTicker(leg),underlying=underlyingTicker(leg),planned=round(leg.amount),prior=(ctx.state.squad?.holdings||[]).find(h=>accountCode(h.account)===account&&upper(h.ticker)===ticker&&!['SOLD','ARCHIVED'].includes(upper(h.status)));
     const allRoute=[...(ctx.route.allocations||[]),...(ctx.route.brokerCashAllocations||[])];
-    const payload={transaction:{transactionId,clientRequestId,tradeDate:a.tradeDate,account,ticker,name:leg.name||ticker,side:'BUY',shares:a.shares,priceInput:a.priceInput,priceUnit:a.priceUnit,currency:a.currency,fxRateToGbp:a.fxRateToGbp,feesNative:a.feesNative,totalCostGbp:round(a.totalCostGbp),missionId:ctx.mission.id,routeId:ctx.route.id,allocationId:leg.legId,legId:leg.legId,strategy:ctx.route.strategy||'',expectedAnnualIncomeGbp:num(leg.expectedAnnualIncome),fundingSource:leg.fundingSource||'FINANCE'},priorHolding:prior||null,missionSnapshot:{missionId:ctx.mission.id,approvedBudget:num(ctx.mission.budget),status:'LOCKED',source:'CLEAN_FINANCE_STAGE6'},routeSnapshot:{routeId:ctx.route.id,missionId:ctx.route.missionId,strategy:ctx.route.strategy||'',financeAllocated:num(ctx.route.financeAllocated||ctx.route.allocations?.reduce((s,r)=>s+num(r.amount),0)),brokerCashAllocated:num(ctx.route.brokerCashAllocated),totalAllocated:num(ctx.route.totalAllocated),locked:true,allocations:allRoute}};
+    const payload={transaction:{transactionId,clientRequestId,tradeDate:a.tradeDate,account,ticker,underlyingTicker:underlying,executionMarket:String(leg.executionMarket||''),name:leg.name||ticker,side:'BUY',shares:a.shares,priceInput:a.priceInput,priceUnit:a.priceUnit,currency:a.currency,fxRateToGbp:a.fxRateToGbp,feesNative:a.feesNative,totalCostGbp:round(a.totalCostGbp),missionId:ctx.mission.id,routeId:ctx.route.id,allocationId:leg.legId,legId:leg.legId,strategy:ctx.route.strategy||'',expectedAnnualIncomeGbp:num(leg.expectedAnnualIncome),fundingSource:leg.fundingSource||'FINANCE'},priorHolding:prior||null,missionSnapshot:{missionId:ctx.mission.id,approvedBudget:num(ctx.mission.budget),status:'LOCKED',source:'CLEAN_FINANCE_STAGE6'},routeSnapshot:{routeId:ctx.route.id,missionId:ctx.route.missionId,strategy:ctx.route.strategy||'',financeAllocated:num(ctx.route.financeAllocated||ctx.route.allocations?.reduce((s,r)=>s+num(r.amount),0)),brokerCashAllocated:num(ctx.route.brokerCashAllocated),totalAllocated:num(ctx.route.totalAllocated),locked:true,allocations:allRoute}};
     const sourceText=isCashLeg(leg)?`${accountLabel(account)} existing broker cash`:'Finance mission';
     if(!confirm(`Confirm ${ticker} with AuroraData 2?\n\nFunding: ${sourceText}\nPlanned: ${money(planned)}\nActual: ${money(a.totalCostGbp)}\nShares: ${a.shares}\nBroker: ${accountLabel(account)}\n\nSquad will NOT change until every locked leg is confirmed.`))return;
     const button=$('regConfirm');button.disabled=true;button.textContent='Confirming with AuroraData 2…';
@@ -125,7 +127,7 @@
         if(cashDebit?.ok===false||cashDebit?.confirmed===false)throw new Error('Purchase registered, but broker cash debit was not confirmed. Retry this same leg; transaction and cash references are idempotent.');
       }
       const backendHolding=result.holding&&result.holding.ticker?result.holding:null;
-      window.AuroraClean.updateState(state=>{state.registration=state.registration||{receipts:[]};state.registration.receipts=state.registration.receipts||[];const exists=state.registration.receipts.some(r=>r.transactionId===transactionId||(r.legId===leg.legId&&r.missionId===ctx.mission.id));if(exists)return;state.registration.receipts.push({id:result.receiptId||result.backendReceiptId||`RECEIPT-${stable}`,backendReceiptId:result.receiptId||result.backendReceiptId||'',transactionId,clientRequestId,missionId:ctx.mission.id,routeId:ctx.route.id,legId:leg.legId,allocationId:leg.legId,account,ticker,name:leg.name||ticker,side:'BUY',fundingSource:upper(leg.fundingSource||'FINANCE'),lockedAccount:account,tradeDate:a.tradeDate,shares:a.shares,priceInput:a.priceInput,priceUnit:a.priceUnit,currency:a.currency,fxRateToGbp:a.fxRateToGbp,grossCostNative:round(a.grossCostNative),feesNative:round(a.feesNative),totalCostNative:round(a.totalCostNative),totalCostGbp:actualCost,plannedAmount:planned,differenceGbp:Number((actualCost-planned).toFixed(2)),expectedAnnualIncomeGbp:num(leg.expectedAnnualIncome),confirmedAt:result.confirmedAt||now(),backendConfirmed:true,duplicate:!!result.duplicate,brokerCashDebitConfirmed:isCashLeg(leg),brokerCashDebitReference:isCashLeg(leg)?`BUY:${transactionId}:BROKER-CASH`:'',backendHolding:backendHolding?JSON.parse(JSON.stringify(backendHolding)):null,settledAt:null});});
+      window.AuroraClean.updateState(state=>{state.registration=state.registration||{receipts:[]};state.registration.receipts=state.registration.receipts||[];const exists=state.registration.receipts.some(r=>r.transactionId===transactionId||(r.legId===leg.legId&&r.missionId===ctx.mission.id));if(exists)return;state.registration.receipts.push({id:result.receiptId||result.backendReceiptId||`RECEIPT-${stable}`,backendReceiptId:result.receiptId||result.backendReceiptId||'',transactionId,clientRequestId,missionId:ctx.mission.id,routeId:ctx.route.id,legId:leg.legId,allocationId:leg.legId,account,ticker,underlyingTicker:underlying,executionMarket:String(leg.executionMarket||''),name:leg.name||ticker,side:'BUY',fundingSource:upper(leg.fundingSource||'FINANCE'),lockedAccount:account,tradeDate:a.tradeDate,shares:a.shares,priceInput:a.priceInput,priceUnit:a.priceUnit,currency:a.currency,fxRateToGbp:a.fxRateToGbp,grossCostNative:round(a.grossCostNative),feesNative:round(a.feesNative),totalCostNative:round(a.totalCostNative),totalCostGbp:actualCost,plannedAmount:planned,differenceGbp:Number((actualCost-planned).toFixed(2)),expectedAnnualIncomeGbp:num(leg.expectedAnnualIncome),confirmedAt:result.confirmedAt||now(),backendConfirmed:true,duplicate:!!result.duplicate,brokerCashDebitConfirmed:isCashLeg(leg),brokerCashDebitReference:isCashLeg(leg)?`BUY:${transactionId}:BROKER-CASH`:'',backendHolding:backendHolding?JSON.parse(JSON.stringify(backendHolding)):null,settledAt:null});});
       seedNextUnconfirmed();
     }catch(error){alert(`Registration failed. Nothing was settled into Squad.\n\n${error?.message||error}`)}finally{button.textContent='Confirm Selected Execution';render()}
   }
