@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="aurora.css?v=20260827-finance-tabs-static-1">
   <link rel="stylesheet" href="finance-payday-classic.css?v=20260827-payday-classic-3">
   <link rel="stylesheet" href="finance-tabs.css?v=20260827-finance-tabs-static-1">
+  <link rel="stylesheet" href="finance-isa.css?v=20260924-1">
   <script src="aurora.js?v=20260904-sidebar-shell-5-fullscreen-mobile-nav" defer></script>
   <script src="finance-engine.js?v=20260923-finance-engine-4-investment-profile" defer></script>
   <script src="finance-stage6.js?v=20260827-clean-finance-stage6-tabs-static-1" defer></script>
@@ -15,6 +16,7 @@
   <script src="finance-payday-summaries.js?v=20260906-payday-summary-cards-13-loader-authority" defer></script>
   <script src="finance-payday-mission.js?v=20260902-payday-mission-breakdown-4-live-carryover-total" defer></script>
   <script src="finance-payday-checkout.js?v=20260923-payday-checkout-2-tiered-scouting" defer></script>
+  <script src="finance-isa.js?v=20260924-1" defer></script>
 </head>
 <body data-page="finance">
 <nav id="auroraNav"></nav><hr>
@@ -33,6 +35,7 @@
   <button type="button" data-tab="bills" aria-selected="false">Bills</button>
   <button type="button" data-tab="pots" aria-selected="false">Pots</button>
   <button type="button" data-tab="house" aria-selected="false">House Improvements</button>
+  <button type="button" data-tab="isa" aria-selected="false">ISA Allowance</button>
 </nav>
 
 <div class="finance-tab-panel-title" id="financeTabTitle">
@@ -114,13 +117,70 @@
 </section>
 </main>
 
+
+<main data-finance-tab="isa" hidden>
+<section class="department-section finance-manager-section">
+  <div class="section-heading">
+    <div><p class="eyebrow finance-eyebrow">2026/27 ISA CONTROL</p><h2>ISA Allowance & Flexible Replacement</h2></div>
+    <span id="isaStatusBadge">ON TRACK</span>
+  </div>
+  <p>Combined ISA position across Monzo, Trading 212 and IG. This tracks subscription allowance and flexible replacement capacity, not the current market value of your investments.</p>
+
+  <div class="isa-summary-grid">
+    <article class="isa-summary-card allowance"><span>Annual allowance</span><strong id="isaAnnualOut">£20,000.00</strong><small>Shared across all ISAs</small></article>
+    <article class="isa-summary-card used"><span>Used / counting now</span><strong id="isaUsedOut">£15,393.04</strong><small>Net current-year subscriptions</small></article>
+    <article class="isa-summary-card left"><span>New allowance left</span><strong id="isaLeftOut">£4,606.96</strong><small>Fresh money that can go to any ISA</small></article>
+    <article class="isa-summary-card flex"><span>IG flexible replacement</span><strong id="isaFlexibleOut">£50,510.31</strong><small>Replacement capacity tied to IG</small></article>
+    <article class="isa-summary-card ig"><span>Max additional into IG</span><strong id="isaIgMaxOut">£55,117.27</strong><small>If the normal allowance is not used elsewhere first</small></article>
+  </div>
+
+  <div class="isa-layout">
+    <section class="department-section finance-control" style="margin:0">
+      <div class="section-heading"><div><p class="eyebrow finance-eyebrow">PROVIDER FIGURES</p><h3>Allowance Inputs</h3></div><p>Editable</p></div>
+      <table class="isa-account-table">
+        <thead><tr><th>Account</th><th>Counts toward 2026/27</th><th>Flexible replacement</th></tr></thead>
+        <tbody>
+          <tr><td><b>Monzo Cash ISA</b><small>Current-year net contribution</small></td><td><input id="isaMonzoCash" type="number" min="0" step="0.01" value="753.04"></td><td>—</td></tr>
+          <tr><td><b>Monzo Stocks & Shares ISA</b><small>Current-year net contribution</small></td><td><input id="isaMonzoStocks" type="number" min="0" step="0.01" value="5200.00"></td><td>—</td></tr>
+          <tr><td><b>Trading 212 Stocks ISA</b><small>Current-year amount shown by Trading 212</small></td><td><input id="isaTrading212" type="number" min="0" step="0.01" value="9440.00"></td><td>—</td></tr>
+          <tr><td><b>IG Stocks & Shares ISA</b><small>Net current-year subscription after flexible withdrawals</small></td><td><input id="isaIgCurrentNet" type="number" min="0" step="0.01" value="0.00"></td><td><input id="isaIgFlexibleReplacement" type="number" min="0" step="0.01" value="50510.31"></td></tr>
+        </tbody>
+      </table>
+
+      <div class="finance-form-grid" style="margin-top:12px">
+        <label>Annual ISA Allowance<input id="isaAnnualAllowance" type="number" min="0" step="0.01" value="20000.00"><small>Overall 2026/27 ISA limit.</small></label>
+      </div>
+
+      <div class="isa-save-row">
+        <button id="isaSave" type="button" class="finance-primary">Save ISA Figures</button>
+        <button id="isaReset" type="button">Reset 24 Sep Snapshot</button>
+      </div>
+      <div id="isaSavedAt" class="isa-save-meta">Snapshot: 24/09/2026</div>
+    </section>
+
+    <section class="department-section finance-control" style="margin:0">
+      <div class="section-heading"><div><p class="eyebrow finance-eyebrow">LIVE GUARDRAIL</p><h3>What You Can Add</h3></div></div>
+
+      <div class="isa-guardrail green"><b>Fresh money to any ISA</b><strong id="isaAnyGuard">£4,606.96</strong><p>Your remaining normal 2026/27 allowance across all providers.</p></div>
+      <div class="isa-guardrail cyan"><b>IG replacement capacity</b><strong id="isaFlexibleGuard">£50,510.31</strong><p>Flexible replacement of previous-year money withdrawn from IG. Keep this separate from the normal £20,000 annual allowance.</p></div>
+      <div class="isa-guardrail purple"><b>Maximum additional into IG</b><strong id="isaIgGuard">£55,117.27</strong><p>IG replacement capacity plus your currently unused normal allowance, assuming you do not use that normal allowance elsewhere first.</p></div>
+      <div class="isa-guardrail red" id="isaOverGuard" hidden><b>Normal allowance exceeded</b><strong id="isaExceededOut">£0.00</strong><p>Check the provider figures before making another normal ISA subscription.</p></div>
+
+      <div class="isa-warning"><b>Do not add each provider’s “allowance left” together.</b> Each provider may only know about subscriptions and withdrawals on its own platform. Aurora combines the figures you enter here.</div>
+      <div class="isa-warning"><b>IG flexible replacement:</b> previous-year money withdrawn from a flexible ISA must be replaced into the same flexible ISA during the same tax year for the replacement treatment to apply.</div>
+    </section>
+  </div>
+</section>
+</main>
+
+
 <style>
-.finance-manage-list{display:grid;gap:10px}.finance-manage-card{display:flex;justify-content:space-between;gap:16px;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;background:rgba(255,255,255,.025)}.finance-manage-card strong,.finance-manage-card span,.finance-manage-card small{display:block}.finance-manage-card span{margin-top:5px}.finance-manage-card small{margin-top:4px;opacity:.7}.finance-manage-actions{display:flex;gap:8px;flex-wrap:wrap}.finance-manage-actions .danger,.house-ledger-controls .danger{border-color:rgba(255,90,110,.35);color:#ff9bad}.finance-pot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.finance-pot-card{border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;background:rgba(255,255,255,.025)}.finance-pot-card-head{display:flex;justify-content:space-between;gap:10px}.finance-pot-card-head small{display:block;margin-top:4px}.finance-pot-balance{font-size:26px;font-weight:900;margin:13px 0 8px}.finance-pot-progress{height:8px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin:9px 0}.finance-pot-progress i{display:block;height:100%;background:linear-gradient(90deg,#62f3ff,#50ff8f)}.finance-pot-card .finance-manage-actions{margin-top:12px}.house-funded-banner{border:1px solid rgba(120,255,170,.3);border-radius:20px;padding:18px;margin:14px 0 18px;background:linear-gradient(135deg,rgba(45,110,90,.18),rgba(20,60,90,.18))}.house-funded-banner>strong{display:block;font-size:42px;line-height:1}.house-funded-banner>span{display:block;margin-top:8px}.house-progress-track{height:9px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:14px}.house-progress-track i{display:block;height:100%;background:linear-gradient(90deg,#76e9ff,#85ffc0)}.house-room-card{border-bottom:3px solid #69e5ff}.house-add-room{display:flex;align-items:center;justify-content:center;min-height:110px}.house-ledger-card{align-items:flex-start}.house-ledger-main{flex:1}.house-status{display:inline-block;margin-top:10px;padding:4px 10px;border:1px solid rgba(255,255,255,.22);border-radius:999px;font-style:normal;font-weight:800;font-size:12px}.house-ledger-controls{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.house-ledger-controls label{display:grid;gap:5px}.house-ledger-controls input{max-width:130px}.house-room-heading{margin-top:24px}.finance-tabbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px auto 10px;max-width:1200px}.finance-tabbar button{padding:13px 16px;border-radius:15px;border:1px solid rgba(255,255,255,.1);background:rgba(9,22,38,.86);color:#9eb1c7;font-weight:900}.finance-tabbar button[aria-selected="true"]{color:#eaffff;border-color:rgba(34,211,238,.45);background:linear-gradient(135deg,rgba(34,211,238,.15),rgba(52,211,153,.1));box-shadow:0 0 22px rgba(34,211,238,.1)}.finance-tab-panel-title{max-width:1200px;margin:8px auto 14px;padding:0 2px}.finance-tab-panel-title h2{margin:3px 0}.finance-tab-panel-title p{margin:0;color:#8ea2b8}[data-finance-tab][hidden]{display:none!important}@media(max-width:700px){.finance-tabbar{grid-template-columns:1fr 1fr}.finance-manage-card{align-items:flex-start;flex-direction:column}.house-ledger-controls{width:100%}}
+.finance-manage-list{display:grid;gap:10px}.finance-manage-card{display:flex;justify-content:space-between;gap:16px;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;background:rgba(255,255,255,.025)}.finance-manage-card strong,.finance-manage-card span,.finance-manage-card small{display:block}.finance-manage-card span{margin-top:5px}.finance-manage-card small{margin-top:4px;opacity:.7}.finance-manage-actions{display:flex;gap:8px;flex-wrap:wrap}.finance-manage-actions .danger,.house-ledger-controls .danger{border-color:rgba(255,90,110,.35);color:#ff9bad}.finance-pot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.finance-pot-card{border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;background:rgba(255,255,255,.025)}.finance-pot-card-head{display:flex;justify-content:space-between;gap:10px}.finance-pot-card-head small{display:block;margin-top:4px}.finance-pot-balance{font-size:26px;font-weight:900;margin:13px 0 8px}.finance-pot-progress{height:8px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin:9px 0}.finance-pot-progress i{display:block;height:100%;background:linear-gradient(90deg,#62f3ff,#50ff8f)}.finance-pot-card .finance-manage-actions{margin-top:12px}.house-funded-banner{border:1px solid rgba(120,255,170,.3);border-radius:20px;padding:18px;margin:14px 0 18px;background:linear-gradient(135deg,rgba(45,110,90,.18),rgba(20,60,90,.18))}.house-funded-banner>strong{display:block;font-size:42px;line-height:1}.house-funded-banner>span{display:block;margin-top:8px}.house-progress-track{height:9px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:14px}.house-progress-track i{display:block;height:100%;background:linear-gradient(90deg,#76e9ff,#85ffc0)}.house-room-card{border-bottom:3px solid #69e5ff}.house-add-room{display:flex;align-items:center;justify-content:center;min-height:110px}.house-ledger-card{align-items:flex-start}.house-ledger-main{flex:1}.house-status{display:inline-block;margin-top:10px;padding:4px 10px;border:1px solid rgba(255,255,255,.22);border-radius:999px;font-style:normal;font-weight:800;font-size:12px}.house-ledger-controls{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.house-ledger-controls label{display:grid;gap:5px}.house-ledger-controls input{max-width:130px}.house-room-heading{margin-top:24px}.finance-tabbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:16px auto 10px;max-width:1200px}.finance-tabbar button{padding:13px 16px;border-radius:15px;border:1px solid rgba(255,255,255,.1);background:rgba(9,22,38,.86);color:#9eb1c7;font-weight:900}.finance-tabbar button[aria-selected="true"]{color:#eaffff;border-color:rgba(34,211,238,.45);background:linear-gradient(135deg,rgba(34,211,238,.15),rgba(52,211,153,.1));box-shadow:0 0 22px rgba(34,211,238,.1)}.finance-tab-panel-title{max-width:1200px;margin:8px auto 14px;padding:0 2px}.finance-tab-panel-title h2{margin:3px 0}.finance-tab-panel-title p{margin:0;color:#8ea2b8}[data-finance-tab][hidden]{display:none!important}@media(max-width:700px){.finance-tabbar{grid-template-columns:1fr 1fr}.finance-manage-card{align-items:flex-start;flex-direction:column}.house-ledger-controls{width:100%}}
 </style>
 
 <script>
 (() => {
-  const meta={payday:['PAYDAY INVESTMENT CHECKOUT','Payday allocation & investment checkout','Confirm the wage received, then let Aurora prepare the scouting plan, broker split and shopping list in one place.'],bills:['BILL CONTROL','Bills','Manage recurring bills and inspect the next payday cycle.'],pots:['POT CONTROL','Goal Pots','Manage pots and review the current funding plan.'],house:['HOUSE PROJECT','House Improvements','Renovation fund, room budgets and house payments.']};
+  const meta={payday:['PAYDAY INVESTMENT CHECKOUT','Payday allocation & investment checkout','Confirm the wage received, then let Aurora prepare the scouting plan, broker split and shopping list in one place.'],bills:['BILL CONTROL','Bills','Manage recurring bills and inspect the next payday cycle.'],pots:['POT CONTROL','Goal Pots','Manage pots and review the current funding plan.'],house:['HOUSE PROJECT','House Improvements','Renovation fund, room budgets and house payments.'],isa:['ISA CONTROL','ISA Allowance','Track the 2026/27 allowance across Monzo, Trading 212 and IG, including IG flexible replacement capacity.']};
   function select(id){if(!meta[id])id='payday';document.querySelectorAll('.finance-tabbar button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===id?'true':'false'));document.querySelectorAll('[data-finance-tab]').forEach(p=>p.hidden=p.dataset.financeTab!==id);const t=document.getElementById('financeTabTitle'),m=meta[id];if(t)t.innerHTML=`<p class="eyebrow">${m[0]}</p><h2>${m[1]}</h2><p>${m[2]}</p>`;try{sessionStorage.setItem('aurora-clean:finance-tab',id)}catch(_){} }
   document.querySelectorAll('.finance-tabbar button').forEach(b=>b.addEventListener('click',()=>select(b.dataset.tab)));
   let saved='payday';try{saved=sessionStorage.getItem('aurora-clean:finance-tab')||'payday'}catch(_){}select(saved);
