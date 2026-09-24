@@ -1,9 +1,35 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aurora Clean — Match Report</title><link rel="stylesheet" href="aurora.css?v=20260826-clean-shell-1"><script src="aurora.js?v=20260924-shell-8-unified" defer></script></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Aurora Clean — Match Report</title>
+  <link rel="stylesheet" href="aurora.css?v=20260924-match-report-command-1">
+  <link rel="stylesheet" href="match-report-command.css?v=20260924-match-report-command-1">
+  <script src="aurora.js?v=20260924-shell-8-unified" defer></script>
+  <script src="match-report-command.js?v=20260924-match-report-command-1" defer></script>
+</head>
 <body data-page="match-report">
 <nav id="auroraNav"></nav><hr>
-<h1>Match Report</h1>
-<p id="matchSummary">Loading…</p>
-<button id="buildMatchReport" type="button">Build Match Report</button>
-</body></html>
+<header class="department-hero">
+  <div>
+    <p class="eyebrow">AURORA CITY FC · MATCH REPORT</p>
+    <h1>Match Report</h1>
+    <p class="department-lead">A single current-state report across your portfolio, income, ISA allowance, pots, long-term assets and the live payday chain.</p>
+  </div>
+  <div class="match-report-actions">
+    <button id="buildMatchReport" type="button" class="finance-primary">Build Snapshot</button>
+  </div>
+</header>
+<section class="department-section">
+  <div class="section-heading">
+    <div><p class="eyebrow">REPORT SUMMARY</p><h2>Current Aurora position</h2></div>
+    <p id="matchReportMeta" class="match-report-meta">No saved report snapshot yet.</p>
+  </div>
+  <p id="matchSummary">Loading current Aurora position…</p>
+</section>
+<main id="matchReportCommand">
+  <section class="department-section"><p>Building Match Report…</p></section>
+</main>
+</body>
+</html>
