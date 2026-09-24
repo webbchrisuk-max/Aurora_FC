@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260923-scouting-allocation-5-tiered-ready';
+  const BUILD = '20260924-scouting-allocation-6-stable-ready';
   const CASH_CACHE = 'aurora-clean:transfer-broker-cash:v1';
   const BROKER_CASH_MIN_GBP = 200;
   const BUYING_POWER_TARGET_GBP = 1000;
@@ -211,13 +211,19 @@
     refresh();
   }
 
+  let refreshTimer = null;
+  function scheduleRefresh(delay = 700) {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(refresh, delay);
+  }
+
   function boot() {
     if (!window.AuroraClean) { setTimeout(boot, 50); return; }
     document.getElementById('scoutingApprovePlan')?.addEventListener('click', approvePlan);
-    refresh();
-    window.addEventListener('aurora-clean:state', refresh);
-    window.addEventListener('storage', event => { if (event.key === CASH_CACHE) refresh(); });
-    window.AuroraScoutingAllocation = Object.freeze({BUILD,BROKER_CASH_MIN_GBP,BUYING_POWER_TARGET_GBP,MAX_PAYDAY_PICKS,buildPlan,refresh,approvePlan,pickCountForBuyReady,eligibleBrokerCash});
+    scheduleRefresh(1900);
+    window.addEventListener('aurora-clean:state', () => scheduleRefresh(750));
+    window.addEventListener('storage', event => { if (event.key === CASH_CACHE) scheduleRefresh(500); });
+    window.AuroraScoutingAllocation = Object.freeze({BUILD,BROKER_CASH_MIN_GBP,BUYING_POWER_TARGET_GBP,MAX_PAYDAY_PICKS,buildPlan,refresh,scheduleRefresh,approvePlan,pickCountForBuyReady,eligibleBrokerCash});
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
