@@ -1,8 +1,10 @@
 (() => {
   'use strict';
 
-  const BUILD='20260827-nexus-command-next-dividend-2';
+  const BUILD='20260924-nexus-command-3-finance-overview';
   const INCOME_CACHE_KEY='aurora-clean:income-snapshot:v1';
+  const ISA_CACHE_KEY='aurora-clean:isa-tracker-v1';
+  const CASH_CACHE_KEY='aurora-clean:transfer-broker-cash:v1';
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(v||0));
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
@@ -22,6 +24,29 @@
       const cached=JSON.parse(localStorage.getItem(INCOME_CACHE_KEY)||'null');
       return cached?.snapshot&&typeof cached.snapshot==='object'?cached.snapshot:null;
     }catch(_){return null;}
+  }
+
+  function readJson(key){try{return JSON.parse(localStorage.getItem(key)||'null')}catch(_){return null}}
+  function financeOverview(state,m){
+    const pots=(state.finance?.pots||[]).filter(p=>!p?.archived);
+    const potType=p=>String(p?.type||'').trim().toLowerCase();
+    const investment=pots.find(p=>potType(p)==='investment'||String(p?.name||'').toLowerCase().includes('investment'));
+    const potTotal=pots.reduce((s,p)=>s+Math.max(0,num(p.balance)),0);
+    const investmentBook=Math.max(0,num(investment?.balance));
+    const assets=state.finance?.overviewAssets||{};
+    const monzoCurrent=Math.max(0,num(assets.monzoCurrent))||investmentBook;
+    const tescoSip=Math.max(0,num(assets.tescoSipCurrent));
+    const tescoOptions=Math.max(0,Math.round(num(assets.tescoOptions)));
+    const tescoPrice=Math.max(0,num(assets.tescoSharePricePence));
+    const tesco=tescoSip+tescoOptions*(tescoPrice/100);
+    const cash=readJson(CASH_CACHE_KEY)?.snapshot?.balances||{};
+    const brokerCash=(Number.isFinite(Number(cash.IG))?Math.max(0,num(cash.IG)):0)+(Number.isFinite(Number(cash.T212))?Math.max(0,num(cash.T212)):0);
+    const broker=brokerCash>0?brokerCash:Math.max(0,num(assets.brokerCash));
+    const tracked=Math.max(0,potTotal-investmentBook)+monzoCurrent+m.market+broker+tesco;
+    const isa=state.finance?.isaTracker||readJson(ISA_CACHE_KEY)||{};
+    const annual=Math.max(0,num(isa.annualAllowance)||20000);
+    const used=Math.max(0,num(isa.monzoCash)+num(isa.monzoStocks)+num(isa.trading212)+num(isa.igCurrentNet));
+    return{tracked,potTotal,monzoCurrent,tesco,brokerCash:broker,isaUsed:used,isaLeft:Math.max(0,annual-used),isaAnnual:annual};
   }
 
   function parseDividendDate(value){
@@ -110,11 +135,13 @@
 
   function render(){
     const A=window.AuroraClean;if(!A)return;
-    const state=A.readState(),m=metrics(state),c=chain(state),cards=departmentCards(state,m,c),health=overall(cards),div=nextDividend(state),chairman=openChairman(state);
+    const state=A.readState(),m=metrics(state),fin=financeOverview(state,m),c=chain(state),cards=departmentCards(state,m,c),health=overall(cards),div=nextDividend(state),chairman=openChairman(state);
     const master=document.getElementById('nexusMaster');
     if(master)master.innerHTML=`<article class="nexus-master-card"><div class="nexus-master-copy"><small>AURORA COMMAND STATUS</small><h2>${esc(c.next.title)}</h2><p>${esc(c.next.detail)}</p></div><div class="nexus-health-ring ${health.tone}"><div><strong>${health.label}</strong><span>SYSTEM</span></div></div></article><article class="nexus-action-card"><span class="nexus-card-label">NEXT MANAGER ACTION</span><h3>${esc(c.next.title)}</h3><p>${esc(c.next.detail)}</p><a href="${esc(c.next.href)}">Open department →</a></article>`;
     const strip=document.getElementById('nexusStrip');
     if(strip)strip.innerHTML=`
+      <article class="nexus-strip-card finances"><small class="nexus-card-label">TOTAL TRACKED FINANCES</small><strong>${money(fin.tracked)}</strong><small>Pots, Monzo investments, shares, broker cash and Tesco</small></article>
+      <article class="nexus-strip-card isa"><small class="nexus-card-label">ISA ALLOWANCE LEFT</small><strong>${money(fin.isaLeft)}</strong><small>${money(fin.isaUsed)} of ${money(fin.isaAnnual)} used</small></article>
       <article class="nexus-strip-card portfolio"><small class="nexus-card-label">PORTFOLIO VALUE</small><strong>${money(m.market)}</strong><small>P/L ${money(m.pnl)}</small></article>
       <article class="nexus-strip-card income"><small class="nexus-card-label">FORWARD INCOME</small><strong>${money(m.annual)}</strong><small>${money(m.monthly)} monthly average</small></article>
       <article class="nexus-strip-card scouting"><small class="nexus-card-label">SCOUTING NETWORK</small><strong>${(state.scouting?.candidates||[]).length.toLocaleString('en-GB')}</strong><small>${state.scouting?.allocationPlan?.allocations?.length||0} payday pick(s)</small></article>
@@ -135,7 +162,7 @@
     window.addEventListener('storage',event=>{if(event.key===INCOME_CACHE_KEY)render();});
     window.addEventListener('pageshow',render);
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')render();});
-    window.AuroraNexusCommand=Object.freeze({BUILD,render,metrics,chain,nextDividend});
+    window.AuroraNexusCommand=Object.freeze({BUILD,render,metrics,financeOverview,chain,nextDividend});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
