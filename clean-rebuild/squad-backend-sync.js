@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260901-squad-backend-sync-1';
+  const BUILD='20260924-squad-backend-sync-3-last-good-snapshot';
   const CONNECTION_KEY='aurora:data2:registration-connection:v2';
   const POLL_MS=30*1000;
   let busy=false;
@@ -64,8 +64,11 @@
       if(status)status.textContent=`${result.holdingCount||result.holdings.length} live position(s) loaded from Aurora backend.`;
       return result;
     }catch(error){
-      if(status)status.textContent=`Squad backend not ready: ${String(error?.message||error)}`;
-      throw error;
+      const state=window.AuroraClean?.readState?.()||{},count=Array.isArray(state.squad?.holdings)?state.squad.holdings.length:0,last=state.squad?.importedAt;
+      if(status)status.textContent=count
+        ? `Refresh incomplete — showing last verified Squad snapshot (${count} position${count===1?'':'s'}${last?` · ${new Date(last).toLocaleString('en-GB')}`:''}). Backend: ${String(error?.message||error)}`
+        : `Squad backend not ready: ${String(error?.message||error)}`;
+      return {ok:false,error:String(error?.message||error),usingLastGoodSnapshot:count>0};
     }finally{
       busy=false;
       if(btn){btn.disabled=false;btn.textContent='Refresh Live Squad';}
