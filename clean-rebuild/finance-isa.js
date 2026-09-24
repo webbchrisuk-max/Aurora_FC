@@ -2,6 +2,7 @@
   'use strict';
 
   const KEY='aurora-clean:isa-tracker-v1';
+  const BUILD='20260924-finance-isa-2-roundup-sync';
   const SNAPSHOT={
     taxYear:'2026/27',
     annualAllowance:20000,
@@ -111,6 +112,16 @@
     if(meta) meta.textContent='Saved: '+new Date(v.updatedAt).toLocaleString('en-GB');
   }
 
+  function refreshFromState(){
+    const saved=currentSaved();
+    writeInputs(saved);
+    render();
+    const meta=document.getElementById('isaSavedAt');
+    if(meta) meta.textContent=saved.updatedAt
+      ? 'Updated: '+new Date(saved.updatedAt).toLocaleString('en-GB')
+      : 'Snapshot: 24/09/2026';
+  }
+
   function reset(){
     writeInputs(SNAPSHOT);
     try{localStorage.removeItem(KEY);}catch(_){}
@@ -139,6 +150,7 @@
     if(meta) meta.textContent=saved.updatedAt
       ? 'Saved: '+new Date(saved.updatedAt).toLocaleString('en-GB')
       : 'Snapshot: 24/09/2026';
+    window.AuroraFinanceISA=Object.freeze({BUILD,SNAPSHOT,calculate,render,refreshFromState});
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
