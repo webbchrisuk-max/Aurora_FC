@@ -1,11 +1,11 @@
 (() => {
   'use strict';
 
-  const BUILD='20260906-payday-summary-cards-13-loader-authority';
+  const BUILD='20260924-payday-summary-cards-14-isa-roundup-sync';
   const ADDONS=[
     {src:'finance-bill-audit.js?v=20260906-finance-bill-audit-4',flag:'AuroraFinanceBillAudit',file:'finance-bill-audit.js'},
     {src:'finance-emergency-interest.js?v=20260906-finance-emergency-interest-5-single-loader',flag:'AuroraFinanceEmergencyInterest',file:'finance-emergency-interest.js'},
-    {src:'finance-emergency-roundups.js?v=20260906-finance-emergency-roundups-4-monzo-only-authority',flag:'AuroraFinanceEmergencyRoundups',file:'finance-emergency-roundups.js'},
+    {src:'finance-emergency-roundups.js?v=20260924-finance-emergency-roundups-5-isa-sync',flag:'AuroraFinanceEmergencyRoundups',file:'finance-emergency-roundups.js'},
     {src:'finance-monzo-webhook-sync.js?v=20260906-finance-monzo-webhook-sync-1',flag:'AuroraFinanceMonzoWebhookSync',file:'finance-monzo-webhook-sync.js'}
   ];
   const $=id=>document.getElementById(id);
