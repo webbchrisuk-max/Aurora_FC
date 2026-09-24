@@ -7,7 +7,7 @@
     monzoCurrent:5249.97,
     monzoPerformancePct:1.82,
     brokerCash:828.86,
-    tescoCurrent:0,
+    tescoCurrent:73939.77,
     tescoMaturityEstimate:0,
     tescoMaturityDate:'2029-03-01',
     updatedAt:'2026-09-24T19:18:00.000Z'
@@ -217,7 +217,9 @@
     if(!window.AuroraClean){setTimeout(boot,60);return}
     const state=window.AuroraClean.readState();
     if(!state.finance?.overviewAssets){
-      window.AuroraClean.updateState(next=>{ensureAssets(next)});
+      window.AuroraClean.updateState(next=>{const x=ensureAssets(next);x.tescoCurrent=73939.77;x.tescoSnapshotDate='2026-09-24';x.tescoSnapshotSource='TESCO_SHARE_SCHEMES_SCREENSHOT';});
+    }else if(!state.finance.overviewAssets.tescoSnapshotDate && !n(state.finance.overviewAssets.tescoCurrent)){
+      window.AuroraClean.updateState(next=>{const x=ensureAssets(next);x.tescoCurrent=73939.77;x.tescoSnapshotDate='2026-09-24';x.tescoSnapshotSource='TESCO_SHARE_SCHEMES_SCREENSHOT';x.updatedAt=new Date().toISOString();});
     }
     document.getElementById('financeOverviewEdit')?.addEventListener('click',edit);
     document.getElementById('financeOverviewRefresh')?.addEventListener('click',()=>refreshPortfolio());
