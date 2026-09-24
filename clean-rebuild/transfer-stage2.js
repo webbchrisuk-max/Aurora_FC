@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260911-transfer-funding-plan-8-locked-authority';
+  const BUILD='20260924-transfer-funding-plan-9-security-map';
   const CASH_CACHE='aurora-clean:transfer-broker-cash:v1';
   const BROKER_CASH_MIN_GBP=200;
   const TARGET_BUYING_POWER_GBP=1000;
@@ -36,6 +36,11 @@
         legId,ticker:r.ticker,name:r.name,yieldPct:Number(r.yieldPct||0),score:Number(r.score||0),selectionRank:rank,
         amount:round(Number(r.amount||0)*factor),fundingSource:'FINANCE',
         ...(account?{lockedAccount:account,account}:{}),
+        ...(old?.underlyingTicker?{underlyingTicker:old.underlyingTicker}:{}),
+        ...(old?.executionTicker?{executionTicker:old.executionTicker}:{}),
+        ...(old?.executionMarket?{executionMarket:old.executionMarket}:{}),
+        ...(old?.executionCurrency?{executionCurrency:old.executionCurrency}:{}),
+        ...(old?.securityName?{securityName:old.securityName}:{}),
         ...(old?.brokerAssignedAt?{brokerAssignedAt:old.brokerAssignedAt}:{})
       };
     }).filter(r=>r.ticker&&r.amount>0);
@@ -253,7 +258,7 @@
     if(route?.allocations?.length){
       const all=[...(route.allocations||[]).filter(r=>Number(r.amount||0)>0),...(route.brokerCashAllocations||[]).filter(r=>Number(r.amount||0)>0)];
       set('transferStage2RouteStatus',route.locked?(legacyLocked?'LOCKED · LEGACY FUNDING PLAN':'LOCKED'):routeBrokerReady(route)?'READY · BROKERS RESOLVED':'ROUTE BUILT · BROKER ASSIGNMENT REQUIRED');
-      if(rows)rows.innerHTML=all.length?all.map(r=>`<li><strong>${esc(r.ticker)}</strong> — ${money(r.amount)} — ${r.fundingSource==='BROKER_CASH'?`${esc(r.lockedAccount==='IG'?'IG ISA':'Trading 212 ISA')} CASH`:brokerCode(r)?esc(brokerCode(r)==='IG'?'IG ISA':'Trading 212 ISA'):'BROKER PENDING'} — projected annual income ${money(r.expectedAnnualIncome)}</li>`).join(''):'<li>No funded purchase legs yet.</li>';
+      if(rows)rows.innerHTML=all.length?all.map(r=>{const exec=upper(r.executionTicker),base=upper(r.underlyingTicker||r.ticker),security=exec&&exec!==base?`${esc(base)} → <b>${esc(exec)}</b>${r.executionMarket?` · ${esc(r.executionMarket)}`:''}`:esc(base);return `<li><strong>${security}</strong> — ${money(r.amount)} — ${r.fundingSource==='BROKER_CASH'?`${esc(r.lockedAccount==='IG'?'IG ISA':'Trading 212 ISA')} CASH`:brokerCode(r)?esc(brokerCode(r)==='IG'?'IG ISA':'Trading 212 ISA'):'BROKER PENDING'}${r.executionCurrency?` · ${esc(r.executionCurrency)}`:''} — projected annual income ${money(r.expectedAnnualIncome)}</li>`}).join(''):'<li>No funded purchase legs yet.</li>';
     }else if(preview?.allocations?.length){
       set('transferStage2RouteStatus','APPROVED PLAN READY TO BUILD');
       if(rows)rows.innerHTML=preview.allocations.filter(r=>Number(r.amount||0)>0).map(r=>`<li><strong>#${r.selectionRank} ${esc(r.ticker)}</strong> — ${money(r.amount)} — new Finance money · broker pending</li>`).join('');
