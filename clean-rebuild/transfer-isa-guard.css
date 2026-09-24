@@ -1,0 +1,10 @@
+.transfer-isa-guard{margin:14px 0;border:1px solid rgba(94,234,212,.25);border-radius:16px;padding:13px;background:linear-gradient(135deg,rgba(7,59,56,.17),rgba(7,18,30,.86))}
+.transfer-isa-guard-head{display:grid;grid-template-columns:1.2fr .8fr;gap:10px}
+.transfer-isa-guard-head>div{border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:11px;background:rgba(255,255,255,.022)}
+.transfer-isa-guard span{display:block;color:#7da0b5;font-size:9px;font-weight:900;letter-spacing:.1em}
+.transfer-isa-guard strong{display:block;margin:5px 0;font-size:18px}
+.transfer-isa-guard strong.good{color:#75e5ad}.transfer-isa-guard strong.bad,.transfer-isa-guard .warn{color:#ff9da6}
+.transfer-isa-guard small{display:block;color:#8197aa}
+.transfer-isa-guard label{display:flex;gap:8px;align-items:center;margin-top:10px;color:#bed1df;font-size:12px;font-weight:800}
+.transfer-isa-guard label input{width:auto}.transfer-isa-guard p{margin:9px 0 0;color:#95a9bb;font-size:12px}
+@media(max-width:700px){.transfer-isa-guard-head{grid-template-columns:1fr}}
