@@ -1,7 +1,9 @@
 (() => {
   'use strict';
 
-  const BUILD='20260905-finance-emergency-roundups-4-monzo-only-authority';
+  const BUILD='20260924-finance-emergency-roundups-5-isa-sync';
+  const ISA_TAX_YEAR='2026/27';
+  const ISA_MONZO_CASH_BASELINE=753.04;
   const MULTIPLIER=5;
   const MIN_ROUNDUP_PURCHASE_GBP=1;
   const RECONCILE_KEY='20260903_MONZO_GROW_1274_08';
@@ -38,8 +40,35 @@
     m.history=arr(m.history);
     m.processed=m.processed&&typeof m.processed==='object'?m.processed:{};
     m.repairs=m.repairs&&typeof m.repairs==='object'?m.repairs:{};
+    m.isaCounted=m.isaCounted&&typeof m.isaCounted==='object'?m.isaCounted:{};
     state.finance.cardSpends=arr(state.finance.cardSpends);
     return m;
+  }
+
+  function ensureIsaTracker(state){
+    state.finance=state.finance||{};
+    const existing=state.finance.isaTracker&&typeof state.finance.isaTracker==='object'?state.finance.isaTracker:{};
+    const tracker={...existing};
+    if(!tracker.taxYear)tracker.taxYear=ISA_TAX_YEAR;
+    if(tracker.taxYear!==ISA_TAX_YEAR)return tracker;
+    if(!Number.isFinite(Number(tracker.monzoCash)))tracker.monzoCash=ISA_MONZO_CASH_BASELINE;
+    state.finance.isaTracker=tracker;
+    return tracker;
+  }
+
+  function addRoundupToIsaAllowance(state,meta,sourceKey,credit,postedAt){
+    const amount=round(credit);if(!(amount>0)||!sourceKey)return 0;
+    if(meta.isaCounted?.[sourceKey])return 0;
+    const tracker=ensureIsaTracker(state);
+    if(tracker.taxYear!==ISA_TAX_YEAR)return 0;
+    tracker.monzoCash=round(num(tracker.monzoCash)+amount);
+    tracker.updatedAt=postedAt||new Date().toISOString();
+    tracker.monzoCashSource='MONZO_EMERGENCY_ROUNDUPS';
+    tracker.monzoCashRoundupsAdded=round(num(tracker.monzoCashRoundupsAdded)+amount);
+    meta.isaCounted[sourceKey]=amount;
+    meta.isaTrackingTaxYear=ISA_TAX_YEAR;
+    meta.isaTrackingStartedAt=meta.isaTrackingStartedAt||tracker.updatedAt;
+    return amount;
   }
 
   function sourceRows(state){
@@ -171,6 +200,7 @@
             postedAt:new Date().toISOString(),
             creditAuthority:x.authoritativeCredit!==null?'MONZO_WEBHOOK':'AURORA_MANUAL_CARD_SPEND'
           };
+          row.isaContributionAmount=addRoundupToIsaAllowance(next,m,x.key,credit,row.postedAt);
           m.history.push(row);results.push(row);
           p.lastRoundupAmount=credit;p.lastRoundupAt=row.postedAt;
         }
@@ -181,6 +211,9 @@
       next.finance.lastManagerChangeAt=m.lastProcessedAt;
       next.finance.lastManagerChangeReason=results.length?`Emergency Pot Monzo round-up added (${results.length})`:'Emergency Pot Monzo round-up scan';
     });
+    if(results.length){
+      try{window.AuroraFinanceISA?.refreshFromState?.()}catch(_){}
+    }
     return results;
   }
 
@@ -230,7 +263,7 @@
     document.addEventListener('click',e=>{if(e.target.closest?.('#paydayEmergencyLogSpend'))logCardSpend()});
     window.addEventListener('aurora-clean:state',()=>{const r=processDue();setTimeout(render,r.length?10:0)});
     window.addEventListener('pageshow',()=>{reconcileKnownGrowBalance();reconcileCurrentConfirmedMonzoBalance();processDue();setTimeout(render,0)});
-    window.AuroraFinanceEmergencyRoundups=Object.freeze({BUILD,MULTIPLIER,MIN_ROUNDUP_PURCHASE_GBP,roundupFor,creditForSource,reconcileKnownGrowBalance,reconcileCurrentConfirmedMonzoBalance,processDue,render,logCardSpend});
+    window.AuroraFinanceEmergencyRoundups=Object.freeze({BUILD,MULTIPLIER,MIN_ROUNDUP_PURCHASE_GBP,ISA_TAX_YEAR,ISA_MONZO_CASH_BASELINE,roundupFor,creditForSource,reconcileKnownGrowBalance,reconcileCurrentConfirmedMonzoBalance,processDue,render,logCardSpend});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
