@@ -1,14 +1,17 @@
 (() => {
   'use strict';
 
-  const BUILD='20260924-finance-overview-1';
+  const BUILD='20260924-finance-overview-3-tesco-current-price';
   const DEFAULTS=Object.freeze({
     monzoInvested:5138.78,
     monzoCurrent:5249.97,
     monzoPerformancePct:1.82,
     brokerCash:828.86,
+    tescoSipCurrent:5428.26,
+    tescoOptions:14363,
+    tescoSharePricePence:477.00,
     tescoCurrent:73939.77,
-    tescoMaturityEstimate:0,
+    tescoMaturityEstimate:68511.51,
     tescoMaturityDate:'2029-03-01',
     updatedAt:'2026-09-24T19:18:00.000Z'
   });
@@ -67,6 +70,15 @@
     })||null;
   }
 
+  function tescoMetrics(assets){
+    const sip=round(assets.tescoSipCurrent);
+    const options=Math.max(0,Math.round(n(assets.tescoOptions)));
+    const pricePence=round(assets.tescoSharePricePence);
+    const sayeAtCurrentPrice=round(options*(pricePence/100));
+    const currentTotal=round(sip+sayeAtCurrentPrice);
+    return {sip,options,pricePence,sayeAtCurrentPrice,currentTotal};
+  }
+
   function portfolioMetrics(state){
     const rows=arr(state?.squad?.holdings).filter(h=>n(h.shares)>0);
     return rows.reduce((out,h)=>{
@@ -88,15 +100,16 @@
     const potsForGrand=round(Math.max(0,potTotal-monzoBook));
     const portfolio=portfolioMetrics(state);
     const monzoGain=round(n(assets.monzoCurrent)-n(assets.monzoInvested));
+    const tesco=tescoMetrics(assets);
     const grand=round(
       potsForGrand+
       n(assets.monzoCurrent)+
       portfolio.market+
       n(assets.brokerCash)+
-      n(assets.tescoCurrent)
+      tesco.currentTotal
     );
     return {
-      pots,assets,emergency,house,monzoPot,potTotal,monzoBook,potsForGrand,portfolio,monzoGain,grand
+      pots,assets,emergency,house,monzoPot,potTotal,monzoBook,potsForGrand,portfolio,monzoGain,tesco,grand
     };
   }
 
@@ -125,10 +138,8 @@
     setText('financeOverviewSharesBook',`${m.portfolio.count} positions · book ${money(m.portfolio.book)}`);
     setText('financeOverviewIncome',money(m.portfolio.income));
     setText('financeOverviewBrokerCash',money(m.assets.brokerCash));
-    setText('financeOverviewTesco',n(m.assets.tescoCurrent)>0?money(m.assets.tescoCurrent):'Set value');
-    setText('financeOverviewTescoForecast',n(m.assets.tescoMaturityEstimate)>0
-      ? `Maturity estimate ${money(m.assets.tescoMaturityEstimate)} · ${String(m.assets.tescoMaturityDate||'').slice(0,10)}`
-      : 'Current Tesco value not set yet');
+    setText('financeOverviewTesco',money(m.tesco.currentTotal));
+    setText('financeOverviewTescoForecast',`SAYE at current ${m.tesco.pricePence.toFixed(2)}p share price: ${money(m.tesco.sayeAtCurrentPrice)} · ${m.tesco.options.toLocaleString('en-GB')} options · maturity ${String(m.assets.tescoMaturityDate||'').slice(0,10)}`);
     setText('financeOverviewDedupNote',m.monzoPot
       ? `Grand total uses the live Monzo Investments value instead of the ${money(m.monzoBook)} investment-pot book balance, so it is not counted twice.`
       : 'Grand total uses each tracked asset once.');
@@ -151,8 +162,9 @@
         <label>Monzo Investments · current value (£)<input id="financeOverviewEditMonzoCurrent" type="number" min="0" step="0.01"></label>
         <label>Monzo performance (%)<input id="financeOverviewEditMonzoPct" type="number" step="0.01"></label>
         <label>Broker cash total (£)<input id="financeOverviewEditBrokerCash" type="number" min="0" step="0.01"></label>
-        <label>Tesco current value (£)<input id="financeOverviewEditTesco" type="number" min="0" step="0.01"></label>
-        <label>Tesco maturity estimate (£)<input id="financeOverviewEditTescoForecast" type="number" min="0" step="0.01"></label>
+        <label>Tesco SIP current value (£)<input id="financeOverviewEditTescoSip" type="number" min="0" step="0.01"></label>
+        <label>Tesco SAYE options<input id="financeOverviewEditTescoOptions" type="number" min="0" step="1"></label>
+        <label>Tesco share price (pence)<input id="financeOverviewEditTescoPrice" type="number" min="0" step="0.01"></label>
         <label>Tesco maturity date<input id="financeOverviewEditTescoDate" type="date"></label>
       </div>
       <div class="finance-overview-dialog-actions"><button type="button" data-finance-overview-cancel>Cancel</button><button type="submit" class="finance-primary">Save Finance Values</button></div>
@@ -171,8 +183,9 @@
     $('financeOverviewEditMonzoCurrent').value=n(a.monzoCurrent).toFixed(2);
     $('financeOverviewEditMonzoPct').value=Number(a.monzoPerformancePct||0).toFixed(2);
     $('financeOverviewEditBrokerCash').value=n(a.brokerCash).toFixed(2);
-    $('financeOverviewEditTesco').value=n(a.tescoCurrent)?n(a.tescoCurrent).toFixed(2):'';
-    $('financeOverviewEditTescoForecast').value=n(a.tescoMaturityEstimate)?n(a.tescoMaturityEstimate).toFixed(2):'';
+    $('financeOverviewEditTescoSip').value=n(a.tescoSipCurrent)?n(a.tescoSipCurrent).toFixed(2):'';
+    $('financeOverviewEditTescoOptions').value=Math.round(n(a.tescoOptions))||'';
+    $('financeOverviewEditTescoPrice').value=n(a.tescoSharePricePence)?n(a.tescoSharePricePence).toFixed(2):'';
     $('financeOverviewEditTescoDate').value=String(a.tescoMaturityDate||'').slice(0,10);
     $('financeOverviewEditForm').onsubmit=e=>{
       e.preventDefault();
@@ -182,8 +195,12 @@
         x.monzoCurrent=round($('financeOverviewEditMonzoCurrent').value);
         x.monzoPerformancePct=Number($('financeOverviewEditMonzoPct').value)||0;
         x.brokerCash=round($('financeOverviewEditBrokerCash').value);
-        x.tescoCurrent=round($('financeOverviewEditTesco').value);
-        x.tescoMaturityEstimate=round($('financeOverviewEditTescoForecast').value);
+        x.tescoSipCurrent=round($('financeOverviewEditTescoSip').value);
+        x.tescoOptions=Math.max(0,Math.round(n($('financeOverviewEditTescoOptions').value)));
+        x.tescoSharePricePence=round($('financeOverviewEditTescoPrice').value);
+        const tm=tescoMetrics(x);
+        x.tescoMaturityEstimate=tm.sayeAtCurrentPrice;
+        x.tescoCurrent=tm.currentTotal;
         x.tescoMaturityDate=String($('financeOverviewEditTescoDate').value||'').slice(0,10);
         x.updatedAt=new Date().toISOString();
       });
@@ -217,9 +234,9 @@
     if(!window.AuroraClean){setTimeout(boot,60);return}
     const state=window.AuroraClean.readState();
     if(!state.finance?.overviewAssets){
-      window.AuroraClean.updateState(next=>{const x=ensureAssets(next);x.tescoCurrent=73939.77;x.tescoSnapshotDate='2026-09-24';x.tescoSnapshotSource='TESCO_SHARE_SCHEMES_SCREENSHOT';});
-    }else if(!state.finance.overviewAssets.tescoSnapshotDate && !n(state.finance.overviewAssets.tescoCurrent)){
-      window.AuroraClean.updateState(next=>{const x=ensureAssets(next);x.tescoCurrent=73939.77;x.tescoSnapshotDate='2026-09-24';x.tescoSnapshotSource='TESCO_SHARE_SCHEMES_SCREENSHOT';x.updatedAt=new Date().toISOString();});
+      window.AuroraClean.updateState(next=>{const x=ensureAssets(next);x.tescoSipCurrent=5428.26;x.tescoOptions=14363;x.tescoSharePricePence=477.00;const tm=tescoMetrics(x);x.tescoMaturityEstimate=tm.sayeAtCurrentPrice;x.tescoCurrent=tm.currentTotal;x.tescoSnapshotDate='2026-09-24';x.tescoSnapshotSource='TESCO_SHARE_SCHEMES_SCREENSHOT';});
+    }else if(!state.finance.overviewAssets.tescoSnapshotDate || !n(state.finance.overviewAssets.tescoSharePricePence)){
+      window.AuroraClean.updateState(next=>{const x=ensureAssets(next);x.tescoSipCurrent=5428.26;x.tescoOptions=14363;x.tescoSharePricePence=477.00;const tm=tescoMetrics(x);x.tescoMaturityEstimate=tm.sayeAtCurrentPrice;x.tescoCurrent=tm.currentTotal;x.tescoSnapshotDate='2026-09-24';x.tescoSnapshotSource='TESCO_SHARE_SCHEMES_SCREENSHOT';x.updatedAt=new Date().toISOString();});
     }
     document.getElementById('financeOverviewEdit')?.addEventListener('click',edit);
     document.getElementById('financeOverviewRefresh')?.addEventListener('click',()=>refreshPortfolio());
