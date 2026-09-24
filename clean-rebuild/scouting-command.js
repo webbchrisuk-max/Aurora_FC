@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD='20260923-chief-scout-command-5-ready-board';
+  const BUILD='20260924-chief-scout-command-6-stable-ready-board';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
@@ -131,17 +131,27 @@
     $('scoutingCommandApprove')?.addEventListener('click',()=>$('scoutingApprovePlan')?.click());
   }
 
+  let stableRenderTimer=null;
+  function renderPending(){
+    const host=ensureCommand();if(!host)return;
+    host.innerHTML='<div class="scouting-mission"><div class="scouting-mission-head"><div><p class="eyebrow scouting-eyebrow">CHIEF SCOUT · READY BOARD</p><h2>Finalising the live scouting board…</h2><p>Aurora is waiting for the universe, evidence and holding map to settle before publishing buy-ready prospects.</p></div><div class="scouting-budget-pill"><span>STATUS</span><strong>SYNCING</strong></div></div></div>';
+  }
+  function scheduleStableRender(delay=700){
+    clearTimeout(stableRenderTimer);
+    stableRenderTimer=setTimeout(()=>{render();setTimeout(moveNetwork,0)},delay);
+  }
+
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,60);return}
-    ensureAdminWrap();ensureIntelligence();render();
+    ensureAdminWrap();ensureIntelligence();renderPending();scheduleStableRender(1900);
     let attempts=0;
     const timer=setInterval(()=>{attempts++;if(moveNetwork()||attempts>100)clearInterval(timer)},100);
     const observer=new MutationObserver(()=>moveNetwork());
     observer.observe(document.body,{childList:true,subtree:true});
-    window.addEventListener('aurora-clean:state',()=>{render();setTimeout(moveNetwork,0)});
-    window.addEventListener('pageshow',()=>{render();setTimeout(moveNetwork,0)});
-    window.addEventListener('aurora:market-prices',render);
-    window.AuroraScoutingCommand=Object.freeze({BUILD,render,moveNetwork,syncCanonicalTopPick,readyBoard});
+    window.addEventListener('aurora-clean:state',()=>scheduleStableRender(750));
+    window.addEventListener('pageshow',()=>scheduleStableRender(500));
+    window.addEventListener('aurora:market-prices',()=>scheduleStableRender(650));
+    window.AuroraScoutingCommand=Object.freeze({BUILD,render,renderPending,scheduleStableRender,moveNetwork,syncCanonicalTopPick,readyBoard});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
