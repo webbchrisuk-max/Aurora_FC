@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260925-scouting-universe-3-broker-execution';
+  const BUILD = '20260925-scouting-universe-4-live-first';
   const STATE_KEY = 'aurora-clean:state:v1';
   const MASTER_URL = '../AuroraMaster.json?v=20260925-scouting-universe-3-broker-execution';
   const SHEET_ID = '1ZDdYmyDrvNuz3utKmgsToKL7NqsibzbWyIo0vg-TjcA';
@@ -125,7 +125,7 @@
   }
 
   async function fetchJson(url) {
-    const response = await fetch(url, {cache:'no-store'});
+    const response = await fetch(url, {cache:'default'});
     if (!response.ok) throw new Error(`HTTP ${response.status} from ${url}`);
     return response.json();
   }
@@ -144,14 +144,6 @@
     const livePools = Object.fromEntries(SOURCE_NAMES.map(name => [name, []]));
     const diagnostics = {build:BUILD, primaryWorkbook:'AuroraData 2 — Consolidated', primarySheetId:SHEET_ID, master:false, live:{}, errors:{}};
 
-    try {
-      const master = await fetchJson(MASTER_URL);
-      SOURCE_NAMES.forEach(name => { masterPools[name] = readTab(master, name); });
-      diagnostics.master = Object.values(masterPools).some(rows => rows.length);
-    } catch (error) {
-      diagnostics.errors.master = String(error?.message || error);
-    }
-
     await Promise.all(Object.entries(LIVE_FEEDS).map(async ([name,url]) => {
       try {
         const rows = rowsValue(await fetchJson(url));
@@ -162,6 +154,17 @@
         diagnostics.errors[name] = String(error?.message || error);
       }
     }));
+
+    const missingLive = SOURCE_NAMES.filter(name => !(livePools[name] || []).length);
+    if (missingLive.length) {
+      try {
+        const master = await fetchJson(MASTER_URL);
+        missingLive.forEach(name => { masterPools[name] = readTab(master, name); });
+        diagnostics.master = missingLive.some(name => (masterPools[name] || []).length);
+      } catch (error) {
+        diagnostics.errors.master = String(error?.message || error);
+      }
+    }
 
     const pools = {};
     SOURCE_NAMES.forEach(name => {
