@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD='20260925-scouting-enrichment-5-stale-only';
+  const BUILD='20260925-scouting-enrichment-6-refresh-gates';
   const SHEET_ID='1ZDdYmyDrvNuz3utKmgsToKL7NqsibzbWyIo0vg-TjcA';
   const GLOBAL_SHEET_ID='1N_kmoc9fwnwuWR1Jo0Qwi_0wF3Ifb5bTApnzlRNUSYk';
   const SOURCES={
@@ -134,8 +134,9 @@
     render(null);
     const state=window.AuroraClean.readState();
     const last=Date.parse(state.scouting?.enrichment?.lastRunAt||'');
-    const stale=!Number.isFinite(last)||(Date.now()-last)>10*60*1000;
-    if(stale)setTimeout(()=>sweep('startup-stale'),5000);
+    const buildChanged=state.scouting?.enrichment?.build!==BUILD;
+    const stale=buildChanged||!Number.isFinite(last)||(Date.now()-last)>10*60*1000;
+    if(stale)setTimeout(()=>sweep(buildChanged?'startup-build-refresh':'startup-stale'),2500);
     window.addEventListener('aurora-clean:state',()=>{if(!running)setTimeout(()=>render(lastSummary),0)});
     setInterval(()=>sweep('interval'),15*60*1000);
     window.AuroraScoutingEnrichment=Object.freeze({BUILD,SHEET_ID,sweep,render});
