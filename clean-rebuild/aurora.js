@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260904-sidebar-shell-5-fullscreen-mobile-nav';
+  const BUILD = '20260925-shell-9-assistant';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -307,4 +307,153 @@
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+
+
+/* Aurora Assistant · shell-level */
+(() => {
+  'use strict';
+
+  const PAGE_ALIASES = {
+    'registration-real':'registration',
+    'squad-real':'squad',
+    'income-real':'income',
+    'system-health-real':'system-health'
+  };
+
+  const PAGE_COPY = {
+    nexus:{eyebrow:'AURORA AI · NEXUS',title:'Manager Command Centre ready',message:'Welcome back, Webby. I’m available across the Clean build and I’ll stay out of the way until you need me.'},
+    finance:{eyebrow:'AURORA AI · FINANCE',title:'Finance assistant online',message:'Finance is ready. I can sit alongside the payday, pots, house and ISA views while you work.'},
+    transfer:{eyebrow:'AURORA AI · TRANSFER',title:'Transfer Centre ready',message:'I’m with you in Transfer. Review the route, broker assignment and Chairman decisions from the clean chain.'},
+    scouting:{eyebrow:'AURORA AI · SCOUTING',title:'Scouting network ready',message:'Scouting is online. I’ll keep this corner available while you review candidates, rankings and execution routes.'},
+    registration:{eyebrow:'AURORA AI · REGISTRATION',title:'Registration Desk ready',message:'Registration is ready for the locked clean route and broker execution checks.'},
+    squad:{eyebrow:'AURORA AI · SQUAD',title:'Squad intelligence ready',message:'Squad Hub is online. Your holdings, live values and income picture remain with the department that owns them.'},
+    income:{eyebrow:'AURORA AI · INCOME',title:'Income Centre ready',message:'Income is ready. I’ll stay alongside your dividend and forward-income view.'},
+    'match-report':{eyebrow:'AURORA AI · MATCH REPORT',title:'Match Report ready',message:'Build a current snapshot whenever you want one view across the Aurora departments.'},
+    'system-health':{eyebrow:'AURORA AI · SYSTEM HEALTH',title:'System control ready',message:'System Health is ready for live service, backend and clean-chain checks.'},
+    'club-control':{eyebrow:'AURORA AI · CLUB CONTROL',title:'Club Control ready',message:'Administration controls are ready for payday cycles, archives and the Clean runtime.'}
+  };
+
+  const money = value => new Intl.NumberFormat('en-GB',{
+    style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2
+  }).format(Number(value)||0);
+
+  function pageName(){
+    const raw=String(document.body?.dataset?.page||'nexus');
+    return PAGE_ALIASES[raw]||raw;
+  }
+
+  function safeState(){
+    try{return window.AuroraClean?.readState?.()||null;}
+    catch(_){return null;}
+  }
+
+  function contextualDetail(page,state){
+    if(!state)return 'Clean Build · page aware · online';
+    try{
+      if(page==='finance'){
+        const frozen=state.finance?.stage5PaydayDecision;
+        if(frozen && Number.isFinite(Number(frozen.maximumSafeRelease))){
+          return 'Current maximum safe release: '+money(frozen.maximumSafeRelease);
+        }
+        return 'Finance state connected · awaiting a frozen payday decision';
+      }
+      if(page==='transfer'){
+        const mission=state.transfer?.mission;
+        return mission && Number(mission.budget)>0
+          ? 'Transfer mission: '+String(mission.status||'ACTIVE')+' · '+money(mission.budget)
+          : 'No active transfer mission';
+      }
+      if(page==='scouting'){
+        const count=Array.isArray(state.scouting?.candidates)?state.scouting.candidates.length:0;
+        return count+' scouting candidate'+(count===1?'':'s')+' in clean state';
+      }
+      if(page==='registration'){
+        const route=state.transfer?.route;
+        const receipts=Array.isArray(state.registration?.receipts)?state.registration.receipts.length:0;
+        return (route?.locked?'Locked route ready':'No locked route')+' · '+receipts+' receipt'+(receipts===1?'':'s');
+      }
+      if(page==='squad'){
+        const count=Array.isArray(state.squad?.holdings)?state.squad.holdings.length:0;
+        return count+' squad holding'+(count===1?'':'s')+' in clean state';
+      }
+      if(page==='income'){
+        const annual=window.AuroraClean?.annualIncome?.(state);
+        if(Number.isFinite(Number(annual)))return 'Forward annual income: '+money(annual);
+      }
+      if(page==='nexus'){
+        const frozen=state.finance?.stage5PaydayDecision;
+        if(frozen && Number.isFinite(Number(frozen.maximumSafeRelease))){
+          return 'Clean command state connected · safe release '+money(frozen.maximumSafeRelease);
+        }
+        return 'Clean command state connected';
+      }
+    }catch(_){}
+    return 'Clean Build · page aware · online';
+  }
+
+  function installAssistant(){
+    if(document.getElementById('auroraAssistant'))return;
+
+    const root=document.createElement('div');
+    root.id='auroraAssistant';
+    root.className='aurora-assistant';
+    root.innerHTML=[
+      '<section id="auroraAssistantPanel" class="aurora-assistant-panel" hidden aria-live="polite">',
+        '<header class="aurora-assistant-head">',
+          '<span class="aurora-assistant-mini"><img src="assets/aurora-assistant.webp" alt=""></span>',
+          '<div><small id="auroraAssistantEyebrow">AURORA AI</small><strong id="auroraAssistantTitle">Assistant ready</strong></div>',
+          '<button type="button" class="aurora-assistant-close" aria-label="Close Aurora assistant">×</button>',
+        '</header>',
+        '<div class="aurora-assistant-body">',
+          '<p id="auroraAssistantMessage">I’m ready.</p>',
+          '<span id="auroraAssistantDetail">Clean Build · online</span>',
+        '</div>',
+      '</section>',
+      '<span class="aurora-assistant-label" aria-hidden="true">AURORA AI</span>',
+      '<button type="button" class="aurora-assistant-launcher" aria-label="Open Aurora assistant" aria-controls="auroraAssistantPanel" aria-expanded="false">',
+        '<img src="assets/aurora-assistant.webp" alt="">',
+        '<span class="aurora-assistant-status" aria-hidden="true"></span>',
+      '</button>'
+    ].join('');
+
+    document.body.appendChild(root);
+
+    const panel=root.querySelector('#auroraAssistantPanel');
+    const launcher=root.querySelector('.aurora-assistant-launcher');
+    const close=root.querySelector('.aurora-assistant-close');
+
+    function refresh(){
+      const page=pageName();
+      const copy=PAGE_COPY[page]||{eyebrow:'AURORA AI',title:'Aurora assistant ready',message:'I’m available across the Clean build.'};
+      const state=safeState();
+      root.querySelector('#auroraAssistantEyebrow').textContent=copy.eyebrow;
+      root.querySelector('#auroraAssistantTitle').textContent=copy.title;
+      root.querySelector('#auroraAssistantMessage').textContent=copy.message;
+      root.querySelector('#auroraAssistantDetail').textContent=contextualDetail(page,state);
+    }
+
+    function setOpen(open){
+      panel.hidden=!open;
+      launcher.setAttribute('aria-expanded',String(open));
+      root.classList.toggle('is-open',open);
+      if(open)refresh();
+    }
+
+    launcher.addEventListener('click',()=>setOpen(panel.hidden));
+    close.addEventListener('click',()=>setOpen(false));
+    document.addEventListener('keydown',event=>{if(event.key==='Escape')setOpen(false);});
+    document.addEventListener('pointerdown',event=>{
+      if(!panel.hidden && !root.contains(event.target))setOpen(false);
+    });
+    window.addEventListener('aurora-clean:state',refresh);
+    window.addEventListener('storage',event=>{
+      if(event.key==='aurora-clean:state:v1')refresh();
+    });
+
+    refresh();
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installAssistant,{once:true});
+  else installAssistant();
 })();
