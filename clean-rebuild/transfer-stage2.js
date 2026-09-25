@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260924-transfer-funding-plan-9-security-map';
+  const BUILD='20260925-transfer-funding-plan-10-scout-broker-route';
   const CASH_CACHE='aurora-clean:transfer-broker-cash:v1';
   const BROKER_CASH_MIN_GBP=200;
   const TARGET_BUYING_POWER_GBP=1000;
@@ -31,17 +31,22 @@
       const rank=Number(r.selectionRank||i+1);
       const legId=`LEG-${hash(`${mission.id}|FINANCE|${i}|${r.ticker}|${r.amount}`)}`;
       const old=existing.find(x=>String(x.legId||'')===legId)||existing.find(x=>upper(x.ticker)===upper(r.ticker)&&Number(x.selectionRank||0)===rank);
-      const account=brokerCode(old);
+      const account=brokerCode(old)||brokerCode(r);
+      const sourceSpec=account&&window.AuroraTransferBrokerAssign?.executionSpec
+        ? window.AuroraTransferBrokerAssign.executionSpec(r,account)
+        : {};
       return {
         legId,ticker:r.ticker,name:r.name,yieldPct:Number(r.yieldPct||0),score:Number(r.score||0),selectionRank:rank,
         amount:round(Number(r.amount||0)*factor),fundingSource:'FINANCE',
+        ...(r.preferredBroker?{preferredBroker:r.preferredBroker}:{}),
+        ...(r.brokerLocked===true?{brokerLocked:true}:{}),
         ...(account?{lockedAccount:account,account}:{}),
-        ...(old?.underlyingTicker?{underlyingTicker:old.underlyingTicker}:{}),
-        ...(old?.executionTicker?{executionTicker:old.executionTicker}:{}),
-        ...(old?.executionMarket?{executionMarket:old.executionMarket}:{}),
-        ...(old?.executionCurrency?{executionCurrency:old.executionCurrency}:{}),
-        ...(old?.securityName?{securityName:old.securityName}:{}),
-        ...(old?.brokerAssignedAt?{brokerAssignedAt:old.brokerAssignedAt}:{})
+        ...((old?.underlyingTicker||r.underlyingTicker||sourceSpec.underlyingTicker)?{underlyingTicker:old?.underlyingTicker||r.underlyingTicker||sourceSpec.underlyingTicker}:{}),
+        ...((old?.executionTicker||r.executionTicker||sourceSpec.executionTicker)?{executionTicker:old?.executionTicker||r.executionTicker||sourceSpec.executionTicker}:{}),
+        ...((old?.executionMarket||r.executionMarket||sourceSpec.executionMarket)?{executionMarket:old?.executionMarket||r.executionMarket||sourceSpec.executionMarket}:{}),
+        ...((old?.executionCurrency||r.executionCurrency||sourceSpec.executionCurrency)?{executionCurrency:old?.executionCurrency||r.executionCurrency||sourceSpec.executionCurrency}:{}),
+        ...((old?.securityName||sourceSpec.securityName)?{securityName:old?.securityName||sourceSpec.securityName}:{}),
+        ...(old?.brokerAssignedAt?{brokerAssignedAt:old.brokerAssignedAt}:account?{brokerAssignedAt:r.brokerSnapshotDate||new Date().toISOString()}:{})
       };
     }).filter(r=>r.ticker&&r.amount>0);
     let allocated=round(allocations.reduce((s,r)=>s+r.amount,0));
