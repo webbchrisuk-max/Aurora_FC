@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260926-shell-14-ai-runtime-fix';
+  const BUILD = '20260926-shell-15-ai-resilient';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -314,7 +314,7 @@
 (() => {
   'use strict';
 
-  const ASSISTANT_BUILD='20260926-aurora-conversation-6-selective-context-fix';
+  const ASSISTANT_BUILD='20260926-aurora-conversation-7-resilient';
   const SESSION_OPEN='aurora-clean:assistant-open:v2';
   const SESSION_PENDING='aurora-clean:assistant-pending:v2';
   const SESSION_HISTORY='aurora-clean:assistant-history:v2';
@@ -1300,19 +1300,25 @@
         const prior=history.slice(-7);
         if(prior.length&&prior[prior.length-1].role==='user'&&prior[prior.length-1].text===command)prior.pop();
         const currentPage=pageName();
-        const plan=aiContextPlan_(command,currentPage);
-        const fullLocalContext=aiContextSnapshot(safeState(),currentPage);
-        const localContext=aiSelectLocalContext_(fullLocalContext,plan);
-        let liveBackend=null;
+        let context={page:currentPage,generatedAt:new Date().toISOString(),stateAvailable:!!safeState(),contextMode:'minimal-fallback'};
         try{
-          liveBackend=await aiLiveBackendContext_(client,plan);
-        }catch(_){
-          liveBackend={available:false,fetchedAt:new Date().toISOString(),failures:['live backend context unavailable']};
+          const plan=aiContextPlan_(command,currentPage);
+          const fullLocalContext=aiContextSnapshot(safeState(),currentPage);
+          const localContext=aiSelectLocalContext_(fullLocalContext,plan);
+          let liveBackend=null;
+          try{
+            liveBackend=await aiLiveBackendContext_(client,plan);
+          }catch(liveError){
+            console.warn('Aurora AI live context unavailable',liveError);
+          }
+          context=liveBackend?{...localContext,liveBackend}:localContext;
+        }catch(contextError){
+          console.warn('Aurora AI context build failed; using minimal context',contextError);
         }
         const response=await client.post('aiChat',{
           message:command,
           page:currentPage,
-          context:liveBackend?{...localContext,liveBackend}:localContext,
+          context,
           history:prior.slice(-6).map(row=>({
             role:row.role==='ai'?'assistant':'user',
             text:String(row.text||'').slice(0,1800)
@@ -1445,6 +1451,61 @@
       return true;
     }
 
+    async function answerNextDividend(){
+      if(remoteBusy)return;
+      setRemoteBusy(true);
+      const thinking=thinkingMessage();
+      try{
+        const client=await ensureBackendClient();
+        const snapshot=await client.get('incomeSnapshot',{});
+        const rows=Array.isArray(snapshot?.dividends)?snapshot.dividends:[];
+        const start=new Date();start.setHours(0,0,0,0);
+        const parseDate=value=>{
+          const raw=String(value||'').trim();
+          if(!raw)return null;
+          const d=/^\d{4}-\d{2}-\d{2}$/.test(raw)?new Date(raw+'T12:00:00'):new Date(raw);
+          return Number.isNaN(d.getTime())?null:d;
+        };
+        const upcoming=rows.map(raw=>{
+          const payDate=parseDate(raw?.payDate??raw?.pay_date??raw?.paymentDate??raw?.payment_date);
+          const status=upper(raw?.status||'FORECAST');
+          const shares=Math.max(0,num(raw?.sharesEligible??raw?.shares_eligible??raw?.eligibleShares));
+          const dps=Math.max(0,num(raw?.dividendPerShareGbp??raw?.dividend_per_share_gbp??raw?.dpsGbp));
+          const explicit=Math.max(0,num(raw?.expectedAmountGbp??raw?.expected_amount_gbp??raw?.grossDividendGbp??raw?.gross_dividend_gbp));
+          return{
+            ticker:upper(raw?.ticker||raw?.symbol),
+            account:String(raw?.account||''),
+            payDate,
+            exDate:parseDate(raw?.exDate??raw?.ex_date),
+            amount:explicit>0?explicit:(shares>0&&dps>0?shares*dps:0),
+            status
+          };
+        }).filter(row=>row.ticker&&row.payDate&&row.payDate>=start&&!/ARCHIVED|CANCELLED|CANCELED|MISSED|PAID/.test(row.status))
+          .sort((a,b)=>a.payDate-b.payDate||b.amount-a.amount);
+
+        thinking.remove();
+        const next=upcoming[0];
+        if(!next){
+          addMessage('ai','I cannot see a future-dated dividend in the current AuroraData 2 income snapshot.');
+          return;
+        }
+        const pay=next.payDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+        const ex=next.exDate?next.exDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'';
+        let answer='Your next recorded dividend is '+next.ticker+' — '+money(next.amount)+' due '+pay;
+        if(next.account)answer+=' in '+next.account;
+        if(ex)answer+=' · ex-dividend '+ex;
+        answer+='.';
+        addMessage('ai',answer);
+      }catch(error){
+        thinking.remove();
+        const raw=String(error?.message||error||'Income snapshot unavailable.');
+        console.error('Aurora next-dividend lookup failed',error);
+        addMessage('ai','I could not read the dividend feed just now. '+raw);
+      }finally{
+        setRemoteBusy(false);
+      }
+    }
+
     function help(){
       addMessage('ai','Try commands such as “what needs attention?”, “page status”, “show ISA allowance”, “show house improvements”, “why is my safe release lower?”, “open Transfer”, “refresh broker cash”, or “build match report”. I will not execute purchases, lock routes or reset data from chat.');
     }
@@ -1476,6 +1537,9 @@
       }
       if(q.includes('transfer mission')||q.includes('transfer status')){
         addMessage('ai',pageStatus('transfer',state),[{label:'Open Transfer',command:'open transfer'}]);return;
+      }
+      if(/\b(next dividend|next payment|upcoming dividend)\b/.test(q)){
+        answerNextDividend();return;
       }
       if(q.includes('income status')||q.includes('dividend income')){
         addMessage('ai',pageStatus('income',state),[{label:'Open Income',command:'open income'}]);return;
