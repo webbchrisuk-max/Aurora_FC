@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260925-shell-9-assistant';
+  const BUILD = '20260925-shell-10-copilot';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -314,29 +314,66 @@
 (() => {
   'use strict';
 
-  const PAGE_ALIASES = {
+  const ASSISTANT_BUILD='20260925-aurora-copilot-2';
+  const SESSION_OPEN='aurora-clean:assistant-open:v2';
+  const SESSION_PENDING='aurora-clean:assistant-pending:v2';
+  const SESSION_HISTORY='aurora-clean:assistant-history:v2';
+
+  const PAGE_ALIASES={
     'registration-real':'registration',
     'squad-real':'squad',
     'income-real':'income',
     'system-health-real':'system-health'
   };
 
-  const PAGE_COPY = {
-    nexus:{eyebrow:'AURORA AI · NEXUS',title:'Manager Command Centre ready',message:'Welcome back, Webby. I’m available across the Clean build and I’ll stay out of the way until you need me.'},
-    finance:{eyebrow:'AURORA AI · FINANCE',title:'Finance assistant online',message:'Finance is ready. I can sit alongside the payday, pots, house and ISA views while you work.'},
-    transfer:{eyebrow:'AURORA AI · TRANSFER',title:'Transfer Centre ready',message:'I’m with you in Transfer. Review the route, broker assignment and Chairman decisions from the clean chain.'},
-    scouting:{eyebrow:'AURORA AI · SCOUTING',title:'Scouting network ready',message:'Scouting is online. I’ll keep this corner available while you review candidates, rankings and execution routes.'},
-    registration:{eyebrow:'AURORA AI · REGISTRATION',title:'Registration Desk ready',message:'Registration is ready for the locked clean route and broker execution checks.'},
-    squad:{eyebrow:'AURORA AI · SQUAD',title:'Squad intelligence ready',message:'Squad Hub is online. Your holdings, live values and income picture remain with the department that owns them.'},
-    income:{eyebrow:'AURORA AI · INCOME',title:'Income Centre ready',message:'Income is ready. I’ll stay alongside your dividend and forward-income view.'},
-    'match-report':{eyebrow:'AURORA AI · MATCH REPORT',title:'Match Report ready',message:'Build a current snapshot whenever you want one view across the Aurora departments.'},
-    'system-health':{eyebrow:'AURORA AI · SYSTEM HEALTH',title:'System control ready',message:'System Health is ready for live service, backend and clean-chain checks.'},
-    'club-control':{eyebrow:'AURORA AI · CLUB CONTROL',title:'Club Control ready',message:'Administration controls are ready for payday cycles, archives and the Clean runtime.'}
+  const PAGE_URLS={
+    nexus:'index.html',
+    finance:'finance.html',
+    scouting:'scouting.html',
+    transfer:'transfer.html',
+    registration:'registration.html',
+    squad:'squad.html',
+    income:'income.html',
+    'match-report':'match-report.html',
+    'system-health':'system-health.html',
+    'club-control':'club-control.html'
   };
 
-  const money = value => new Intl.NumberFormat('en-GB',{
+  const PAGE_COPY={
+    nexus:{eyebrow:'AURORA AI · NEXUS',title:'Nexus co-pilot',message:'I can read the Clean state, find what needs attention and take you to the right department.'},
+    finance:{eyebrow:'AURORA AI · FINANCE',title:'Finance co-pilot',message:'Ask about the safe release, ISA allowance, pots, bills, house fund or payday position.'},
+    transfer:{eyebrow:'AURORA AI · TRANSFER',title:'Transfer co-pilot',message:'I can explain the current mission, show route status and refresh broker cash. Locks and approvals stay with you.'},
+    scouting:{eyebrow:'AURORA AI · SCOUTING',title:'Scouting co-pilot',message:'I can report candidate and plan status, highlight this page and route you into Transfer when you are ready.'},
+    registration:{eyebrow:'AURORA AI · REGISTRATION',title:'Registration co-pilot',message:'I can tell you whether a locked route is waiting here and take you back to Transfer or on to Squad.'},
+    squad:{eyebrow:'AURORA AI · SQUAD',title:'Squad co-pilot',message:'I can summarise your holdings and forward income, then take you into Income or Match Report.'},
+    income:{eyebrow:'AURORA AI · INCOME',title:'Income co-pilot',message:'I can summarise forward income and move between Income, Squad and Match Report.'},
+    'match-report':{eyebrow:'AURORA AI · MATCH REPORT',title:'Match Report co-pilot',message:'I can build a fresh report snapshot or take you to the department behind a result.'},
+    'system-health':{eyebrow:'AURORA AI · SYSTEM HEALTH',title:'System Health co-pilot',message:'I can run the page’s live service checks and help you jump to the affected department.'},
+    'club-control':{eyebrow:'AURORA AI · CLUB CONTROL',title:'Club Control co-pilot',message:'I can explain the clean-chain position and navigate administration without running destructive controls.'}
+  };
+
+  const QUICK_ACTIONS={
+    nexus:[['What needs attention?','attention'],['Finance','open finance'],['Transfer','open transfer'],['System Health','open system health']],
+    finance:[['What needs attention?','attention'],['ISA Allowance','show isa allowance'],['House','show house improvements'],['Payday','show payday']],
+    transfer:[['What needs attention?','attention'],['Refresh Broker Cash','refresh broker cash'],['Scouting','open scouting'],['Registration','open registration']],
+    scouting:[['What needs attention?','attention'],['Page Status','page status'],['Transfer','open transfer'],['Finance','open finance']],
+    registration:[['What needs attention?','attention'],['Page Status','page status'],['Transfer','open transfer'],['Squad','open squad']],
+    squad:[['What needs attention?','attention'],['Page Status','page status'],['Income','open income'],['Match Report','open match report']],
+    income:[['What needs attention?','attention'],['Page Status','page status'],['Squad','open squad'],['Match Report','open match report']],
+    'match-report':[['Build Snapshot','build match report'],['What needs attention?','attention'],['Nexus','open nexus'],['Finance','open finance']],
+    'system-health':[['Run Service Checks','run service checks'],['What needs attention?','attention'],['Nexus','open nexus'],['Club Control','open club control']],
+    'club-control':[['What needs attention?','attention'],['Nexus','open nexus'],['System Health','open system health'],['Page Status','page status']]
+  };
+
+  const money=value=>new Intl.NumberFormat('en-GB',{
     style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2
   }).format(Number(value)||0);
+
+  const upper=value=>String(value||'').trim().toUpperCase();
+  const num=value=>{
+    const n=Number(String(value??'').replace(/[^0-9.-]/g,''));
+    return Number.isFinite(n)?n:0;
+  };
 
   function pageName(){
     const raw=String(document.body?.dataset?.page||'nexus');
@@ -348,25 +385,123 @@
     catch(_){return null;}
   }
 
+  function readJSON(key){
+    try{return JSON.parse(localStorage.getItem(key)||'null');}
+    catch(_){return null;}
+  }
+
+  function writeSession(key,value){
+    try{sessionStorage.setItem(key,typeof value==='string'?value:JSON.stringify(value));}
+    catch(_){}
+  }
+
+  function readSession(key){
+    try{return sessionStorage.getItem(key);}
+    catch(_){return null;}
+  }
+
+  function readHistory(){
+    try{
+      const rows=JSON.parse(readSession(SESSION_HISTORY)||'[]');
+      return Array.isArray(rows)?rows.slice(-14):[];
+    }catch(_){return[];}
+  }
+
+  function saveHistory(rows){
+    try{writeSession(SESSION_HISTORY,rows.slice(-14));}
+    catch(_){}
+  }
+
+  function missionActive(mission){
+    return !!mission && !['COMPLETE','CANCELLED'].includes(upper(mission.status)) && num(mission.budget)>0;
+  }
+
+  function financeSummary(state){
+    try{
+      return window.AuroraClean?.financeSummary?.(state?.finance)||null;
+    }catch(_){return null;}
+  }
+
+  function annualIncome(state){
+    try{
+      const v=window.AuroraClean?.annualIncome?.(state);
+      return Number.isFinite(Number(v))?Number(v):0;
+    }catch(_){return 0;}
+  }
+
+  function isaSummary(state){
+    const tracker=state?.finance?.isaTracker||readJSON('aurora-clean:isa-tracker-v1')||{};
+    const annual=Math.max(0,num(tracker.annualAllowance)||20000);
+    const used=Math.max(0,num(tracker.monzoCash)+num(tracker.monzoStocks)+num(tracker.trading212)+num(tracker.igCurrentNet));
+    return{
+      annual,
+      used,
+      left:Math.max(0,annual-used),
+      flexible:Math.max(0,num(tracker.igFlexibleReplacement))
+    };
+  }
+
+  function buildAttention(state){
+    if(!state)return[{level:'warn',title:'Clean state unavailable',detail:'Aurora AI could not read the current Clean state.',page:'system-health'}];
+
+    const items=[];
+    const frozen=state.finance?.stage5PaydayDecision;
+    const mission=state.transfer?.mission;
+    const route=state.transfer?.route;
+    const plan=state.scouting?.allocationPlan;
+    const receipts=Array.isArray(state.registration?.receipts)?state.registration.receipts:[];
+    const holdings=Array.isArray(state.squad?.holdings)?state.squad.holdings:[];
+
+    if(!frozen){
+      items.push({level:'warn',title:'Finance payday decision not frozen',detail:'Complete the Finance payday chain before Transfer can rely on a final safe-release figure.',page:'finance',tab:'payday',target:'#financeTabTitle'});
+    }
+
+    if(missionActive(mission)){
+      if(!plan?.allocations?.length){
+        items.push({level:'warn',title:'Scouting plan needed',detail:'An active Finance mission exists, but there is no allocation plan ready for Transfer.',page:'scouting'});
+      }else if(upper(plan.status)!=='APPROVED'){
+        items.push({level:'warn',title:'Scouting plan awaiting approval',detail:'The allocation plan exists but is not yet marked APPROVED.',page:'scouting'});
+      }else if(!route?.allocations?.length){
+        items.push({level:'warn',title:'Transfer route not built',detail:'The approved Scouting plan is ready for Transfer to build a broker route.',page:'transfer',target:'#transferStage2Rows'});
+      }else if(route?.locked!==true){
+        items.push({level:'warn',title:'Transfer route not locked',detail:'A route exists but still needs broker resolution and your explicit lock action.',page:'transfer',target:'#transferStage2RouteStatus'});
+      }else if(upper(mission.status)!=='COMPLETE'){
+        items.push({level:'warn',title:'Registration execution pending',detail:'The Transfer route is locked and is waiting for the Registration stage to finish.',page:'registration'});
+      }
+    }
+
+    if(route?.locked===true && upper(mission?.status)!=='COMPLETE' && receipts.length===0 && !items.some(x=>x.page==='registration')){
+      items.push({level:'warn',title:'No Registration receipt yet',detail:'The locked route has no recorded Registration receipt in the Clean state.',page:'registration'});
+    }
+
+    if(!holdings.length){
+      items.push({level:'info',title:'Squad holdings are empty',detail:'Squad has no holdings in the Clean state to report.',page:'squad'});
+    }
+
+    const summary=financeSummary(state);
+    if(frozen && summary && summary.safeSurplus>0 && !missionActive(mission)){
+      items.push({level:'info',title:'Safe release is available',detail:money(summary.safeSurplus)+' is currently shown as maximum safe release, with no active Transfer mission.',page:'finance',tab:'payday',target:'#financeDecisionSafe'});
+    }
+
+    return items.slice(0,6);
+  }
+
   function contextualDetail(page,state){
-    if(!state)return 'Clean Build · page aware · online';
+    if(!state)return 'Clean Build · state unavailable';
     try{
       if(page==='finance'){
-        const frozen=state.finance?.stage5PaydayDecision;
-        if(frozen && Number.isFinite(Number(frozen.maximumSafeRelease))){
-          return 'Current maximum safe release: '+money(frozen.maximumSafeRelease);
-        }
-        return 'Finance state connected · awaiting a frozen payday decision';
+        const f=financeSummary(state);
+        return f?'Safe release '+money(f.safeSurplus)+' · protected '+money(f.protectedCash):'Finance state connected';
       }
       if(page==='transfer'){
         const mission=state.transfer?.mission;
-        return mission && Number(mission.budget)>0
-          ? 'Transfer mission: '+String(mission.status||'ACTIVE')+' · '+money(mission.budget)
+        return missionActive(mission)
+          ? 'Mission '+String(mission.status||'ACTIVE')+' · '+money(mission.budget)
           : 'No active transfer mission';
       }
       if(page==='scouting'){
         const count=Array.isArray(state.scouting?.candidates)?state.scouting.candidates.length:0;
-        return count+' scouting candidate'+(count===1?'':'s')+' in clean state';
+        return count+' candidate'+(count===1?'':'s')+' · strategy '+String(state.scouting?.strategy||'—');
       }
       if(page==='registration'){
         const route=state.transfer?.route;
@@ -375,19 +510,11 @@
       }
       if(page==='squad'){
         const count=Array.isArray(state.squad?.holdings)?state.squad.holdings.length:0;
-        return count+' squad holding'+(count===1?'':'s')+' in clean state';
+        return count+' holding'+(count===1?'':'s')+' · '+money(annualIncome(state))+' annual income';
       }
-      if(page==='income'){
-        const annual=window.AuroraClean?.annualIncome?.(state);
-        if(Number.isFinite(Number(annual)))return 'Forward annual income: '+money(annual);
-      }
-      if(page==='nexus'){
-        const frozen=state.finance?.stage5PaydayDecision;
-        if(frozen && Number.isFinite(Number(frozen.maximumSafeRelease))){
-          return 'Clean command state connected · safe release '+money(frozen.maximumSafeRelease);
-        }
-        return 'Clean command state connected';
-      }
+      if(page==='income')return money(annualIncome(state))+' annual · '+money(annualIncome(state)/12)+' monthly';
+      if(page==='match-report')return state.matchReport?.lastBuiltAt?'Last snapshot '+new Date(state.matchReport.lastBuiltAt).toLocaleString('en-GB'):'No saved report snapshot yet';
+      if(page==='nexus')return buildAttention(state).length+' item'+(buildAttention(state).length===1?'':'s')+' on the attention scan';
     }catch(_){}
     return 'Clean Build · page aware · online';
   }
@@ -399,21 +526,25 @@
     root.id='auroraAssistant';
     root.className='aurora-assistant';
     root.innerHTML=[
-      '<section id="auroraAssistantPanel" class="aurora-assistant-panel" hidden aria-live="polite">',
+      '<section id="auroraAssistantPanel" class="aurora-assistant-panel" hidden aria-label="Aurora AI co-pilot">',
         '<header class="aurora-assistant-head">',
           '<span class="aurora-assistant-mini"><img src="assets/aurora-assistant.webp" alt=""></span>',
-          '<div><small id="auroraAssistantEyebrow">AURORA AI</small><strong id="auroraAssistantTitle">Assistant ready</strong></div>',
+          '<div class="aurora-assistant-heading"><small id="auroraAssistantEyebrow">AURORA AI</small><strong id="auroraAssistantTitle">Co-pilot ready</strong><span id="auroraAssistantDetail">Clean Build · online</span></div>',
           '<button type="button" class="aurora-assistant-close" aria-label="Close Aurora assistant">×</button>',
         '</header>',
-        '<div class="aurora-assistant-body">',
-          '<p id="auroraAssistantMessage">I’m ready.</p>',
-          '<span id="auroraAssistantDetail">Clean Build · online</span>',
-        '</div>',
+        '<div id="auroraAssistantQuick" class="aurora-assistant-quick" aria-label="Quick commands"></div>',
+        '<div id="auroraAssistantMessages" class="aurora-assistant-messages" aria-live="polite"></div>',
+        '<form id="auroraAssistantForm" class="aurora-assistant-form">',
+          '<label for="auroraAssistantInput">Ask Aurora</label>',
+          '<div><input id="auroraAssistantInput" type="text" autocomplete="off" placeholder="Try: what needs attention?"><button type="submit">Send</button></div>',
+        '</form>',
+        '<footer class="aurora-assistant-footer">Navigation and read-only commands can run directly. Money movement, route locks and execution still require your normal Aurora controls.</footer>',
       '</section>',
       '<span class="aurora-assistant-label" aria-hidden="true">AURORA AI</span>',
-      '<button type="button" class="aurora-assistant-launcher" aria-label="Open Aurora assistant" aria-controls="auroraAssistantPanel" aria-expanded="false">',
+      '<button type="button" class="aurora-assistant-launcher" aria-label="Open Aurora AI co-pilot" aria-controls="auroraAssistantPanel" aria-expanded="false">',
         '<img src="assets/aurora-assistant.webp" alt="">',
         '<span class="aurora-assistant-status" aria-hidden="true"></span>',
+        '<span id="auroraAssistantAlertCount" class="aurora-assistant-alert-count" hidden></span>',
       '</button>'
     ].join('');
 
@@ -422,38 +553,412 @@
     const panel=root.querySelector('#auroraAssistantPanel');
     const launcher=root.querySelector('.aurora-assistant-launcher');
     const close=root.querySelector('.aurora-assistant-close');
+    const messages=root.querySelector('#auroraAssistantMessages');
+    const form=root.querySelector('#auroraAssistantForm');
+    const input=root.querySelector('#auroraAssistantInput');
+    const quick=root.querySelector('#auroraAssistantQuick');
+    const alertCount=root.querySelector('#auroraAssistantAlertCount');
+
+    let history=readHistory();
+
+    function addMessage(role,text,actions,remember=true){
+      const wrap=document.createElement('article');
+      wrap.className='aurora-assistant-message '+(role==='user'?'is-user':'is-ai');
+
+      const badge=document.createElement('span');
+      badge.className='aurora-assistant-message-role';
+      badge.textContent=role==='user'?'YOU':'AURORA';
+      wrap.appendChild(badge);
+
+      const p=document.createElement('p');
+      p.textContent=String(text||'');
+      wrap.appendChild(p);
+
+      if(Array.isArray(actions)&&actions.length){
+        const row=document.createElement('div');
+        row.className='aurora-assistant-message-actions';
+        actions.forEach(action=>{
+          const b=document.createElement('button');
+          b.type='button';
+          b.textContent=action.label;
+          b.dataset.aiCommand=action.command;
+          row.appendChild(b);
+        });
+        wrap.appendChild(row);
+      }
+
+      messages.appendChild(wrap);
+      messages.scrollTop=messages.scrollHeight;
+
+      if(remember){
+        history.push({role,text:String(text||'')});
+        history=history.slice(-14);
+        saveHistory(history);
+      }
+    }
+
+    function addAttention(items){
+      const wrap=document.createElement('article');
+      wrap.className='aurora-assistant-message is-ai';
+      const badge=document.createElement('span');
+      badge.className='aurora-assistant-message-role';
+      badge.textContent='AURORA';
+      wrap.appendChild(badge);
+
+      const p=document.createElement('p');
+      p.textContent=items.length
+        ? items.length+' item'+(items.length===1?'':'s')+' found in the Clean chain.'
+        : 'Nothing in the Clean state currently needs your attention.';
+      wrap.appendChild(p);
+
+      if(items.length){
+        const list=document.createElement('div');
+        list.className='aurora-assistant-attention-list';
+        items.forEach(item=>{
+          const card=document.createElement('button');
+          card.type='button';
+          card.className='aurora-assistant-attention '+(item.level==='warn'?'is-warn':'is-info');
+          card.dataset.aiPage=item.page||'nexus';
+          if(item.tab)card.dataset.aiTab=item.tab;
+          if(item.target)card.dataset.aiTarget=item.target;
+          const strong=document.createElement('strong');
+          strong.textContent=item.title;
+          const small=document.createElement('span');
+          small.textContent=item.detail;
+          card.append(strong,small);
+          list.appendChild(card);
+        });
+        wrap.appendChild(list);
+      }
+      messages.appendChild(wrap);
+      messages.scrollTop=messages.scrollHeight;
+    }
+
+    function highlight(selector){
+      if(!selector)return false;
+      let target=null;
+      try{target=document.querySelector(selector);}catch(_){}
+      if(!target)return false;
+      document.querySelectorAll('.aurora-ai-highlight').forEach(el=>el.classList.remove('aurora-ai-highlight'));
+      target.classList.add('aurora-ai-highlight');
+      target.scrollIntoView({behavior:'smooth',block:'center'});
+      setTimeout(()=>target.classList.remove('aurora-ai-highlight'),4200);
+      return true;
+    }
+
+    function selectFinanceTab(tab,target){
+      const allowed=['overview','payday','bills','pots','house','isa'];
+      if(!allowed.includes(tab))tab='overview';
+      try{sessionStorage.setItem('aurora-clean:finance-tab',tab);}catch(_){}
+      document.querySelectorAll('.finance-tabbar button[data-tab]').forEach(button=>{
+        button.setAttribute('aria-selected',button.dataset.tab===tab?'true':'false');
+      });
+      document.querySelectorAll('[data-finance-tab]').forEach(section=>{
+        section.hidden=section.dataset.financeTab!==tab;
+      });
+      try{window.AuroraFinanceTabs?.select?.(tab);}catch(_){}
+      setTimeout(()=>highlight(target||('[data-finance-tab="'+tab+'"]')),80);
+    }
+
+    function navigate(page,opts={}){
+      if(!PAGE_URLS[page])return false;
+      writeSession(SESSION_OPEN,'1');
+      if(opts.tab)writeSession('aurora-clean:finance-tab',opts.tab);
+      if(opts.pending)writeSession(SESSION_PENDING,opts.pending);
+      location.href=PAGE_URLS[page];
+      return true;
+    }
+
+    function pageStatus(page,state){
+      if(!state)return 'I cannot read the Clean state right now. Open System Health to investigate.';
+      if(page==='finance'){
+        const f=financeSummary(state);
+        if(!f)return 'Finance state is present, but I cannot calculate the current summary.';
+        return 'Finance shows '+money(f.availableCash)+' available cash, '+money(f.totalReserved)+' reserved and a maximum safe release of '+money(f.safeSurplus)+'.';
+      }
+      if(page==='transfer'){
+        const mission=state.transfer?.mission,route=state.transfer?.route;
+        if(!missionActive(mission))return 'There is no active Transfer mission right now.';
+        return 'Transfer mission '+String(mission.status||'ACTIVE')+' has '+money(mission.budget)+' of Finance authority. The route is '+(route?.locked?'locked':route?.allocations?.length?'built but not locked':'not built yet')+'.';
+      }
+      if(page==='scouting'){
+        const rows=Array.isArray(state.scouting?.candidates)?state.scouting.candidates:[];
+        const plan=state.scouting?.allocationPlan;
+        return 'Scouting has '+rows.length+' candidate'+(rows.length===1?'':'s')+', strategy '+String(state.scouting?.strategy||'—')+', and the allocation plan is '+String(plan?.status||'not created')+'.';
+      }
+      if(page==='registration'){
+        const receipts=Array.isArray(state.registration?.receipts)?state.registration.receipts.length:0;
+        return 'Registration sees '+(state.transfer?.route?.locked?'a locked Transfer route':'no locked Transfer route')+' and '+receipts+' recorded receipt'+(receipts===1?'':'s')+'.';
+      }
+      if(page==='squad'){
+        const rows=Array.isArray(state.squad?.holdings)?state.squad.holdings:[];
+        return 'Squad has '+rows.length+' holding'+(rows.length===1?'':'s')+' and '+money(annualIncome(state))+' of forward annual income in the Clean state.';
+      }
+      if(page==='income'){
+        const annual=annualIncome(state);
+        return 'Forward income is '+money(annual)+' a year, about '+money(annual/12)+' a month.';
+      }
+      if(page==='match-report'){
+        return state.matchReport?.lastBuiltAt
+          ? 'The last saved Match Report snapshot was built '+new Date(state.matchReport.lastBuiltAt).toLocaleString('en-GB')+'.'
+          : 'There is no saved Match Report snapshot yet.';
+      }
+      if(page==='club-control'){
+        const history=Array.isArray(state.finance?.paydayHistory)?state.finance.paydayHistory.length:0;
+        return 'Club Control sees '+history+' archived payday cycle'+(history===1?'':'s')+' and Transfer mission status '+String(state.transfer?.mission?.status||'NONE')+'.';
+      }
+      if(page==='system-health')return 'System Health owns live service diagnostics. I can run the page checks, but I do not mark them healthy until the page reports the result.';
+      const attention=buildAttention(state);
+      return attention.length
+        ? 'Nexus attention scan currently finds '+attention.length+' item'+(attention.length===1?'':'s')+'.'
+        : 'Nexus attention scan finds no unresolved Clean-state items.';
+    }
+
+    function explainSafeRelease(state){
+      const f=financeSummary(state);
+      if(!f)return 'I cannot calculate the safe release from the current Finance state.';
+      return 'Aurora currently has '+money(f.availableCash)+' available. It reserves '+money(f.commitments)+' of commitments, '+money(f.holdingTopUp)+' for Holding Pot safety, '+money(f.potsDue)+' for pot funding and '+money(f.protectedCash)+' as protected cash. That leaves a maximum safe release of '+money(f.safeSurplus)+'.';
+    }
+
+    function showIsa(state){
+      const isa=isaSummary(state);
+      return 'ISA tracker: '+money(isa.used)+' used from '+money(isa.annual)+', leaving '+money(isa.left)+'. Flexible replacement room currently recorded: '+money(isa.flexible)+'.';
+    }
+
+    function runSafeAction(id,label){
+      const button=document.getElementById(id);
+      if(!button){
+        addMessage('ai',label+' is not available on this page yet.');
+        return false;
+      }
+      if(button.disabled){
+        addMessage('ai',label+' is currently disabled by the page.');
+        highlight('#'+id);
+        return false;
+      }
+      button.click();
+      addMessage('ai',label+' started using the page’s existing control.');
+      highlight('#'+id);
+      return true;
+    }
+
+    function help(){
+      addMessage('ai','Try commands such as “what needs attention?”, “page status”, “show ISA allowance”, “show house improvements”, “why is my safe release lower?”, “open Transfer”, “refresh broker cash”, or “build match report”. I will not execute purchases, lock routes or reset data from chat.');
+    }
+
+    function handleCommand(raw,echo=true){
+      const command=String(raw||'').trim();
+      if(!command)return;
+      const q=command.toLowerCase().replace(/\s+/g,' ').trim();
+      if(echo)addMessage('user',command);
+
+      const page=pageName();
+      const state=safeState();
+
+      if(/^(help|commands|what can you do|what can you do\?)$/.test(q)){help();return;}
+      if(q==='attention'||q.includes('needs attention')||q.includes('need my attention')||q.includes('what should i do')||q.includes('anything to do')){
+        addAttention(buildAttention(state));return;
+      }
+      if(q==='status'||q.includes('page status')||q.includes('what is happening')||q.includes("what's happening")){
+        addMessage('ai',pageStatus(page,state));return;
+      }
+      if(q.includes('why')&&(q.includes('invest')||q.includes('safe release')||q.includes('available money')) || q.includes('explain safe release') || q==='safe release'){
+        addMessage('ai',explainSafeRelease(state),[{label:'Open Payday',command:'show payday'}]);return;
+      }
+      if(q.includes('isa')&&(q.includes('left')||q.includes('allowance')||q.includes('used')||q.includes('remaining')) && !q.startsWith('show ') && !q.startsWith('open ')){
+        addMessage('ai',showIsa(state),[{label:'Show ISA',command:'show isa allowance'}]);return;
+      }
+      if(q.includes('portfolio status')||q.includes('squad status')){
+        addMessage('ai',pageStatus('squad',state),[{label:'Open Squad',command:'open squad'}]);return;
+      }
+      if(q.includes('transfer mission')||q.includes('transfer status')){
+        addMessage('ai',pageStatus('transfer',state),[{label:'Open Transfer',command:'open transfer'}]);return;
+      }
+      if(q.includes('income status')||q.includes('dividend income')){
+        addMessage('ai',pageStatus('income',state),[{label:'Open Income',command:'open income'}]);return;
+      }
+
+      const financeTabs=[
+        {match:/\bisa\b/,tab:'isa',target:'#isaStatusBadge',label:'ISA Allowance'},
+        {match:/house|renovation/,tab:'house',target:'.house-project-section',label:'House Improvements'},
+        {match:/\bbills?\b/,tab:'bills',target:'#financeBillCards',label:'Bills'},
+        {match:/\bpots?\b/,tab:'pots',target:'#financePotCards',label:'Pots'},
+        {match:/payday/,tab:'payday',target:'#financeTabTitle',label:'Payday Control'},
+        {match:/finance overview|overview/,tab:'overview',target:'[data-finance-tab="overview"]',label:'Finance Overview'}
+      ];
+      if(q.startsWith('show ')||q.startsWith('open ')||q.startsWith('highlight ')||q.startsWith('take me to ')){
+        const tabHit=financeTabs.find(x=>x.match.test(q));
+        if(tabHit){
+          if(page!=='finance'){
+            navigate('finance',{tab:tabHit.tab,pending:'show '+tabHit.label.toLowerCase()});
+          }else{
+            selectFinanceTab(tabHit.tab,tabHit.target);
+            addMessage('ai',tabHit.label+' is on screen and highlighted.');
+          }
+          return;
+        }
+      }
+
+      if(q.includes('refresh broker cash')){
+        if(page!=='transfer'){navigate('transfer',{pending:'refresh broker cash'});return;}
+        runSafeAction('transferRefreshCash','Broker cash refresh');return;
+      }
+
+      if(q.includes('refresh investments')){
+        if(page!=='finance'){navigate('finance',{tab:'overview',pending:'refresh investments'});return;}
+        selectFinanceTab('overview','#financeOverviewRefresh');
+        setTimeout(()=>runSafeAction('financeOverviewRefresh','Investment refresh'),120);
+        return;
+      }
+
+      if(q.includes('build match report')||q.includes('build snapshot')){
+        if(page!=='match-report'){navigate('match-report',{pending:'build match report'});return;}
+        runSafeAction('buildMatchReport','Match Report snapshot');return;
+      }
+
+      if(q.includes('run service checks')||q.includes('service check')){
+        if(page!=='system-health'){navigate('system-health',{pending:'run service checks'});return;}
+        runSafeAction('runServiceHealth','System Health checks');return;
+      }
+
+      const nav=[
+        ['system health','system-health'],['club control','club-control'],['match report','match-report'],
+        ['registration','registration'],['scouting','scouting'],['transfer','transfer'],
+        ['finance','finance'],['squad','squad'],['income','income'],['nexus','nexus'],['home','nexus']
+      ];
+      if(q.startsWith('open ')||q.startsWith('go to ')||q.startsWith('take me to ')){
+        const hit=nav.find(([word])=>q.includes(word));
+        if(hit){navigate(hit[1]);return;}
+      }
+
+      if(q.includes('lock route')||q.includes('buy ')||q.includes('purchase ')||q.includes('register route')||q.includes('reset')){
+        addMessage('ai','I will take you to the relevant control, but I will not execute that consequential action from chat.',[
+          {label:'Open Transfer',command:'open transfer'},
+          {label:'Open Registration',command:'open registration'},
+          {label:'Open Club Control',command:'open club control'}
+        ]);
+        return;
+      }
+
+      addMessage('ai','I do not have a safe local command for that yet. Type “help” to see what I can do, or use “page status” and “what needs attention?”.');
+    }
+
+    function renderQuick(){
+      quick.replaceChildren();
+      (QUICK_ACTIONS[pageName()]||QUICK_ACTIONS.nexus).forEach(([label,command])=>{
+        const button=document.createElement('button');
+        button.type='button';
+        button.textContent=label;
+        button.dataset.aiCommand=command;
+        quick.appendChild(button);
+      });
+    }
 
     function refresh(){
       const page=pageName();
-      const copy=PAGE_COPY[page]||{eyebrow:'AURORA AI',title:'Aurora assistant ready',message:'I’m available across the Clean build.'};
+      const copy=PAGE_COPY[page]||{eyebrow:'AURORA AI',title:'Aurora co-pilot',message:'I’m available across the Clean build.'};
       const state=safeState();
       root.querySelector('#auroraAssistantEyebrow').textContent=copy.eyebrow;
       root.querySelector('#auroraAssistantTitle').textContent=copy.title;
-      root.querySelector('#auroraAssistantMessage').textContent=copy.message;
       root.querySelector('#auroraAssistantDetail').textContent=contextualDetail(page,state);
+      renderQuick();
+
+      const count=buildAttention(state).filter(item=>item.level==='warn').length;
+      alertCount.hidden=count===0;
+      alertCount.textContent=String(count);
+      launcher.classList.toggle('has-alert',count>0);
     }
 
     function setOpen(open){
       panel.hidden=!open;
       launcher.setAttribute('aria-expanded',String(open));
       root.classList.toggle('is-open',open);
-      if(open)refresh();
+      writeSession(SESSION_OPEN,open?'1':'0');
+      if(open){
+        refresh();
+        if(!messages.children.length){
+          if(history.length){
+            history.forEach(row=>addMessage(row.role,row.text,null,false));
+          }else{
+            addMessage('ai',PAGE_COPY[pageName()]?.message||'Aurora co-pilot ready.',[
+              {label:'What needs attention?',command:'attention'},
+              {label:'Page status',command:'page status'}
+            ]);
+          }
+        }
+        setTimeout(()=>input.focus({preventScroll:true}),50);
+      }
     }
+
+    root.addEventListener('click',event=>{
+      const commandButton=event.target.closest('[data-ai-command]');
+      if(commandButton){
+        handleCommand(commandButton.dataset.aiCommand,false);
+        return;
+      }
+      const attentionButton=event.target.closest('[data-ai-page]');
+      if(attentionButton){
+        const targetPage=attentionButton.dataset.aiPage;
+        const tab=attentionButton.dataset.aiTab||'';
+        const target=attentionButton.dataset.aiTarget||'';
+        if(targetPage===pageName()){
+          if(targetPage==='finance'&&tab)selectFinanceTab(tab,target);
+          else if(target)highlight(target);
+        }else{
+          const pending=targetPage==='finance'&&tab?'show '+tab:'page status';
+          navigate(targetPage,{tab:tab||undefined,pending});
+        }
+      }
+    });
+
+    form.addEventListener('submit',event=>{
+      event.preventDefault();
+      const value=input.value;
+      input.value='';
+      handleCommand(value,true);
+    });
 
     launcher.addEventListener('click',()=>setOpen(panel.hidden));
     close.addEventListener('click',()=>setOpen(false));
-    document.addEventListener('keydown',event=>{if(event.key==='Escape')setOpen(false);});
-    document.addEventListener('pointerdown',event=>{
-      if(!panel.hidden && !root.contains(event.target))setOpen(false);
+    document.addEventListener('keydown',event=>{
+      if(event.key==='Escape'&&!panel.hidden)setOpen(false);
+      if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){
+        event.preventDefault();setOpen(true);
+      }
     });
+    document.addEventListener('pointerdown',event=>{
+      if(!panel.hidden&&!root.contains(event.target)&&!event.target.closest('.aurora-ai-highlight'))setOpen(false);
+    });
+
     window.addEventListener('aurora-clean:state',refresh);
     window.addEventListener('storage',event=>{
       if(event.key==='aurora-clean:state:v1')refresh();
     });
 
     refresh();
+
+    if(readSession(SESSION_OPEN)==='1')setOpen(true);
+
+    const pending=readSession(SESSION_PENDING);
+    if(pending){
+      try{sessionStorage.removeItem(SESSION_PENDING);}catch(_){}
+      setTimeout(()=>{
+        setOpen(true);
+        handleCommand(pending,false);
+      },350);
+    }
+
+    window.AuroraAssistant=Object.freeze({
+      BUILD:ASSISTANT_BUILD,
+      open:()=>setOpen(true),
+      close:()=>setOpen(false),
+      command:command=>{setOpen(true);handleCommand(command,false);},
+      attention:()=>buildAttention(safeState()),
+      highlight
+    });
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installAssistant,{once:true});
   else installAssistant();
 })();
+
