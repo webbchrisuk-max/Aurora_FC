@@ -129,7 +129,7 @@ function auroraActionSpecs_() {
       name:'aiChat',
       group:'AI',
       mode:'WRITE_DERIVED',
-      handler:p => auroraHandleAiChat_(p)
+      handler:p => a2AiHandleChat_(p)
     },
 
     // Holdings setup/enrichment
@@ -670,7 +670,7 @@ function auroraBackendDependencies_() {
 
     ai:{
       chat:
-        typeof auroraHandleAiChat_ === 'function'
+        typeof a2AiHandleChat_ === 'function'
     },
 
     holdings:{
@@ -998,7 +998,7 @@ function setupAuroraBackendHardening() {
 /**
  * AI router integration self-check.
  */
-function auroraAiRouterPatchStatus_() {
+function a2AiRouterStatus_() {
   const registry = auroraBuildActionRegistry_();
   const spec = registry.aiChat || null;
 
@@ -1007,12 +1007,12 @@ function auroraAiRouterPatchStatus_() {
       !!spec &&
       spec.group === 'AI' &&
       spec.mode === 'WRITE_DERIVED' &&
-      typeof auroraHandleAiChat_ === 'function',
+      typeof a2AiHandleChat_ === 'function',
     actionRegistered: !!spec,
     group: spec ? spec.group : null,
     mode: spec ? spec.mode : null,
     handlerAvailable:
-      typeof auroraHandleAiChat_ === 'function',
+      typeof a2AiHandleChat_ === 'function',
     backendRelease:A2_BACKEND_RELEASE,
     routerVersion:A2_BACKEND_ROUTER_VERSION,
     at:new Date().toISOString()
@@ -1032,36 +1032,36 @@ function auroraAiRouterPatchStatus_() {
  *
  * Existing POST router integration:
  *   if (action === 'aiChat') {
- *     return auroraHandleAiChat_(payload);
+ *     return a2AiHandleChat_(payload);
  *   }
  *
  * The existing Aurora token/authentication check must run BEFORE this handler.
  * Never return or log OPENAI_API_KEY.
  */
 
-const AURORA_AI_DEFAULT_MODEL = 'gpt-5.6';
-const AURORA_AI_ENDPOINT = 'https://api.openai.com/v1/responses';
-const AURORA_AI_MAX_MESSAGE_CHARS = 5000;
-const AURORA_AI_MAX_CONTEXT_CHARS = 40000;
-const AURORA_AI_MAX_HISTORY_ITEMS = 10;
+const A2AI_DEFAULT_MODEL = 'gpt-5.6';
+const A2AI_ENDPOINT = 'https://api.openai.com/v1/responses';
+const A2AI_MAX_MESSAGE_CHARS = 5000;
+const A2AI_MAX_CONTEXT_CHARS = 40000;
+const A2AI_MAX_HISTORY_ITEMS = 10;
 
-function auroraHandleAiChat_(payload) {
+function a2AiHandleChat_(payload) {
   payload = payload || {};
 
   const props = PropertiesService.getScriptProperties();
   const apiKey = String(props.getProperty('OPENAI_API_KEY') || '').trim();
-  const model = String(props.getProperty('AURORA_AI_MODEL') || AURORA_AI_DEFAULT_MODEL).trim();
+  const model = String(props.getProperty('AURORA_AI_MODEL') || A2AI_DEFAULT_MODEL).trim();
 
   if (!apiKey) {
     throw new Error('Aurora AI is not configured. Set the OPENAI_API_KEY Script Property.');
   }
 
-  const message = auroraAiText_(payload.message, AURORA_AI_MAX_MESSAGE_CHARS);
+  const message = a2AiText_(payload.message, A2AI_MAX_MESSAGE_CHARS);
   if (!message) throw new Error('Aurora AI message is required.');
 
-  const page = auroraAiText_(payload.page || 'nexus', 80);
-  const context = auroraAiSafeObject_(payload.context, AURORA_AI_MAX_CONTEXT_CHARS);
-  const history = auroraAiHistory_(payload.history);
+  const page = a2AiText_(payload.page || 'nexus', 80);
+  const context = a2AiSafeObject_(payload.context, A2AI_MAX_CONTEXT_CHARS);
+  const history = a2AiHistory_(payload.history);
 
   const transcript = history.map(function (row) {
     return (row.role === 'assistant' ? 'AURORA' : 'USER') + ': ' + row.text;
@@ -1097,7 +1097,7 @@ function auroraHandleAiChat_(payload) {
     input: input
   };
 
-  const response = UrlFetchApp.fetch(AURORA_AI_ENDPOINT, {
+  const response = UrlFetchApp.fetch(A2AI_ENDPOINT, {
     method: 'post',
     contentType: 'application/json',
     headers: {
@@ -1123,7 +1123,7 @@ function auroraHandleAiChat_(payload) {
     throw new Error(apiMessage);
   }
 
-  const answer = auroraAiExtractText_(body);
+  const answer = a2AiExtractText_(body);
   if (!answer) throw new Error('Aurora AI returned no text response.');
 
   return {
@@ -1135,7 +1135,7 @@ function auroraHandleAiChat_(payload) {
   };
 }
 
-function auroraAiExtractText_(body) {
+function a2AiExtractText_(body) {
   if (!body || typeof body !== 'object') return '';
 
   if (typeof body.output_text === 'string' && body.output_text.trim()) {
@@ -1155,8 +1155,8 @@ function auroraAiExtractText_(body) {
   return out.join('\n').trim();
 }
 
-function auroraAiHistory_(value) {
-  const rows = Array.isArray(value) ? value.slice(-AURORA_AI_MAX_HISTORY_ITEMS) : [];
+function a2AiHistory_(value) {
+  const rows = Array.isArray(value) ? value.slice(-A2AI_MAX_HISTORY_ITEMS) : [];
   return rows.map(function (row) {
     const role = String(row && row.role || '').toLowerCase() === 'assistant'
       || String(row && row.role || '').toLowerCase() === 'ai'
@@ -1164,14 +1164,14 @@ function auroraAiHistory_(value) {
       : 'user';
     return {
       role: role,
-      text: auroraAiText_(row && row.text, 3500)
+      text: a2AiText_(row && row.text, 3500)
     };
   }).filter(function (row) {
     return !!row.text;
   });
 }
 
-function auroraAiSafeObject_(value, maxChars) {
+function a2AiSafeObject_(value, maxChars) {
   let json = '{}';
   try {
     json = JSON.stringify(value && typeof value === 'object' ? value : {});
@@ -1188,12 +1188,12 @@ function auroraAiSafeObject_(value, maxChars) {
   }
 }
 
-function auroraAiText_(value, maxChars) {
+function a2AiText_(value, maxChars) {
   return String(value == null ? '' : value).trim().slice(0, Math.max(1, Number(maxChars) || 1));
 }
 
-function testAuroraAiChat() {
-  const result = auroraHandleAiChat_({
+function testA2AuroraAiChat() {
+  const result = a2AiHandleChat_({
     page: 'nexus',
     message: 'Give me a one-sentence status check.',
     context: {
