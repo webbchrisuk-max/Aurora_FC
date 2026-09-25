@@ -244,3 +244,213 @@ body>p,body>ul,body>h1,body>h2,body>label,body>button{width:100%}
   body>nav{margin-left:-28px;margin-right:-28px;padding-left:28px;padding-right:28px}
   #auroraCleanMenu>div{grid-template-columns:repeat(5,minmax(0,1fr))}
 }
+
+/* Aurora Assistant · shell-level */
+.aurora-assistant{
+  position:fixed;
+  right:max(18px,env(safe-area-inset-right));
+  bottom:max(18px,env(safe-area-inset-bottom));
+  z-index:120;
+  width:auto!important;
+  max-width:none!important;
+  margin:0!important;
+  pointer-events:none;
+}
+.aurora-assistant-launcher{
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:82px!important;
+  height:82px!important;
+  min-width:82px;
+  margin:0!important;
+  padding:3px!important;
+  overflow:visible;
+  border:1px solid rgba(111,220,255,.8)!important;
+  border-radius:50%!important;
+  background:linear-gradient(145deg,rgba(103,224,255,.96),rgba(120,92,255,.86))!important;
+  box-shadow:0 16px 38px rgba(0,0,0,.42),0 0 0 5px rgba(72,190,255,.08);
+  cursor:pointer;
+  pointer-events:auto;
+  isolation:isolate;
+  animation:auroraAssistantFloat 4.6s ease-in-out infinite;
+}
+.aurora-assistant-launcher::before{
+  content:'';
+  position:absolute;
+  inset:-7px;
+  z-index:-1;
+  border:1px solid rgba(89,207,255,.18);
+  border-radius:50%;
+  opacity:.8;
+}
+.aurora-assistant-launcher:hover{
+  transform:translateY(-2px) scale(1.035);
+  box-shadow:0 20px 44px rgba(0,0,0,.5),0 0 0 6px rgba(72,190,255,.11);
+}
+.aurora-assistant-launcher:focus-visible{
+  outline:3px solid rgba(145,225,255,.9);
+  outline-offset:4px;
+}
+.aurora-assistant-launcher>img{
+  width:100%;
+  height:100%;
+  display:block;
+  border-radius:50%;
+  object-fit:cover;
+  object-position:50% 20%;
+  border:2px solid #091523;
+  background:#0b1725;
+}
+.aurora-assistant-status{
+  position:absolute;
+  right:1px;
+  bottom:7px;
+  width:17px;
+  height:17px;
+  border:3px solid #07111f;
+  border-radius:50%;
+  background:#46d39a;
+  box-shadow:0 0 12px rgba(70,211,154,.75);
+}
+.aurora-assistant-label{
+  position:absolute;
+  right:72px;
+  bottom:23px;
+  min-width:max-content;
+  padding:7px 10px;
+  border:1px solid rgba(77,192,255,.24);
+  border-radius:999px;
+  background:rgba(7,17,31,.9);
+  color:#bfeaff;
+  font-size:.65rem;
+  font-weight:900;
+  letter-spacing:.13em;
+  box-shadow:0 10px 30px rgba(0,0,0,.28);
+  opacity:.86;
+  pointer-events:none;
+  transform:translateX(-6px);
+  transition:opacity .2s ease,transform .2s ease;
+  backdrop-filter:blur(12px);
+}
+.aurora-assistant.is-open .aurora-assistant-label,
+.aurora-assistant:hover .aurora-assistant-label{
+  opacity:1;
+  transform:translateX(-10px);
+}
+.aurora-assistant-panel{
+  position:absolute;
+  right:0;
+  bottom:98px;
+  width:min(350px,calc(100vw - 28px));
+  overflow:hidden;
+  border:1px solid rgba(75,178,235,.34);
+  border-radius:22px;
+  background:
+    radial-gradient(circle at 92% 0%,rgba(65,180,255,.13),transparent 34%),
+    linear-gradient(160deg,rgba(11,25,43,.98),rgba(7,16,29,.98));
+  box-shadow:0 24px 70px rgba(0,0,0,.55);
+  pointer-events:auto;
+  backdrop-filter:blur(18px);
+  transform-origin:bottom right;
+  animation:auroraAssistantOpen .18s ease-out;
+}
+.aurora-assistant-panel[hidden]{display:none!important}
+.aurora-assistant-head{
+  display:grid;
+  grid-template-columns:54px 1fr auto;
+  align-items:center;
+  gap:12px;
+  padding:14px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+.aurora-assistant-mini{
+  width:54px;
+  height:54px;
+  overflow:hidden;
+  border:1px solid rgba(112,218,255,.45);
+  border-radius:16px;
+  background:#0b1725;
+}
+.aurora-assistant-mini img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+  object-position:50% 20%;
+}
+.aurora-assistant-head small{
+  display:block;
+  margin-bottom:3px;
+  color:#73d4ff;
+  font-size:.62rem;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.aurora-assistant-head strong{
+  display:block;
+  color:#f3f8ff;
+  font-size:.98rem;
+  line-height:1.24;
+}
+.aurora-assistant-close{
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid rgba(255,255,255,.1)!important;
+  border-radius:10px!important;
+  background:rgba(255,255,255,.045)!important;
+  color:#b8cadc!important;
+  font-size:1.2rem!important;
+  line-height:1!important;
+}
+.aurora-assistant-close:hover{background:rgba(255,255,255,.09)!important;color:#fff!important}
+.aurora-assistant-body{padding:16px 16px 17px}
+.aurora-assistant-body p{
+  margin:0;
+  color:#c9d8e8;
+  font-size:.91rem;
+  line-height:1.5;
+}
+.aurora-assistant-body span{
+  display:block;
+  margin-top:12px;
+  padding-top:11px;
+  border-top:1px solid rgba(255,255,255,.06);
+  color:#7f9ab5;
+  font-size:.72rem;
+  font-weight:750;
+}
+@keyframes auroraAssistantFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-5px)}
+}
+@keyframes auroraAssistantOpen{
+  from{opacity:0;transform:translateY(8px) scale(.97)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@media(max-width:700px){
+  .aurora-assistant{
+    right:max(12px,env(safe-area-inset-right));
+    bottom:max(12px,env(safe-area-inset-bottom));
+  }
+  .aurora-assistant-launcher{
+    width:70px!important;
+    height:70px!important;
+    min-width:70px;
+  }
+  .aurora-assistant-label{display:none}
+  .aurora-assistant-panel{
+    position:fixed;
+    right:12px;
+    bottom:94px;
+    width:calc(100vw - 24px);
+    max-width:360px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .aurora-assistant-launcher{animation:none}
+  .aurora-assistant-panel{animation:none}
+}
