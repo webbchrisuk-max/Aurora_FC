@@ -20,7 +20,7 @@
 const AURORA_AI_DEFAULT_MODEL = 'gpt-5.6';
 const AURORA_AI_ENDPOINT = 'https://api.openai.com/v1/responses';
 const AURORA_AI_MAX_MESSAGE_CHARS = 5000;
-const AURORA_AI_MAX_CONTEXT_CHARS = 24000;
+const AURORA_AI_MAX_CONTEXT_CHARS = 40000;
 const AURORA_AI_MAX_HISTORY_ITEMS = 10;
 
 function auroraHandleAiChat_(payload) {
@@ -41,28 +41,20 @@ function auroraHandleAiChat_(payload) {
   const context = auroraAiSafeObject_(payload.context, AURORA_AI_MAX_CONTEXT_CHARS);
   const history = auroraAiHistory_(payload.history);
 
-  const input = [];
-  history.forEach(function (row) {
-    input.push({
-      role: row.role === 'assistant' ? 'assistant' : 'user',
-      content: [{ type: row.role === 'assistant' ? 'output_text' : 'input_text', text: row.text }]
-    });
-  });
+  const transcript = history.map(function (row) {
+    return (row.role === 'assistant' ? 'AURORA' : 'USER') + ': ' + row.text;
+  }).join('\n');
 
-  input.push({
-    role: 'user',
-    content: [{
-      type: 'input_text',
-      text: [
-        'CURRENT AURORA PAGE: ' + page,
-        'CURRENT CONTROLLED AURORA SNAPSHOT:',
-        JSON.stringify(context),
-        '',
-        'USER MESSAGE:',
-        message
-      ].join('\n')
-    }]
-  });
+  const input = [
+    'CURRENT AURORA PAGE: ' + page,
+    'CURRENT CONTROLLED AURORA SNAPSHOT:',
+    JSON.stringify(context),
+    '',
+    transcript ? 'RECENT CONVERSATION:\n' + transcript : '',
+    transcript ? '' : '',
+    'USER MESSAGE:',
+    message
+  ].filter(function (line) { return line !== ''; }).join('\n');
 
   const request = {
     model: model,
