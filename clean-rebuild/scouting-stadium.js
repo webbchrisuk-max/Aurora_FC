@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260925-scouting-stadium-2-fast-render';
+  const BUILD='20260925-scouting-stadium-3-ranking-clarity';
   const SHORTLIST_KEY='aurora-clean:scouting-shortlist:v1';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
@@ -162,16 +162,18 @@
     const top=ranked.find(r=>r.buyReady)||ranked[0];
     if(!top)return;
     $('directorTicker').textContent=top.ticker;
-    $('directorName').textContent=`${top.company_name} is today's leading target`;
+    const overallRank=ranked.findIndex(r=>r.ticker===top.ticker)+1;
+    $('directorName').textContent=`${top.company_name} is today's leading buy-ready target`;
     const target=top.analystTarget>0?` · analyst target ${nativeMoney(top.analystTarget,top.analystPriceTargetCurrency||top.executionCurrency)}`:'';
     const analyst=top.analystView?` · ${top.analystView}`:'';
     $('directorReason').textContent=`${top.verdict} · ${top.yieldPct.toFixed(3)}% yield · ${top.broker} · ${top.readiness||'clean evidence review'}${target}${analyst}`;
     $('directorScore').textContent=`${confidence(top)}%`;
     $('directorMetrics').innerHTML=[
-      `Yield ${top.yieldPct.toFixed(3)}%`,top.broker,top.executionMarket||'Market review',top.buyReady?'BUY READY':'RESEARCH',top.analystTarget>0?`Target ${nativeMoney(top.analystTarget,top.analystPriceTargetCurrency||top.executionCurrency)}`:''
+      `Overall scout rank #${overallRank}`,divisionFor(top).name,`Yield ${top.yieldPct.toFixed(3)}%`,top.broker,top.executionMarket||'Market review',top.buyReady?'BUY READY':'RESEARCH',top.analystTarget>0?`Target ${nativeMoney(top.analystTarget,top.analystPriceTargetCurrency||top.executionCurrency)}`:''
     ].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join('');
     $('directorOpen').onclick=()=>openDetail(top.ticker);
-    $('rumourText').textContent=ranked.slice(0,5).map((r,i)=>`${i===0?'Director recommends':'Scout update'}: ${r.ticker} — ${r.verdict} · ${r.yieldPct.toFixed(3)}% · ${r.broker}`).join('   •   ')||'Aurora scouting network connected.';
+    const tickerUpdates=[top,...ranked.filter(r=>r.ticker!==top.ticker).slice(0,4)];
+    $('rumourText').textContent=tickerUpdates.map((r,i)=>`${i===0?'Director recommends':'Scout update'}: ${r.ticker} — ${r.verdict} · ${r.yieldPct.toFixed(3)}% · ${r.broker}`).join('   •   ')||'Aurora scouting network connected.';
   }
   function renderBestXI(){
     const ranked=view.rows,positions=xiPositions(),pitch=$('bestXiPitch');
