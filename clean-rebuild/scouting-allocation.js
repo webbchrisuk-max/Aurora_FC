@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260924-scouting-allocation-6-stable-ready';
+  const BUILD = '20260925-scouting-allocation-7-broker-route';
   const CASH_CACHE = 'aurora-clean:transfer-broker-cash:v1';
   const BROKER_CASH_MIN_GBP = 200;
   const BUYING_POWER_TARGET_GBP = 1000;
@@ -14,6 +14,7 @@
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'
   }[ch]));
   const upper = value => String(value || '').trim().toUpperCase();
+  const brokerLabel = row => window.AuroraScoutingExecutionProfiles?.accountLabel?.(row) || 'Broker review';
   const missionIsUsable = mission => !!mission && !['COMPLETE','CANCELLED'].includes(upper(mission.status)) && Number(mission.budget || 0) > 0;
 
   function pickCountForBuyReady(count) {
@@ -37,7 +38,7 @@
       missionId: plan.missionId || null,
       budget: round2(plan.budget),
       strategy: plan.strategy || 'sustainable',
-      allocations: (plan.allocations || []).map(row => [row.ticker, round2(row.amount), round2(row.expectedAnnualIncome)])
+      allocations: (plan.allocations || []).map(row => [row.ticker, round2(row.amount), round2(row.expectedAnnualIncome), row.preferredBroker || row.executionAccount || row.account || ''])
     });
   }
 
@@ -114,6 +115,20 @@
       buyReady: row.buyReady !== false,
       evidenceComplete: row.evidenceComplete !== false,
       held: !!row.held,
+      preferredBroker: row.preferredBroker || '',
+      executionAccount: row.executionAccount || brokerLabel(row),
+      executionTicker: row.executionTicker || row.ticker,
+      executionMarket: row.executionMarket || '',
+      executionCurrency: row.executionCurrency || row.currency || '',
+      marketSymbol: row.marketSymbol || row.ticker,
+      brokerLocked: row.brokerLocked === true,
+      brokerYieldPct: Number(row.brokerYieldPct || 0),
+      brokerYieldSource: row.brokerYieldSource || '',
+      brokerSnapshotDate: row.brokerSnapshotDate || '',
+      brokerBuyPriceNative: Number(row.brokerBuyPriceNative || 0),
+      analystPriceTargetNative: Number(row.analystPriceTargetNative || 0),
+      analystPriceTargetCurrency: row.analystPriceTargetCurrency || '',
+      analystView: row.analystView || '',
       amount: round2(row.amount),
       expectedAnnualIncome: round2(row.amount * Number(row.yieldPct) / 100)
     }));
@@ -169,7 +184,7 @@
         : 'Waiting for Finance Stage 6 to release an investment mission.');
     if (rows) {
       rows.innerHTML = plan.allocations.length
-        ? plan.allocations.map(row => `<li><strong>#${row.selectionRank} ${esc(row.ticker)}</strong> — ${money(row.amount)} — network score ${Number(row.networkScore || row.score).toFixed(1)} — ${Number(row.yieldPct).toFixed(2)}% yield — ${esc(row.verdict || row.pipelineStage || '')} — projected annual income ${money(row.expectedAnnualIncome)}</li>`).join('')
+        ? plan.allocations.map(row => `<li><strong>#${row.selectionRank} ${esc(row.ticker)}</strong> — ${money(row.amount)} — ${esc(brokerLabel(row))} — network score ${Number(row.networkScore || row.score).toFixed(1)} — ${Number(row.yieldPct).toFixed(3)}% yield — ${esc(row.verdict || row.pipelineStage || '')} — projected annual income ${money(row.expectedAnnualIncome)}</li>`).join('')
         : `<li>${plan.budget > 0 ? 'No buy-ready payday proposal yet.' : 'No Finance mission released yet.'}</li>`;
     }
     if (approve) {
