@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#06110d">
   <title>Aurora Clean — Scouting Centre</title>
-  <link rel="stylesheet" href="aurora.css?v=20260827-clean-scouting-network-1">
-  <link rel="stylesheet" href="scouting-network.css?v=20260827-scouting-network-1">
-  <link rel="stylesheet" href="scouting-enrichment.css?v=20260827-scouting-enrichment-1">
-  <link rel="stylesheet" href="scouting-command.css?v=20260925-visible-execution-intel-3">
+  <link rel="stylesheet" href="aurora.css?v=20260924-shell-8-unified">
+  <link rel="stylesheet" href="scouting-stadium.css?v=20260925-stadium-1">
   <script src="aurora.js?v=20260924-shell-8-unified" defer></script>
   <script src="scouting-execution-profile.js?v=20260925-scouting-execution-profile-1" defer></script>
   <script src="scouting-universe.js?v=20260925-scouting-universe-3-broker-execution" defer></script>
@@ -16,31 +15,129 @@
   <script src="scouting-network.js?v=20260925-scouting-network-6-broker-execution" defer></script>
   <script src="scouting-verdict-reasons.js?v=20260911-scouting-verdict-reasons-1" defer></script>
   <script src="scouting-allocation.js?v=20260925-scouting-allocation-7-broker-route" defer></script>
-  <script src="scouting-command.js?v=20260925-chief-scout-command-8-visible-execution-intel" defer></script>
+  <script src="scouting-stadium.js?v=20260925-stadium-1" defer></script>
 </head>
-<body data-page="scouting">
-<nav id="auroraNav"></nav><hr>
+<body data-page="scouting" data-scouting-ui="stadium">
+<nav id="auroraNav"></nav>
 
-<header class="department-hero scouting-hero">
-  <div>
-    <p class="eyebrow scouting-eyebrow">AURORA CITY FC · CHIEF SCOUT</p>
-    <h1>Scouting Centre</h1>
-    <p class="department-lead">Aurora keeps the full scouting pool as research, but separates every fully cleared prospect into a simple Premier, Elite or Ready board. When Finance releases payday money, only that buy-ready board can enter the proposed purchase plan.</p>
-  </div>
-  <span class="stage-badge scouting-stage-badge">SCOUT → VERIFY → TIER → PAYDAY</span>
-</header>
+<main class="scout-app">
+  <section class="scout-hero aurora-section-anchor" id="scouting-overview">
+    <div class="scout-hero-copy">
+      <span class="scout-kicker"><i></i>National Scouting Network</span>
+      <h1>Build the Aurora scouting pyramid.</h1>
+      <p>Track, rank and promote potential investments through Aurora’s four scouting divisions before they reach the Transfer Centre. The clean engine underneath this page uses Aurora’s live scouting universe, evidence gates and broker execution route.</p>
+      <div class="scout-path">
+        <span class="active">Scouting Centre</span><b>→</b>
+        <a href="transfer.html">Transfer Centre</a><b>→</b>
+        <a href="squad.html">Squad Hub</a>
+      </div>
+    </div>
+    <aside class="scout-command">
+      <div class="scout-command-head">
+        <div><small>CHIEF SCOUT COMMAND</small><strong id="commandTitle">Scanning Aurora network</strong></div>
+        <span class="scout-live-pill" id="livePill">CONNECTING</span>
+      </div>
+      <div class="scout-radar-anim" aria-label="Animated scouting radar"><i></i><b></b></div>
+      <div class="scout-command-foot"><span id="sourceLabel">Aurora data loading…</span><span id="updatedLabel">—</span></div>
+    </aside>
+  </section>
 
-<section class="scouting-control-grid scouting-top-summary">
-  <article class="scouting-control-card"><span>FINANCE MISSION BUDGET</span><strong id="scoutingBudget">£0.00</strong><small>Official Stage 6 released mission</small></article>
-  <article class="scouting-control-card"><span>CANDIDATE UNIVERSE</span><strong id="scoutingUniverseCount">0</strong><small>Unique shares available to rank</small></article>
-  <article class="scouting-control-card scouting-top-card"><span>TOP READY PROSPECT</span><strong id="scoutingTopPick">Waiting for candidates</strong><small id="scoutingTopPickDetail">Loading the buy-ready board.</small></article>
-</section>
+  <section class="scout-kpis" aria-label="Scouting key performance indicators">
+    <article><small>Players Scouted</small><strong id="kpiScouted">—</strong><span>Live candidate universe</span></article>
+    <article><small>Top Prospects</small><strong id="kpiProspects">—</strong><span>Buy-ready / strong reports</span></article>
+    <article><small>Hidden Gems</small><strong id="kpiGems">—</strong><span>New, high-yield buy-ready</span></article>
+    <article><small>Low-Risk Reports</small><strong id="kpiLowRisk">—</strong><span>Payout risk marked low</span></article>
+    <article><small>Best Income Scout</small><strong id="kpiIncome">—</strong><span id="kpiIncomeSub">Highest forward yield</span></article>
+    <article><small>Recruitment Meeting</small><strong id="kpiMeeting">0</strong><span>Locally shortlisted</span></article>
+  </section>
 
-<section class="department-section scouting-strategy-section"><div class="section-heading"><div><p class="eyebrow scouting-eyebrow">SCOUTING STRATEGY</p><h2>How should Aurora rank this payday?</h2></div><p id="scoutingStrategyNote">Sustainable balances income with concentration and diversification.</p></div><label class="scouting-strategy-control">Scouting Strategy<select id="scoutingStrategy"><option value="sustainable">Sustainable Income</option><option value="maximum">Maximum Income</option></select></label></section>
+  <div class="scout-breaking"><span>BREAKING</span><div><b id="rumourText">Chief Scout network connecting…</b></div></div>
 
-<section class="department-section scouting-universe-section"><div class="section-heading"><div><p class="eyebrow scouting-eyebrow">UNIVERSE SOURCES</p><h2>Scouting network controls</h2></div><p>AuroraData 2 Watchlist and AuroraScout intelligence are combined with the Global Watchlist, Decision Engine, Aurora Intelligence, Live Prices and the wider market watch. These controls are for maintenance, not the normal payday workflow.</p></div><div class="scouting-actions"><button id="scoutingRefreshUniverse" type="button">Refresh Aurora Universe</button><span id="scoutingUniverseStatus">Loading AuroraData 2 universe…</span></div><div class="scouting-actions"><button id="scoutingSeedSquad" type="button">Add Current Squad</button><span id="scoutingSeedStatus">Current holdings can also be added directly to the candidate pool.</span></div><details class="scouting-add-candidate"><summary>Add External Candidate Manually</summary><div class="scouting-form-grid"><label>Ticker <input id="candidateTicker" autocomplete="off"></label><label>Name <input id="candidateName" autocomplete="off"></label><label>Forward Yield % <input id="candidateYield" type="number" min="0" step="0.01"></label><label>Sector <input id="candidateSector" autocomplete="off" placeholder="Optional"></label></div><button id="addCandidate" type="button">Add / Update Candidate</button></details></section>
+  <section class="scout-command-strip">
+    <article class="scout-director aurora-section-anchor" id="chief-scout-report">
+      <div class="scout-target-crest" id="directorTicker">—</div>
+      <div class="scout-director-copy">
+        <small>TODAY'S SIGNING RECOMMENDATION</small>
+        <h2 id="directorName">Awaiting live scout reports</h2>
+        <p id="directorReason">Aurora is ranking income, valuation, risk, evidence quality and broker execution.</p>
+        <div class="scout-director-metrics" id="directorMetrics"></div>
+      </div>
+      <div class="scout-director-action"><small>SCOUT CONFIDENCE</small><div id="directorScore">—</div><button id="directorOpen" type="button">Open full report</button></div>
+    </article>
+    <article class="scout-network-map-card">
+      <div class="scout-panel-title"><h3>Global scouting network</h3><span>4 regions</span></div>
+      <div class="scout-network-map">
+        <i class="route r1"></i><i class="route r2"></i>
+        <span class="pin us">🇺🇸<b>US Desk</b></span>
+        <span class="pin uk">🇬🇧<b>UK Desk</b></span>
+        <span class="pin eu">🇪🇺<b>Europe</b></span>
+        <span class="pin au">🇦🇺<b>Australia</b></span>
+      </div>
+    </article>
+  </section>
 
-<section class="department-section scouting-ranking-section"><div class="section-heading"><div><p class="eyebrow scouting-eyebrow">RECRUITMENT MEETING · PAYDAY PLAN</p><h2>Proposed use of the Finance mission</h2></div><p id="scoutingAllocationNote">Waiting for Finance Stage 6 to release an investment mission.</p></div><div class="scouting-control-grid"><article class="scouting-control-card"><span>AUTO-SELECTED PICKS</span><strong id="scoutingApprovedCount">0</strong><small>BUY / STRONG BUY cases that pass all gates</small></article><article class="scouting-control-card"><span>ALLOCATED BUDGET</span><strong id="scoutingAllocatedBudget">£0.00</strong><small>Released Finance mission assigned by the optimiser</small></article><article class="scouting-control-card scouting-top-card"><span>PROJECTED EXTRA INCOME</span><strong id="scoutingProjectedIncome">£0.00</strong><small>Estimated annual income from the proposed payday allocation</small></article></div><p>Plan status: <strong id="scoutingPlanStatus">WAITING</strong></p><ul id="scoutingAllocationRows"><li>No Finance mission released yet.</li></ul><div class="finance-actions"><button id="scoutingApprovePlan" type="button" class="finance-primary" disabled>Approve Payday Plan</button></div></section>
+  <section class="scout-feature-grid">
+    <article class="scout-bestxi aurora-section-anchor" id="scouting-best-xi">
+      <div class="scout-section-head"><div><span>AUTOMATIC SELECTION</span><h2>Scouting Best XI</h2><p>The strongest eleven prospects by the clean chief-scout ranking.</p></div><em>4–3–3 + Bench</em></div>
+      <div class="scout-pitch" id="bestXiPitch"><i class="centre-circle"></i></div>
+      <div class="scout-bench" id="bestXiBench"></div>
+    </article>
+    <article class="scout-former aurora-section-anchor" id="rescouting-desk">
+      <div class="scout-section-head"><div><span>FORMER PLAYERS</span><h2>Re-scouting desk</h2><p>Exited or former holdings can return for a fresh assessment.</p></div><em id="formerCount">0 players</em></div>
+      <div class="scout-former-list" id="formerList"></div>
+    </article>
+  </section>
 
+  <section class="scout-section aurora-section-anchor" id="scouting-radar">
+    <div class="scout-section-head"><div><span>CHIEF SCOUT OVERVIEW</span><h2>Scouting radar</h2><p>Buy strength moves right; better valuation moves upward. Tap a ticker for the full report.</p></div><em id="radarCount">Top reports</em></div>
+    <div class="scout-dashboard-grid">
+      <article class="scout-panel">
+        <div class="scout-panel-title"><h3>Opportunity radar</h3><span>Tap a ticker</span></div>
+        <div class="scout-opportunity-radar" id="radarField"><label class="top">More undervalued</label><label class="bottom">Expensive / neutral</label><label class="left">Lower strength</label><label class="right">Higher strength</label></div>
+      </article>
+      <article class="scout-panel">
+        <div class="scout-panel-title"><h3>Chief scout recommendations</h3><span>Composite ranking</span></div>
+        <div class="scout-recommend-list" id="recommendList"></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="scout-section aurora-section-anchor" id="scout-assignments">
+    <div class="scout-section-head"><div><span>RECRUITMENT NETWORK</span><h2>Scout assignments</h2><p>Specialist desks grouped from each company’s current Aurora role and sector.</p></div><em id="assignmentCount">— assignments</em></div>
+    <div class="scout-assignments" id="assignmentGrid"></div>
+  </section>
+
+  <section class="scout-section aurora-section-anchor" id="scouting-pipeline">
+    <div class="scout-section-head"><div><span>REPORT WORKFLOW</span><h2>Scouting pipeline</h2><p>From first discovery through to recruitment-meeting consideration.</p></div></div>
+    <div class="scout-pipeline" id="pipelineGrid"></div>
+  </section>
+
+  <section class="scout-section aurora-section-anchor" id="reports">
+    <div class="scout-section-head"><div><span>ENGLISH SCOUTING PYRAMID</span><h2>Scouting league tables</h2><p>Candidates are promoted or relegated by their live clean-room chief-scout ranking.</p></div><em id="resultCount">— reports</em></div>
+    <div class="scout-division-guide">
+      <div><strong>Premier League</strong><span>Elite reports leading Aurora’s rankings.</span></div>
+      <div><strong>Championship</strong><span>Strong candidates pushing for promotion.</span></div>
+      <div><strong>League One</strong><span>Development prospects needing more evidence.</span></div>
+      <div><strong>League Two</strong><span>Early-stage, lower-conviction or blocked cases.</span></div>
+    </div>
+    <div class="scout-toolbar">
+      <label>⌕<input id="searchInput" type="search" placeholder="Search ticker, company, sector or broker…"></label>
+      <label>🏆<select id="leagueFilter"><option value="">All divisions</option></select></label>
+      <label>🧭<select id="roleFilter"><option value="">All assignments</option></select></label>
+      <label>🛡<select id="riskFilter"><option value="">All risk levels</option></select></label>
+      <label>↕<select id="sortFilter"><option value="rank">Chief scout ranking</option><option value="strength">Buy strength</option><option value="yield">Dividend yield</option><option value="upside">Valuation upside</option></select></label>
+    </div>
+    <div class="scout-leagues" id="reportGrid"></div>
+  </section>
+
+  <section class="scout-section aurora-section-anchor" id="meeting">
+    <div class="scout-section-head"><div><span>DECISION ROOM</span><h2>Recruitment meeting</h2><p>Your local shortlist before a candidate moves into the Transfer Centre workflow.</p></div><button id="clearMeetingBtn" type="button">Clear shortlist</button></div>
+    <div class="scout-meeting-grid" id="meetingGrid"></div>
+  </section>
+</main>
+
+<div class="scout-detail-overlay" id="detailOverlay"></div>
+<aside class="scout-detail-drawer" id="detailDrawer" aria-label="Scout report details"><div id="detailContent"></div></aside>
+<div class="scout-toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
