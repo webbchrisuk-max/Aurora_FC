@@ -1,52 +1,89 @@
 # Aurora AI — Conversational setup
 
-The Clean build now supports free-form Aurora AI chat through the existing Aurora backend connection.
+The Clean build now supports free-form Aurora AI chat through the existing **AuroraData 2 Consolidated** backend.
 
-## Architecture
+## Confirmed router integration
 
-Browser (Aurora Clean) → existing Aurora Apps Script web app → OpenAI Responses API
+Your consolidated router already has exactly the structure Aurora AI needs:
 
-The OpenAI API key must never be placed in `aurora.js`, HTML, localStorage, GitHub, or any other browser-visible file.
+- one authenticated `doPost()`
+- one authenticated `doGet()`
+- a central action registry
+- POST-only execution for non-READ actions
+- backend dependency/status reporting
 
-## One-time backend setup
+Aurora AI should be registered as a **WRITE_DERIVED** POST action. It does not write to the workbook; that mode is used because the request carries a conversation/context payload and therefore belongs on POST rather than the read-only GET route.
 
-1. Open the existing Aurora Apps Script web app project.
-2. Add the contents of `clean-rebuild/AuroraAIChat.gs` to that Apps Script project.
-3. In the existing authenticated POST router, add:
+### 1. Update the router release
 
 ```javascript
-if (action === 'aiChat') {
-  return auroraHandleAiChat_(payload);
-}
+const A2_BACKEND_RELEASE = 'AURORA_DATA2_CONSOLIDATED_BACKEND_V2_3_AI';
+const A2_BACKEND_ROUTER_VERSION = 2.3;
+const A2_BACKEND_RELEASED_AT = '2026-09-25';
 ```
 
-The router's existing Aurora token/authentication check must run before this handler.
+### 2. Add `aiChat` to `auroraActionSpecs_()`
 
-4. Open **Project Settings → Script Properties** and add:
+```javascript
+{
+  name:'aiChat',
+  group:'AI',
+  mode:'WRITE_DERIVED',
+  handler:p => auroraHandleAiChat_(p)
+},
+```
+
+No change to `doPost()` is required. The existing `ARD2_verifyToken_(e, payload)` call runs before the registry handler, and the current POST gate already allows `WRITE_DERIVED`.
+
+### 3. Add the AI dependency to `auroraBackendDependencies_()`
+
+```javascript
+ai:{
+  chat:
+    typeof auroraHandleAiChat_ === 'function'
+},
+```
+
+This makes `backendStatus` and `backendHardeningSelfTest_` report the AI handler as a dependency.
+
+### 4. Add the AI handler file
+
+Copy `clean-rebuild/AuroraAIChat.gs` into the same Apps Script project.
+
+### 5. Configure Script Properties
+
+In **Apps Script → Project Settings → Script Properties** add:
 
 - `OPENAI_API_KEY` = your OpenAI project API key
 - Optional: `AURORA_AI_MODEL` = `gpt-5.6`
 
-5. Deploy a new version of the existing web app. Keep the same Aurora backend connection URL/token where possible.
-6. Run `testAuroraAiChat` in Apps Script once to verify the server can reach the OpenAI Responses API.
-7. Open Aurora Clean and ask the assistant a free-form question such as:
+Never place the API key in `aurora.js`, HTML, localStorage, GitHub, or any browser-visible code.
 
-> Why is my current safe release lower than my available cash?
+### 6. Redeploy the existing web app
 
-## What the browser sends
+Deploy a **new version of the same AuroraData 2 Consolidated web app**. Keep the existing backend URL/token connection where possible.
 
-Only a controlled snapshot relevant to Aurora conversation:
+### 7. Validate
 
-- Finance summary, bills and pots
-- ISA allowance summary
-- Scouting status and limited candidate/plan data
-- Transfer mission and route summary
-- Registration receipt summary
-- Squad holdings summary
-- Forward income and Match Report status
-- Recent Aurora assistant conversation
+Run these in Apps Script:
 
-The browser does **not** include the Aurora backend token or OpenAI API key in the AI payload.
+```javascript
+backendHardeningSelfTest_()
+auroraAiRouterPatchStatus_()
+testAuroraAiChat()
+```
+
+Expected results:
+
+- hardening self-test passes
+- `aiChat` is registered as `AI / WRITE_DERIVED`
+- the AI test returns `ok:true` with an answer
+
+## Architecture
+
+Browser (Aurora Clean) → authenticated AuroraData 2 Consolidated web app → OpenAI Responses API
+
+The browser sends only a controlled Aurora snapshot plus recent Aurora AI conversation history.
 
 ## Safety boundary
 
