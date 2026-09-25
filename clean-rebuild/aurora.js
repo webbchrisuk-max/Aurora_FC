@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260926-shell-16-dividend-date-fix';
+  const BUILD = '20260926-shell-17-free-data-router';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -314,7 +314,7 @@
 (() => {
   'use strict';
 
-  const ASSISTANT_BUILD='20260926-aurora-conversation-8-dividend-date-fix';
+  const ASSISTANT_BUILD='20260926-aurora-conversation-9-free-data-router';
   const SESSION_OPEN='aurora-clean:assistant-open:v2';
   const SESSION_PENDING='aurora-clean:assistant-pending:v2';
   const SESSION_HISTORY='aurora-clean:assistant-history:v2';
@@ -1530,8 +1530,304 @@
       }
     }
 
+    function directPortfolioAnswer_(q,state){
+      const portfolio=aiPortfolioAnalytics_(state?.squad?.holdings||[]);
+      if(!portfolio.accountPositionCount){
+        addMessage('ai','I cannot see any active holdings in the current Clean state.');
+        return true;
+      }
+
+      if(/\b(how many|number of)\b.*\b(holdings|positions)\b|\b(holdings|positions)\b.*\b(how many|number of)\b/.test(q)){
+        addMessage('ai','You currently have '+portfolio.accountPositionCount+' account position'+(portfolio.accountPositionCount===1?'':'s')+' across '+portfolio.uniqueTickerCount+' unique ticker'+(portfolio.uniqueTickerCount===1?'':'s')+'.');
+        return true;
+      }
+      if(/\b(portfolio value|market value|shares worth|holdings worth|portfolio worth)\b/.test(q)){
+        addMessage('ai','Your current portfolio market value is '+money(portfolio.marketValueGbp)+'. Book cost is '+money(portfolio.bookCostGbp)+'.');
+        return true;
+      }
+      if(/\b(book cost|cost basis)\b/.test(q)){
+        addMessage('ai','Your portfolio book cost is '+money(portfolio.bookCostGbp)+' against a current market value of '+money(portfolio.marketValueGbp)+'.');
+        return true;
+      }
+      if(/\b(overall|portfolio)\b.*\b(profit|loss|up|down|p\/l|gain)\b|\b(profit|loss|p\/l)\b.*\b(overall|portfolio)\b/.test(q)){
+        const sign=portfolio.unrealisedGbp>=0?'+':'';
+        addMessage('ai','Your unrealised portfolio position is '+sign+money(portfolio.unrealisedGbp)+' ('+sign+portfolio.unrealisedPct.toFixed(2)+'%).');
+        return true;
+      }
+      if(/\b(portfolio yield|income yield|yield on current value|current yield)\b/.test(q)){
+        addMessage('ai','Your indicated annual income yield on current portfolio value is '+portfolio.currentIncomeYieldPct.toFixed(2)+'%.');
+        return true;
+      }
+      if(/\b(annual income|yearly income|income per year)\b/.test(q)){
+        addMessage('ai','Your forward annual portfolio income is '+money(portfolio.annualIncomeGbp)+'.');
+        return true;
+      }
+      if(/\b(monthly income|income per month)\b/.test(q)){
+        addMessage('ai','Your forward monthly portfolio income is about '+money(portfolio.monthlyIncomeGbp)+'.');
+        return true;
+      }
+      if(/\b(biggest holding|largest holding|top holding)\b/.test(q)){
+        const top=portfolio.topHoldings?.[0];
+        addMessage('ai',top?'Your largest holding is '+top.ticker+' at '+money(top.marketValueGbp)+' — '+top.portfolioPct.toFixed(2)+'% of portfolio value.':'I cannot identify a largest holding from the current state.');
+        return true;
+      }
+      if(/\b(top 3|three biggest|3 biggest|top three)\b.*\b(holdings|positions)\b|\b(holdings|positions)\b.*\b(top 3|three biggest|3 biggest|top three)\b/.test(q)){
+        const rows=(portfolio.topHoldings||[]).slice(0,3);
+        addMessage('ai',rows.length?'Your three largest holdings are '+rows.map((row,i)=>(i+1)+'. '+row.ticker+' '+money(row.marketValueGbp)+' ('+row.portfolioPct.toFixed(2)+'%)').join(' · ')+'.':'I cannot identify your top holdings from the current state.');
+        return true;
+      }
+      if(/\b(duplicate|duplicated|same holding|same ticker)\b/.test(q)){
+        const rows=portfolio.concentration?.duplicateTickersAcrossAccounts||[];
+        addMessage('ai',rows.length?'Holdings split across more than one account: '+rows.map(row=>row.ticker+' ('+row.accounts.join(' + ')+', '+row.combinedPortfolioPct.toFixed(2)+'%)').join(' · ')+'.':'I cannot see any ticker currently split across multiple accounts.');
+        return true;
+      }
+      if(/\b(broker split|account split|ig.*trading 212|trading 212.*ig)\b/.test(q)){
+        const rows=portfolio.accountBreakdown||[];
+        addMessage('ai',rows.length?'Portfolio by account: '+rows.map(row=>row.account+' '+money(row.marketValueGbp)+' ('+row.portfolioPct.toFixed(2)+'%)').join(' · ')+'.':'I cannot calculate the account split from the current state.');
+        return true;
+      }
+      return false;
+    }
+
+    function directFinanceAnswer_(q,state){
+      const f=financeSummary(state);
+      if(/\b(safe release|safe to invest|safe investment amount|how much can i invest)\b/.test(q)){
+        addMessage('ai',explainSafeRelease(state));
+        return true;
+      }
+      if(/\b(protected cash|protected money)\b/.test(q)){
+        addMessage('ai',f?'Protected cash is '+money(f.protectedCash)+'. Total currently reserved is '+money(f.totalReserved)+'.':'I cannot calculate the current protected cash.');
+        return true;
+      }
+      if(/\b(available cash|cash available)\b/.test(q)){
+        addMessage('ai',f?'Finance currently shows '+money(f.availableCash)+' available cash before the reserved amounts are applied.':'I cannot calculate available cash right now.');
+        return true;
+      }
+      if(/\b(isa allowance|isa left|isa remaining|how much.*isa|isa.*how much|ig.*allowance|allowance.*ig)\b/.test(q)){
+        const isa=isaSummary(state);
+        const igMax=isa.left+isa.flexible;
+        addMessage('ai','ISA tracker: '+money(isa.used)+' used of '+money(isa.annual)+', leaving '+money(isa.left)+' normal allowance. IG flexible replacement room is '+money(isa.flexible)+', so the recorded maximum additional IG capacity is '+money(igMax)+'.');
+        return true;
+      }
+      if(/\b(house fund|renovation fund|house budget)\b/.test(q)){
+        const h=aiHouseSnapshot_(state);
+        addMessage('ai','House Fund: '+money(h.potBalanceGbp)+' balance against a '+money(h.potTargetGbp||h.targetGbp)+' target. Recorded spend is '+money(h.recordedSpentGbp)+'.');
+        return true;
+      }
+      if(/\b(total tracked finances|tracked finances|total finances|net tracked)\b/.test(q)){
+        const x=aiFinanceOverviewSnapshot_(state);
+        addMessage('ai','Aurora currently tracks '+money(x.totalTrackedFinancesGbp)+' across the Finance overview.');
+        return true;
+      }
+      if(/\b(emergency pot|emergency fund)\b/.test(q)){
+        const pots=Array.isArray(state?.finance?.pots)?state.finance.pots:[];
+        const p=pots.find(row=>String(row?.type||'').toLowerCase()==='emergency'||String(row?.name||'').toLowerCase().includes('emergency'));
+        addMessage('ai',p?'Your Emergency Pot is '+money(p.balance||p.currentBalance||0)+'.':'I cannot find an Emergency Pot in the current Clean state.');
+        return true;
+      }
+      if(/\b(holding pot)\b/.test(q)){
+        addMessage('ai','Your Holding Pot balance is '+money(state?.finance?.holdingPotBalance||0)+' against a target of '+money(state?.finance?.holdingPotTarget||0)+'.');
+        return true;
+      }
+      return false;
+    }
+
+    function parseDividendDate_(value){
+      if(value===null||value===undefined||value==='')return null;
+      if(typeof value==='number'&&Number.isFinite(value)){
+        const d=new Date(Date.UTC(1899,11,30)+Math.round(value)*86400000);
+        return Number.isNaN(d.getTime())?null:d;
+      }
+      const raw=String(value).trim();
+      const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if(iso)return new Date(iso[1]+'-'+iso[2]+'-'+iso[3]+'T12:00:00');
+      const d=new Date(raw);
+      return Number.isNaN(d.getTime())?null:d;
+    }
+
+    function normalisedUpcomingDividends_(snapshot){
+      const start=new Date();start.setHours(0,0,0,0);
+      return (Array.isArray(snapshot?.dividends)?snapshot.dividends:[]).map(raw=>{
+        const payDate=parseDividendDate_(raw?.payDate??raw?.pay_date??raw?.paymentDate??raw?.payment_date);
+        const shares=Math.max(0,num(raw?.sharesEligible??raw?.shares_eligible??raw?.eligibleShares));
+        const dps=Math.max(0,num(raw?.dividendPerShareGbp??raw?.dividend_per_share_gbp??raw?.dpsGbp));
+        const explicit=Math.max(0,num(raw?.expectedAmountGbp??raw?.expected_amount_gbp??raw?.grossDividendGbp??raw?.gross_dividend_gbp));
+        return{
+          ticker:upper(raw?.ticker||raw?.symbol),
+          account:String(raw?.account||''),
+          payDate,
+          exDate:parseDividendDate_(raw?.exDate??raw?.ex_date),
+          amount:explicit>0?explicit:(shares>0&&dps>0?shares*dps:0),
+          status:upper(raw?.status||'FORECAST')
+        };
+      }).filter(row=>row.ticker&&row.payDate&&row.payDate>=start&&!/ARCHIVED|CANCELLED|CANCELED|MISSED|PAID/.test(row.status))
+        .sort((a,b)=>a.payDate-b.payDate||b.amount-a.amount);
+    }
+
+    async function incomeSnapshotDirect_(){
+      const client=await ensureBackendClient();
+      try{
+        const live=await client.get('incomeSnapshot',{});
+        if(Array.isArray(live?.dividends))return live;
+      }catch(error){
+        console.warn('Aurora direct income lookup using cache',error);
+      }
+      const cached=readJSON('aurora-clean:income-snapshot:v1');
+      return cached?.snapshot||null;
+    }
+
+    async function answerDividendList_(mode){
+      if(remoteBusy)return;
+      setRemoteBusy(true);
+      const thinking=thinkingMessage();
+      try{
+        const snapshot=await incomeSnapshotDirect_();
+        let rows=normalisedUpcomingDividends_(snapshot);
+        const today=new Date();today.setHours(0,0,0,0);
+        let label='upcoming';
+        if(mode==='month'){
+          rows=rows.filter(row=>row.payDate.getFullYear()===today.getFullYear()&&row.payDate.getMonth()===today.getMonth());
+          label='this month';
+        }else if(mode==='30'){
+          const end=new Date(today.getTime()+30*86400000);
+          rows=rows.filter(row=>row.payDate<=end);
+          label='in the next 30 days';
+        }
+        thinking.remove();
+        if(!rows.length){
+          addMessage('ai','I cannot see any unpaid dividends due '+label+' in the current AuroraData 2 snapshot.');
+          return;
+        }
+        const total=rows.reduce((sum,row)=>sum+row.amount,0);
+        const shown=rows.slice(0,5);
+        addMessage('ai','Dividends due '+label+': '+shown.map(row=>row.ticker+' '+money(row.amount)+' on '+row.payDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})).join(' · ')+(rows.length>shown.length?' · plus '+(rows.length-shown.length)+' more':'')+'. Total '+money(total)+'.');
+      }catch(error){
+        thinking.remove();
+        addMessage('ai','I could not read the dividend feed just now. '+String(error?.message||error));
+      }finally{
+        setRemoteBusy(false);
+      }
+    }
+
+    async function answerBrokerCash_(){
+      if(remoteBusy)return;
+      setRemoteBusy(true);
+      const thinking=thinkingMessage();
+      try{
+        const client=await ensureBackendClient();
+        let snapshot=null;
+        try{snapshot=await client.get('brokerCashSnapshot',{});}catch(error){console.warn('Aurora broker cash using cache',error);}
+        if(!snapshot?.balances){
+          const cached=readJSON('aurora-clean:broker-cash-snapshot:v1');
+          snapshot=cached?.snapshot||null;
+        }
+        thinking.remove();
+        const b=snapshot?.balances||{};
+        const ig=num(b.IG??b.ig),t212=num(b.T212??b.t212??b.TRADING212);
+        if(!snapshot){
+          addMessage('ai','I cannot read the broker cash snapshot right now.');
+          return;
+        }
+        addMessage('ai','Broker cash: IG '+money(ig)+' · Trading 212 '+money(t212)+' · total '+money(ig+t212)+'.');
+      }catch(error){
+        thinking.remove();
+        addMessage('ai','I could not read broker cash just now. '+String(error?.message||error));
+      }finally{
+        setRemoteBusy(false);
+      }
+    }
+
+    async function answerMarketToday_(){
+      if(remoteBusy)return;
+      setRemoteBusy(true);
+      const thinking=thinkingMessage();
+      try{
+        const client=await ensureBackendClient();
+        const snapshot=await client.get('nexusDashboardSnapshot',{});
+        thinking.remove();
+        const market=snapshot?.market||{};
+        const change=num(market.portfolioTodayChangeGbp);
+        const pct=num(market.portfolioTodayChangePct);
+        const best=market.best||null,worst=market.worst||null;
+        let answer='Today\'s portfolio move is '+(change>=0?'+':'')+money(change)+' ('+(pct>=0?'+':'')+pct.toFixed(2)+'%).';
+        if(best?.ticker)answer+=' Best mover: '+String(best.ticker)+' '+(num(best.dayChangePct)>=0?'+':'')+num(best.dayChangePct).toFixed(2)+'%.';
+        if(worst?.ticker)answer+=' Worst mover: '+String(worst.ticker)+' '+(num(worst.dayChangePct)>=0?'+':'')+num(worst.dayChangePct).toFixed(2)+'%.';
+        addMessage('ai',answer);
+      }catch(error){
+        thinking.remove();
+        addMessage('ai','I could not read today\'s market snapshot just now. '+String(error?.message||error));
+      }finally{
+        setRemoteBusy(false);
+      }
+    }
+
+    async function answerRecentRegistrations_(){
+      if(remoteBusy)return;
+      setRemoteBusy(true);
+      const thinking=thinkingMessage();
+      try{
+        const client=await ensureBackendClient();
+        const result=await client.get('listRecentRegistrations',{limit:5});
+        thinking.remove();
+        const rows=Array.isArray(result?.registrations)?result.registrations:[];
+        addMessage('ai',rows.length?'Recent registrations: '+rows.slice(0,5).map(row=>String(row?.ticker||'—')+' '+String(row?.side||'')+' '+money(row?.totalCostGbp||row?.amountGbp||0)+' '+String(row?.account||'')).join(' · ')+'.':'There are no recent registrations in the current backend snapshot.');
+      }catch(error){
+        thinking.remove();
+        addMessage('ai','I could not read recent registrations just now. '+String(error?.message||error));
+      }finally{
+        setRemoteBusy(false);
+      }
+    }
+
+    async function answerOffers_(){
+      if(remoteBusy)return;
+      setRemoteBusy(true);
+      const thinking=thinkingMessage();
+      try{
+        const client=await ensureBackendClient();
+        const result=await client.get('listIncomingOffers',{limit:8});
+        thinking.remove();
+        const rows=Array.isArray(result?.offers)?result.offers:[];
+        const active=rows.filter(row=>!/WITHDRAWN|DECLINED|EXPIRED|CANCELLED|CANCELED/.test(upper(row?.status)));
+        addMessage('ai',active.length?'You have '+active.length+' active incoming offer'+(active.length===1?'':'s')+': '+active.slice(0,5).map(row=>String(row?.ticker||'—')+' '+money(row?.offerValueGbp||0)+' ('+String(row?.status||'')+')').join(' · ')+'.':'There are no active incoming offers in the current backend snapshot.');
+      }catch(error){
+        thinking.remove();
+        addMessage('ai','I could not read incoming offers just now. '+String(error?.message||error));
+      }finally{
+        setRemoteBusy(false);
+      }
+    }
+
+    function tryFreeDataAnswer_(q,state){
+      if(directPortfolioAnswer_(q,state))return true;
+      if(directFinanceAnswer_(q,state))return true;
+
+      if(/\b(dividends? due this month|dividends? this month|what dividends?.*this month)\b/.test(q)){
+        answerDividendList_('month');return true;
+      }
+      if(/\b(dividends?.*(next 30 days|30 days)|next 30 days.*dividends?)\b/.test(q)){
+        answerDividendList_('30');return true;
+      }
+      if(/\b(upcoming dividends|what dividends are coming|next few dividends|show dividends)\b/.test(q)){
+        answerDividendList_('all');return true;
+      }
+      if(/\b(broker cash|ig cash|trading 212 cash|t212 cash)\b/.test(q)&&!/refresh/.test(q)){
+        answerBrokerCash_();return true;
+      }
+      if(/\b(how.*doing today|portfolio.*today|market.*today|movers today|best mover|worst mover|what moved today)\b/.test(q)){
+        answerMarketToday_();return true;
+      }
+      if(/\b(recent registrations|recent purchases|recent buys|last purchases|what have i bought recently)\b/.test(q)){
+        answerRecentRegistrations_();return true;
+      }
+      if(/\b(incoming offers|active offers|any offers|offers waiting)\b/.test(q)){
+        answerOffers_();return true;
+      }
+      return false;
+    }
+
     function help(){
-      addMessage('ai','Try commands such as “what needs attention?”, “page status”, “show ISA allowance”, “show house improvements”, “why is my safe release lower?”, “open Transfer”, “refresh broker cash”, or “build match report”. I will not execute purchases, lock routes or reset data from chat.');
+      addMessage('ai','You can ask for portfolio value, profit or loss, top holdings, annual or monthly income, ISA allowance, safe release, House Fund, broker cash, today’s market move, upcoming dividends, recent registrations or incoming offers without using AI credits. I still use GPT for open-ended analysis and conversation.');
     }
 
     function handleCommand(raw,echo=true){
@@ -1565,6 +1861,7 @@
       if(/\b(next dividend|next payment|upcoming dividend)\b/.test(q)){
         answerNextDividend();return;
       }
+      if(tryFreeDataAnswer_(q,state))return;
       if(q.includes('income status')||q.includes('dividend income')){
         addMessage('ai',pageStatus('income',state),[{label:'Open Income',command:'open income'}]);return;
       }
