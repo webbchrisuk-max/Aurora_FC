@@ -1,11 +1,12 @@
 (() => {
   'use strict';
-  const BUILD='20260924-chief-scout-command-6-stable-ready-board';
+  const BUILD='20260925-chief-scout-command-7-broker-execution';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
   const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const brokerLabel=row=>window.AuroraScoutingExecutionProfiles?.accountLabel?.(row)||'Broker review';
 
   function ensureCommand(){
     let host=$('scoutingCommand');if(host)return host;
@@ -56,7 +57,9 @@
 
   function reason(row){
     const bits=[];
-    if(num(row.yieldPct)>0)bits.push(`${num(row.yieldPct).toFixed(2)}% forward yield`);
+    if(num(row.yieldPct)>0)bits.push(`${num(row.yieldPct).toFixed(3)}% forward yield`);
+    if(brokerLabel(row)!=='Broker review')bits.push(`${brokerLabel(row)} execution`);
+    if(num(row.brokerYieldPct)>0)bits.push(`${num(row.brokerYieldPct).toFixed(3)}% broker yield`);
     if(num(row.networkScore||row.score)>0)bits.push(`${num(row.networkScore||row.score).toFixed(1)}/100 network score`);
     if(row.held)bits.push('existing holding');else bits.push('new opportunity');
     if(row.pipelineStage)bits.push(String(row.pipelineStage).toLowerCase());
@@ -65,7 +68,7 @@
   }
 
   function pickCard(row,index){
-    return `<article class="scouting-pick ${index===0?'top':''}"><div class="scouting-pick-rank">${index===0?'TOP PAYDAY PICK':`PAYDAY PICK #${index+1}`}</div><h3>${esc(row.ticker)}</h3><div class="name">${esc(row.name||row.ticker)}</div><div class="scouting-pick-tier">${esc(row.tier||'READY')}</div><div class="scouting-pick-amount">${money(row.amount)}</div><div class="scouting-pick-grid"><div class="scouting-pick-stat"><span>NETWORK SCORE</span><strong>${num(row.networkScore||row.score).toFixed(1)}</strong></div><div class="scouting-pick-stat"><span>FORWARD YIELD</span><strong>${num(row.yieldPct).toFixed(2)}%</strong></div><div class="scouting-pick-stat"><span>ANNUAL INCOME</span><strong>${money(row.expectedAnnualIncome)}</strong></div><div class="scouting-pick-stat"><span>VERDICT</span><strong>${esc(row.verdict||row.pipelineStage||'SELECTED')}</strong></div></div><p class="scouting-pick-reason">${esc(reason(row))}</p></article>`;
+    return `<article class="scouting-pick ${index===0?'top':''}"><div class="scouting-pick-rank">${index===0?'TOP PAYDAY PICK':`PAYDAY PICK #${index+1}`}</div><h3>${esc(row.ticker)}</h3><div class="name">${esc(row.name||row.ticker)}</div><div class="scouting-pick-tier">${esc(row.tier||'READY')}</div><div class="scouting-pick-amount">${money(row.amount)}</div><div class="scouting-pick-grid"><div class="scouting-pick-stat"><span>NETWORK SCORE</span><strong>${num(row.networkScore||row.score).toFixed(1)}</strong></div><div class="scouting-pick-stat"><span>FORWARD YIELD</span><strong>${num(row.yieldPct).toFixed(3)}%</strong></div><div class="scouting-pick-stat"><span>BUY ACCOUNT</span><strong>${esc(brokerLabel(row))}</strong></div><div class="scouting-pick-stat"><span>ANNUAL INCOME</span><strong>${money(row.expectedAnnualIncome)}</strong></div><div class="scouting-pick-stat"><span>VERDICT</span><strong>${esc(row.verdict||row.pipelineStage||'SELECTED')}</strong></div></div><p class="scouting-pick-reason">${esc(reason(row))}</p></article>`;
   }
 
   function readyCard(row,index){
@@ -78,7 +81,7 @@
       Number.isFinite(upside)?`${upside>=0?'+':''}${upside.toFixed(1)}% fair-value gap`:'',
       row.held?'already held':'new diversification candidate'
     ].filter(Boolean);
-    return `<article class="scouting-ready-card tier-${tier.toLowerCase()}"><div class="scouting-ready-rank">#${index+1}</div><div><span class="scouting-ready-tier">${esc(tier)}</span><h3>${esc(row.ticker)}</h3><p>${esc(row.name||row.ticker)}</p></div><div class="scouting-ready-score"><strong>${num(row.networkScore||row.score).toFixed(1)}</strong><span>NETWORK SCORE</span></div><div class="scouting-ready-meta"><span>${num(row.yieldPct).toFixed(2)}% yield</span><span>${esc(row.verdict)}</span><span>${row.held?'CURRENT HOLDING':'NEW OPPORTUNITY'}</span></div><small>${esc(reasonBits.join(' · '))}</small></article>`;
+    return `<article class="scouting-ready-card tier-${tier.toLowerCase()}"><div class="scouting-ready-rank">#${index+1}</div><div><span class="scouting-ready-tier">${esc(tier)}</span><h3>${esc(row.ticker)}</h3><p>${esc(row.name||row.ticker)}</p></div><div class="scouting-ready-score"><strong>${num(row.networkScore||row.score).toFixed(1)}</strong><span>NETWORK SCORE</span></div><div class="scouting-ready-meta"><span>${num(row.yieldPct).toFixed(3)}% yield</span><span>${esc(brokerLabel(row))}</span><span>${esc(row.executionMarket||row.market||'MARKET')}</span><span>${esc(row.verdict)}</span><span>${row.held?'CURRENT HOLDING':'NEW OPPORTUNITY'}</span></div><small>${esc(reasonBits.join(' · '))}</small></article>`;
   }
 
   function readyBoard(universe){
@@ -99,9 +102,9 @@
     if(title)title.textContent=`${upper(top.ticker)} · ${score.toFixed(1)}`;
     if(detail){
       if(selected){
-        detail.textContent=`${top.tier||'READY'} payday pick · ${num(top.yieldPct).toFixed(2)}% yield · ${money(top.expectedAnnualIncome)} projected annual income on ${money(top.amount)}.`;
+        detail.textContent=`${top.tier||'READY'} payday pick · ${num(top.yieldPct).toFixed(3)}% yield · ${brokerLabel(top)} · ${money(top.expectedAnnualIncome)} projected annual income on ${money(top.amount)}.`;
       }else{
-        detail.textContent=`${top.tier||'SCOUTING'} leader · ${num(top.yieldPct).toFixed(2)}% yield${budget>0?` · ${money(budget*num(top.yieldPct)/100)} estimated annual income if the full mission went here.`:''}`;
+        detail.textContent=`${top.tier||'SCOUTING'} leader · ${num(top.yieldPct).toFixed(3)}% yield · ${brokerLabel(top)}${budget>0?` · ${money(budget*num(top.yieldPct)/100)} estimated annual income if the full mission went here.`:''}`;
       }
     }
   }
