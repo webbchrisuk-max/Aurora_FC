@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260925-scouting-stadium-1';
+  const BUILD='20260925-scouting-stadium-2-fast-render';
   const SHORTLIST_KEY='aurora-clean:scouting-shortlist:v1';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
@@ -335,10 +335,10 @@
   }
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,60);return}
-    bind();render();setTimeout(render,900);setTimeout(render,2200);
-    window.addEventListener('aurora-clean:state',()=>schedule(180));
-    window.addEventListener('aurora:market-prices',()=>schedule(200));
-    window.addEventListener('pageshow',()=>schedule(120));
+    bind();render();
+    window.addEventListener('aurora-clean:state',()=>schedule(120));
+    window.addEventListener('aurora:market-prices',()=>schedule(160));
+    window.addEventListener('pageshow',event=>{if(event.persisted)schedule(80)});
     window.AuroraScoutingStadium=Object.freeze({BUILD,render,openDetail,toggleShortlist});
   }
 
