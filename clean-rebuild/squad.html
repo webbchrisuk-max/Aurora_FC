@@ -2,31 +2,107 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#06101a">
   <title>Aurora Clean — Squad Hub</title>
-  <link rel="stylesheet" href="aurora.css?v=20260925-shell-9-assistant">
-  <link rel="stylesheet" href="squad-intelligence.css?v=20260827-squad-intelligence-1">
-  <link rel="stylesheet" href="squad-matchday.css?v=20260827-squad-matchday-pitch-1">
-  <link rel="stylesheet" href="squad-table.css?v=20260827-squad-table-1">
-  <link rel="stylesheet" href="squad-matchday-split.css?v=20260827-squad-matchday-split-1">
-  <script src="aurora.js?v=20260925-shell-9-assistant" defer></script>
+  <link rel="stylesheet" href="aurora.css?v=20260924-shell-8-unified">
+  <link rel="stylesheet" href="squad-stadium.css?v=20260925-squad-stadium-1">
+  <script src="aurora.js?v=20260924-shell-8-unified" defer></script>
   <script src="chairman-settlement-authority.js?v=20260827-chairman-settlement-authority-1" defer></script>
-  <script src="squad-engine.js?v=20260901-squad-data-reset-1" defer></script>
   <script src="squad-backend-sync.js?v=20260924-squad-backend-sync-3-last-good-snapshot" defer></script>
-  <script src="squad-intelligence.js?v=20260827-squad-intelligence-market-after-1" defer></script>
-  <script src="squad-matchday.js?v=20260828-squad-matchday-price-source-3" defer></script>
+  <script src="squad-stadium.js?v=20260925-squad-stadium-1" defer></script>
   <script src="squad-backend-live-score.js?v=20260901-squad-backend-live-score-1" defer></script>
-  <script src="squad-matchday-split.js?v=20260827-squad-matchday-split-market-first-2" defer></script>
-  <script src="squad-order.js?v=20260827-squad-order-market-first-1" defer></script>
 </head>
-<body data-page="squad-real">
-<nav id="auroraNav"></nav><hr>
-<header class="department-hero squad-hero">
-  <div><p class="eyebrow">AURORA CITY FC · FIRST TEAM</p><h1>Squad Hub</h1><p class="department-lead">First-team command for live holdings, portfolio form, dividend income, Matchday XI and detailed player reports — all from the clean Squad authority.</p></div>
-  <button id="squadImportReal" type="button">Refresh Live Squad</button>
-</header>
-<section class="squad-status" aria-label="Squad data status"><p id="squadImportStatus">Connecting to the single Aurora Squad backend authority…</p><p id="squadSource">AuroraData Holdings + LivePrices via backend</p></section>
-<section id="squadCurrentMarketPosition" class="department-section"><div class="section-heading"><div><p class="eyebrow">PORTFOLIO VALUE</p><h2>Current market position</h2></div><p id="squadCount">0 account position(s)</p></div><div class="scouting-control-grid"><article class="scouting-control-card scouting-top-card"><span>TOTAL MARKET VALUE</span><strong id="squadMarketValue">£0.00</strong><small>Live price × active shares</small></article><article class="scouting-control-card"><span>BOOK COST</span><strong id="squadBookValue">£0.00</strong><small>Total invested cost basis</small></article><article class="scouting-control-card"><span>PROFIT / LOSS</span><strong id="squadProfitLoss">£0.00</strong><small id="squadProfitLossPct">0.00%</small></article></div><div class="finance-result-grid"><article class="finance-result-card"><span>ANNUAL INCOME</span><strong id="squadAnnualIncome">£0.00</strong><small>Confirmed forward income</small></article><article class="finance-result-card"><span>MONTHLY AVERAGE</span><strong id="squadMonthlyIncome">£0.00</strong><small>Annual income ÷ 12</small></article></div></section>
-<section class="department-section squad-register"><div class="section-heading"><div><p class="eyebrow">SQUAD TABLE</p><h2>Matchday XI & Bench</h2></div><p>Matchday XI first, then the bench. Tap any row to open the full Aurora Player Report.</p></div><div id="squadRows"><div class="squad-table-wrap"><div style="padding:22px"><strong>Waiting for backend Squad snapshot.</strong><br><span style="opacity:.75">Only AuroraData Holdings + LivePrices will be accepted.</span></div></div></div></section>
+<body data-page="squad-real" data-squad-ui="stadium">
+<nav id="auroraNav"></nav>
+
+<main class="squad-stadium-app">
+  <section class="squad-stadium-hero">
+    <div class="squad-stadium-eyebrow">AURORA CITY FC · FIRST TEAM</div>
+    <h1>First Team Command</h1>
+    <p>Manage your live holdings, portfolio form, dividend income and player reports from the clean Squad authority.</p>
+    <div class="squad-stadium-hero-actions">
+      <span class="squad-stadium-status" id="squadImportStatus">Connecting to the Aurora Squad backend…</span>
+      <button class="squad-stadium-refresh" id="squadImportReal" type="button">Refresh Live Squad</button>
+    </div>
+  </section>
+
+  <section class="squad-stadium-kpis" aria-label="Squad headline figures">
+    <article class="squad-stadium-card squad-stadium-kpi primary"><span>PROFIT / LOSS</span><strong id="squadStadiumPnl">£0.00 · 0.00%</strong><small id="squadStadiumCount">Waiting for live squad data</small></article>
+    <article class="squad-stadium-card squad-stadium-kpi"><span>TOTAL MARKET VALUE</span><strong id="squadStadiumMarket">£0.00</strong><small>Current portfolio value</small></article>
+    <article class="squad-stadium-card squad-stadium-kpi"><span>BOOK COST</span><strong id="squadStadiumBook">£0.00</strong><small>Total cost basis</small></article>
+    <article class="squad-stadium-card squad-stadium-kpi"><span>ANNUAL INCOME</span><strong id="squadStadiumAnnual">£0.00</strong><small id="squadStadiumYield">0.00% forward yield</small></article>
+    <article class="squad-stadium-card squad-stadium-kpi"><span>MONTHLY AVERAGE</span><strong id="squadStadiumMonthly">£0.00</strong><small>Annual income ÷ 12</small></article>
+  </section>
+
+  <section class="squad-stadium-insights">
+    <article class="squad-stadium-card squad-stadium-insight gold" id="squadCaptainCard"><div class="label">♛ &nbsp; CAPTAIN</div><small>Largest holding by market value</small><h3 id="squadCaptainTicker">—</h3><b id="squadCaptainDetail">—</b></article>
+    <article class="squad-stadium-card squad-stadium-insight gold" id="squadTopEarnerCard"><div class="label">🏆 &nbsp; TOP EARNER</div><small>Highest annual dividend income</small><h3 id="squadTopEarnerTicker">—</h3><b id="squadTopEarnerDetail">—</b></article>
+    <article class="squad-stadium-card squad-stadium-insight green" id="squadInFormCard"><div class="label">↗ &nbsp; IN-FORM PLAYER</div><small>Best P/L % within the Matchday XI</small><h3 id="squadInFormTicker">—</h3><b id="squadInFormDetail">—</b></article>
+    <article class="squad-stadium-card squad-stadium-insight red" id="squadRecoveryCard"><div class="label">↘ &nbsp; RECOVERY WATCH</div><small>Weakest current P/L %</small><h3 id="squadRecoveryTicker">—</h3><b id="squadRecoveryDetail">—</b></article>
+  </section>
+
+  <section class="squad-stadium-match-layout">
+    <article class="squad-stadium-card squad-stadium-pitch-panel">
+      <div class="squad-stadium-section-head">
+        <div><h2>⚽ Matchday XI</h2><p>Starting line-up selected by portfolio market value. Tap any shirt for the full player report.</p></div>
+        <div><span class="squad-stadium-badge">11 STARTERS</span> <span class="squad-stadium-badge">4–3–3</span></div>
+      </div>
+      <div class="squad-stadium-pitch" id="squadStadiumPitch"></div>
+    </article>
+
+    <article class="squad-stadium-card squad-stadium-bench-panel">
+      <div class="squad-stadium-section-head">
+        <div><h2>Bench & Depth</h2><p>Next holdings outside the starting XI</p></div>
+        <span class="squad-stadium-badge" id="squadBenchCount">0 DEPTH</span>
+      </div>
+      <div class="squad-stadium-bench" id="squadStadiumBench"></div>
+    </article>
+  </section>
+
+  <section class="squad-stadium-card squad-stadium-table-panel">
+    <div class="squad-stadium-section-head">
+      <div><h2>♟ Squad Table</h2><p>Top 11 by default · change the ranking without changing the actual Matchday XI.</p></div>
+      <div class="squad-stadium-toolbar">
+        <button class="active" data-squad-sort="matchday">Matchday XI</button>
+        <button data-squad-sort="pnl">P/L £</button>
+        <button data-squad-sort="pnlpct">P/L %</button>
+        <button data-squad-sort="market">Market Value</button>
+        <button data-squad-sort="annual">Income</button>
+        <button data-squad-sort="weight">Weight</button>
+        <button class="push" id="squadToggleFull">Show Full Squad ↓</button>
+      </div>
+    </div>
+    <div class="squad-stadium-table-wrap">
+      <table class="squad-stadium-table">
+        <thead><tr><th>#</th><th>HOLDING</th><th>ROLE</th><th>BROKER</th><th>MARKET VALUE</th><th>BOOK COST</th><th>P/L</th><th>P/L %</th><th>ANNUAL INCOME</th><th>WEIGHT</th></tr></thead>
+        <tbody id="squadStadiumBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="squad-stadium-bottom">
+    <article class="squad-stadium-card">
+      <div class="squad-stadium-section-head"><div><h2>Manager's Squad Report</h2><p>Key insights on current portfolio form</p></div></div>
+      <div class="squad-stadium-report-grid">
+        <div class="squad-stadium-mini"><span>SQUAD FORM</span><strong id="squadReportForm">0.00%</strong><small>Overall portfolio P/L</small></div>
+        <div class="squad-stadium-mini"><span>INCOME STRENGTH</span><strong id="squadReportIncome">£0.00</strong><small id="squadReportIncomeSub">0.00% current yield</small></div>
+        <div class="squad-stadium-mini"><span>CONCENTRATION</span><strong id="squadReportConcentration">0.0%</strong><small>Largest position</small></div>
+        <div class="squad-stadium-mini"><span>BROKER BALANCE</span><strong id="squadReportBrokers">0</strong><small id="squadReportBrokersSub">No brokers</small></div>
+        <div class="squad-stadium-mini"><span>SECTOR BALANCE</span><strong id="squadReportSectors">0</strong><small id="squadReportSectorsSub">Tracked sectors</small></div>
+      </div>
+    </article>
+
+    <article class="squad-stadium-card">
+      <div class="squad-stadium-section-head"><div><h2>Training Room / Fatigue Watch</h2><p>Areas for the manager to monitor</p></div></div>
+      <div class="squad-stadium-alerts" id="squadTrainingAlerts"></div>
+    </article>
+  </section>
+
+  <p class="squad-stadium-status" id="squadStadiumSource" style="margin:10px 4px 0;text-align:left">Aurora backend connection pending…</p>
+</main>
+
+<div class="squad-stadium-drawer-back" id="squadStadiumDrawerBack"></div>
+<aside class="squad-stadium-drawer" id="squadStadiumDrawer"><div id="squadStadiumDrawerContent"></div></aside>
 </body>
 </html>
