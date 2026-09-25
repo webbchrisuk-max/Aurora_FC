@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD='20260925-scouting-network-7-fast-stadium';
+  const BUILD='20260925-scouting-network-8-source-gates';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
@@ -27,9 +27,12 @@
   function upside(row){const live=num(row.livePriceGbp),fair=num(row.fairValueGbp);return live>0&&fair>0?(fair/live-1)*100:0}
   function decisionState(row){
     const action=upper(row.decisionAction),permission=upper(row.buyPermission),gate=upper(row.valuationGate);
-    const block=/SELL|AVOID|BLOCK|REJECT|DO NOT BUY|NO BUY/.test(`${action} ${permission} ${gate}`);
-    const watch=!block&&/HOLD|WATCH|WAIT|PAUSE|REVIEW/.test(`${action} ${permission} ${gate}`);
-    return{action,permission,gate,block,watch};
+    const trial=upper(row.trialVerdict),trialStatus=upper(row.trialStatus);
+    const explicitBuy=/^(YES|BUY|APPROVED)$/.test(permission)||/SELECTIVE BUY|BUY IF BUDGET|ACCUMULATE/.test(action);
+    const block=/SELL|AVOID|BLOCK|REJECT|DO NOT BUY|NO BUY/.test(`${action} ${permission} ${gate} ${trial}`);
+    const trialWatch=!explicitBuy&&/KEEP SCOUTING|KEEP WATCHING|DEEP SCOUT|RE-SCOUT|SCOUT CANDIDATE/.test(`${trial} ${trialStatus}`);
+    const watch=!block&&(/HOLD|WATCH|WAIT|PAUSE|REVIEW/.test(`${action} ${permission} ${gate}`)||trialWatch);
+    return{action,permission,gate,trial,trialStatus,explicitBuy,block,watch};
   }
   function tierFor(verdict,score){
     const v=upper(verdict),s=num(score);
