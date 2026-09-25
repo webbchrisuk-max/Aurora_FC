@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260926-shell-13-selective-ai';
+  const BUILD = '20260926-shell-14-ai-runtime-fix';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -314,7 +314,7 @@
 (() => {
   'use strict';
 
-  const ASSISTANT_BUILD='20260926-aurora-conversation-5-selective-context';
+  const ASSISTANT_BUILD='20260926-aurora-conversation-6-selective-context-fix';
   const SESSION_OPEN='aurora-clean:assistant-open:v2';
   const SESSION_PENDING='aurora-clean:assistant-pending:v2';
   const SESSION_HISTORY='aurora-clean:assistant-history:v2';
@@ -374,6 +374,7 @@
     const n=Number(String(value??'').replace(/[^0-9.-]/g,''));
     return Number.isFinite(n)?n:0;
   };
+  const round2=value=>Number(num(value).toFixed(2));
 
   function pageName(){
     const raw=String(document.body?.dataset?.page||'nexus');
