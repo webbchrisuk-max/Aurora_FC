@@ -597,3 +597,22 @@ body>p,body>ul,body>h1,body>h2,body>label,body>button{width:100%}
   .aurora-ai-highlight{scroll-behavior:auto}
 }
 
+
+.aurora-assistant.is-thinking .aurora-assistant-status{
+  background:#73d4ff;
+  box-shadow:0 0 15px rgba(115,212,255,.85);
+  animation:auroraAiThinking 1s ease-in-out infinite;
+}
+.aurora-assistant-message.is-thinking-message p{
+  color:#a8bfd3;
+  font-style:italic;
+}
+.aurora-assistant-form input:disabled,
+.aurora-assistant-form button:disabled{
+  opacity:.58;
+  cursor:wait;
+}
+@keyframes auroraAiThinking{
+  0%,100%{transform:scale(.82);opacity:.65}
+  50%{transform:scale(1.08);opacity:1}
+}
