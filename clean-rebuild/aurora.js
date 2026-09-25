@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260925-shell-11-conversation';
+  const BUILD = '20260926-shell-12-ai-context';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -314,7 +314,7 @@
 (() => {
   'use strict';
 
-  const ASSISTANT_BUILD='20260925-aurora-conversation-3';
+  const ASSISTANT_BUILD='20260926-aurora-conversation-4-live-context';
   const SESSION_OPEN='aurora-clean:assistant-open:v2';
   const SESSION_PENDING='aurora-clean:assistant-pending:v2';
   const SESSION_HISTORY='aurora-clean:assistant-history:v2';
@@ -519,6 +519,330 @@
     return 'Clean Build · page aware · online';
   }
 
+  function aiPercent_(part,total){
+    const denominator=Math.abs(num(total));
+    return denominator>0?(num(part)/denominator)*100:0;
+  }
+
+  function aiPortfolioAnalytics_(rows){
+    const holdings=(Array.isArray(rows)?rows:[]).map(row=>{
+      const shares=Math.max(0,num(row?.shares));
+      const livePriceGbp=Math.max(0,num(row?.livePriceGbp??row?.live_price_gbp??row?.priceGbp));
+      const explicitValue=Math.max(0,num(row?.marketValueGbp??row?.market_value_gbp??row?.currentValueGbp));
+      const marketValueGbp=explicitValue>0?explicitValue:shares*livePriceGbp;
+      const bookCostGbp=Math.max(0,num(row?.bookCostGbp??row?.book_cost_gbp??row?.costBasisGbp));
+      const annualDpsGbp=Math.max(0,num(row?.annualDpsGbp??row?.annual_dps_gbp));
+      const directIncome=Math.max(0,num(row?.annualIncomeGbp??row?.annual_income_gbp));
+      const annualIncomeGbp=directIncome>0?directIncome:shares*annualDpsGbp;
+      return{
+        account:String(row?.account||row?.broker||'Unspecified'),
+        ticker:String(row?.ticker||row?.symbol||'').replace(/^(?:LON|LSE|NASDAQ|NYSE):/i,'').replace(/\.L$/i,'').replace(/\.GB$/i,'').toUpperCase(),
+        name:String(row?.name||row?.company||row?.ticker||''),
+        sector:String(row?.sector||'').trim()||'Unclassified',
+        shares,
+        livePriceGbp,
+        marketValueGbp,
+        bookCostGbp,
+        annualIncomeGbp
+      };
+    }).filter(row=>row.ticker&&row.shares>0);
+
+    const totals=holdings.reduce((out,row)=>{
+      out.marketValueGbp+=row.marketValueGbp;
+      out.bookCostGbp+=row.bookCostGbp;
+      out.annualIncomeGbp+=row.annualIncomeGbp;
+      return out;
+    },{marketValueGbp:0,bookCostGbp:0,annualIncomeGbp:0});
+
+    const tickerMap=new Map();
+    const accountMap=new Map();
+    const sectorMap=new Map();
+
+    holdings.forEach(row=>{
+      const ticker=tickerMap.get(row.ticker)||{
+        ticker:row.ticker,
+        name:row.name||row.ticker,
+        marketValueGbp:0,
+        bookCostGbp:0,
+        annualIncomeGbp:0,
+        shares:0,
+        accounts:new Set(),
+        sectors:new Set()
+      };
+      ticker.marketValueGbp+=row.marketValueGbp;
+      ticker.bookCostGbp+=row.bookCostGbp;
+      ticker.annualIncomeGbp+=row.annualIncomeGbp;
+      ticker.shares+=row.shares;
+      ticker.accounts.add(row.account);
+      ticker.sectors.add(row.sector);
+      tickerMap.set(row.ticker,ticker);
+
+      const account=accountMap.get(row.account)||{account:row.account,marketValueGbp:0,bookCostGbp:0,annualIncomeGbp:0,positions:0};
+      account.marketValueGbp+=row.marketValueGbp;
+      account.bookCostGbp+=row.bookCostGbp;
+      account.annualIncomeGbp+=row.annualIncomeGbp;
+      account.positions+=1;
+      accountMap.set(row.account,account);
+
+      const sector=sectorMap.get(row.sector)||{sector:row.sector,marketValueGbp:0,annualIncomeGbp:0,positions:0};
+      sector.marketValueGbp+=row.marketValueGbp;
+      sector.annualIncomeGbp+=row.annualIncomeGbp;
+      sector.positions+=1;
+      sectorMap.set(row.sector,sector);
+    });
+
+    const tickers=[...tickerMap.values()].map(row=>({
+      ticker:row.ticker,
+      name:row.name,
+      accounts:[...row.accounts],
+      sectors:[...row.sectors],
+      shares:round2(row.shares),
+      marketValueGbp:round2(row.marketValueGbp),
+      bookCostGbp:round2(row.bookCostGbp),
+      unrealisedGbp:round2(row.marketValueGbp-row.bookCostGbp),
+      unrealisedPct:row.bookCostGbp>0?Number((((row.marketValueGbp-row.bookCostGbp)/row.bookCostGbp)*100).toFixed(2)):0,
+      annualIncomeGbp:round2(row.annualIncomeGbp),
+      portfolioPct:Number(aiPercent_(row.marketValueGbp,totals.marketValueGbp).toFixed(2)),
+      incomePct:Number(aiPercent_(row.annualIncomeGbp,totals.annualIncomeGbp).toFixed(2)),
+      currentIncomeYieldPct:row.marketValueGbp>0?Number(((row.annualIncomeGbp/row.marketValueGbp)*100).toFixed(2)):0
+    })).sort((a,b)=>b.marketValueGbp-a.marketValueGbp);
+
+    const accounts=[...accountMap.values()].map(row=>({
+      account:row.account,
+      positions:row.positions,
+      marketValueGbp:round2(row.marketValueGbp),
+      bookCostGbp:round2(row.bookCostGbp),
+      unrealisedGbp:round2(row.marketValueGbp-row.bookCostGbp),
+      annualIncomeGbp:round2(row.annualIncomeGbp),
+      portfolioPct:Number(aiPercent_(row.marketValueGbp,totals.marketValueGbp).toFixed(2))
+    })).sort((a,b)=>b.marketValueGbp-a.marketValueGbp);
+
+    const sectors=[...sectorMap.values()].map(row=>({
+      sector:row.sector,
+      positions:row.positions,
+      marketValueGbp:round2(row.marketValueGbp),
+      annualIncomeGbp:round2(row.annualIncomeGbp),
+      portfolioPct:Number(aiPercent_(row.marketValueGbp,totals.marketValueGbp).toFixed(2)),
+      incomePct:Number(aiPercent_(row.annualIncomeGbp,totals.annualIncomeGbp).toFixed(2))
+    })).sort((a,b)=>b.marketValueGbp-a.marketValueGbp);
+
+    const top3Value=tickers.slice(0,3).reduce((sum,row)=>sum+row.marketValueGbp,0);
+    const top3Income=[...tickers].sort((a,b)=>b.annualIncomeGbp-a.annualIncomeGbp).slice(0,3).reduce((sum,row)=>sum+row.annualIncomeGbp,0);
+    const largestIncome=[...tickers].sort((a,b)=>b.annualIncomeGbp-a.annualIncomeGbp)[0]||null;
+
+    return{
+      accountPositionCount:holdings.length,
+      uniqueTickerCount:tickers.length,
+      marketValueGbp:round2(totals.marketValueGbp),
+      bookCostGbp:round2(totals.bookCostGbp),
+      unrealisedGbp:round2(totals.marketValueGbp-totals.bookCostGbp),
+      unrealisedPct:totals.bookCostGbp>0?Number((((totals.marketValueGbp-totals.bookCostGbp)/totals.bookCostGbp)*100).toFixed(2)):0,
+      annualIncomeGbp:round2(totals.annualIncomeGbp),
+      monthlyIncomeGbp:round2(totals.annualIncomeGbp/12),
+      currentIncomeYieldPct:totals.marketValueGbp>0?Number(((totals.annualIncomeGbp/totals.marketValueGbp)*100).toFixed(2)):0,
+      concentration:{
+        largestHoldingTicker:tickers[0]?.ticker||'',
+        largestHoldingPct:tickers[0]?.portfolioPct||0,
+        top3HoldingsPct:Number(aiPercent_(top3Value,totals.marketValueGbp).toFixed(2)),
+        largestIncomeTicker:largestIncome?.ticker||'',
+        largestIncomePct:largestIncome?.incomePct||0,
+        top3IncomePct:Number(aiPercent_(top3Income,totals.annualIncomeGbp).toFixed(2)),
+        duplicateTickersAcrossAccounts:tickers.filter(row=>row.accounts.length>1).map(row=>({
+          ticker:row.ticker,
+          accounts:row.accounts,
+          combinedPortfolioPct:row.portfolioPct,
+          combinedMarketValueGbp:row.marketValueGbp
+        }))
+      },
+      accountBreakdown:accounts.slice(0,8),
+      sectorBreakdown:sectors.slice(0,12),
+      topHoldings:tickers.slice(0,12)
+    };
+  }
+
+  function aiHouseSnapshot_(state){
+    const project=state?.finance?.houseProject&&typeof state.finance.houseProject==='object'?state.finance.houseProject:{};
+    const entries=Array.isArray(project.entries)?project.entries.filter(row=>String(row?.status||'').toLowerCase()!=='archived'):[];
+    const pots=Array.isArray(state?.finance?.pots)?state.finance.pots:[];
+    const housePot=pots.find(row=>String(row?.id||'')==='house_fund'||String(row?.name||'').toLowerCase().includes('house'))||{};
+    const roomMap=new Map();
+    entries.forEach(row=>{
+      const room=String(row?.room||'Unassigned');
+      const x=roomMap.get(room)||{room,estimatedGbp:0,actualGbp:0,reservedGbp:0,items:0};
+      x.estimatedGbp+=Math.max(0,num(row?.estimated));
+      x.actualGbp+=Math.max(0,num(row?.actual));
+      if(String(row?.status||'').toLowerCase()==='reserved')x.reservedGbp+=Math.max(0,num(row?.estimated));
+      x.items+=1;
+      roomMap.set(room,x);
+    });
+    return{
+      targetGbp:num(project.target||housePot.target),
+      potBalanceGbp:num(housePot.balance),
+      potTargetGbp:num(housePot.target),
+      recordedSpentGbp:num(housePot.spent),
+      openingHistoricalSpendGbp:num(project.openingHistoricalSpend),
+      rooms:[...roomMap.values()].map(row=>({
+        ...row,
+        estimatedGbp:round2(row.estimatedGbp),
+        actualGbp:round2(row.actualGbp),
+        reservedGbp:round2(row.reservedGbp),
+        remainingEstimateGbp:round2(Math.max(0,row.estimatedGbp-row.actualGbp))
+      })).sort((a,b)=>b.estimatedGbp-a.estimatedGbp)
+    };
+  }
+
+  function aiFinanceOverviewSnapshot_(state){
+    const assets=state?.finance?.overviewAssets&&typeof state.finance.overviewAssets==='object'?state.finance.overviewAssets:{};
+    const pots=Array.isArray(state?.finance?.pots)?state.finance.pots.filter(row=>!row?.archived):[];
+    const potTotal=pots.reduce((sum,row)=>sum+Math.max(0,num(row?.balance)),0);
+    const monzoInvestmentPot=pots.find(row=>String(row?.type||'').toLowerCase()==='investment'&&(String(row?.accountProvider||'').toLowerCase().includes('monzo')||String(row?.name||'').toLowerCase().includes('investment')));
+    const monzoBook=Math.max(0,num(monzoInvestmentPot?.balance));
+    const tescoSip=Math.max(0,num(assets.tescoSipCurrent));
+    const tescoOptions=Math.max(0,num(assets.tescoOptions));
+    const tescoPricePence=Math.max(0,num(assets.tescoSharePricePence));
+    const tescoSayeAtCurrent=tescoOptions*(tescoPricePence/100);
+    const tescoCurrent=tescoSip+tescoSayeAtCurrent;
+    const portfolio=aiPortfolioAnalytics_(state?.squad?.holdings||[]);
+    const potsForGrand=Math.max(0,potTotal-monzoBook);
+    const grand=potsForGrand+Math.max(0,num(assets.monzoCurrent))+portfolio.marketValueGbp+Math.max(0,num(assets.brokerCash))+tescoCurrent;
+    return{
+      totalTrackedFinancesGbp:round2(grand),
+      activePotsTotalGbp:round2(potTotal),
+      monzoInvestment:{investedGbp:round2(num(assets.monzoInvested)),currentGbp:round2(num(assets.monzoCurrent)),performancePct:num(assets.monzoPerformancePct)},
+      brokerCashCachedGbp:round2(num(assets.brokerCash)),
+      tesco:{sipCurrentGbp:round2(tescoSip),options:tescoOptions,sharePricePence:round2(tescoPricePence),sayeAtCurrentPriceGbp:round2(tescoSayeAtCurrent),currentTotalGbp:round2(tescoCurrent),maturityEstimateGbp:round2(num(assets.tescoMaturityEstimate)),maturityDate:String(assets.tescoMaturityDate||'')},
+      updatedAt:String(assets.updatedAt||'')
+    };
+  }
+
+  let aiLiveBackendCache_={at:0,value:null};
+
+  async function aiLiveBackendContext_(client){
+    const now=Date.now();
+    if(aiLiveBackendCache_.value&&now-aiLiveBackendCache_.at<90000){
+      return{...aiLiveBackendCache_.value,cacheAgeSeconds:Math.round((now-aiLiveBackendCache_.at)/1000)};
+    }
+
+    const requests=[
+      ['nexus','nexusDashboardSnapshot',{}],
+      ['income','incomeSnapshot',{}],
+      ['brokerCash','brokerCashSnapshot',{}],
+      ['registrations','listRecentRegistrations',{limit:10}],
+      ['incomingOffers','listIncomingOffers',{limit:10}],
+      ['sellTickets','listSellTickets',{limit:10}],
+      ['platformRules','getPlatformRules',{}]
+    ];
+
+    const settled=await Promise.allSettled(requests.map(async row=>({
+      key:row[0],
+      value:await client.get(row[1],row[2])
+    })));
+
+    const raw={};
+    const failures=[];
+    settled.forEach((result,index)=>{
+      if(result.status==='fulfilled'){
+        raw[result.value.key]=result.value.value||{};
+      }else{
+        failures.push(requests[index][1]);
+      }
+    });
+
+    const canonicalHoldings=Array.isArray(raw.income?.holdings)?raw.income.holdings:[];
+    const dividends=Array.isArray(raw.income?.dividends)?raw.income.dividends:[];
+    const movers=Array.isArray(raw.nexus?.market?.movers)?raw.nexus.market.movers:[];
+    const registrations=Array.isArray(raw.registrations?.registrations)?raw.registrations.registrations:[];
+    const offers=Array.isArray(raw.incomingOffers?.offers)?raw.incomingOffers.offers:[];
+    const tickets=Array.isArray(raw.sellTickets?.tickets)?raw.sellTickets.tickets:[];
+    const rules=Array.isArray(raw.platformRules?.platformRules)?raw.platformRules.platformRules:[];
+
+    const context={
+      available:Object.keys(raw).length>0,
+      fetchedAt:new Date().toISOString(),
+      failures,
+      canonicalPortfolio:canonicalHoldings.length?aiPortfolioAnalytics_(canonicalHoldings):null,
+      market:{
+        status:String(raw.nexus?.market?.status||''),
+        source:String(raw.nexus?.market?.livePriceSource||''),
+        portfolioTodayChangeGbp:num(raw.nexus?.market?.portfolioTodayChangeGbp),
+        portfolioTodayChangePct:num(raw.nexus?.market?.portfolioTodayChangePct),
+        accounts:raw.nexus?.market?.accounts||{},
+        best:raw.nexus?.market?.best||null,
+        worst:raw.nexus?.market?.worst||null,
+        movers:movers.slice(0,15).map(row=>({
+          ticker:String(row?.ticker||''),
+          livePriceGbp:num(row?.livePriceGbp),
+          previousCloseGbp:num(row?.previousCloseGbp),
+          dayChangeGbp:num(row?.dayChangeGbp),
+          dayChangePct:num(row?.dayChangePct),
+          accounts:Array.isArray(row?.accounts)?row.accounts:[]
+        }))
+      },
+      brokerCash:{
+        balances:raw.brokerCash?.balances||{},
+        latestLedger:(Array.isArray(raw.brokerCash?.ledger)?raw.brokerCash.ledger:[]).slice(0,12).map(row=>({
+          recordedAt:String(row?.recordedAt||''),
+          account:String(row?.account||''),
+          type:String(row?.type||''),
+          ticker:String(row?.ticker||''),
+          cashChangeGbp:num(row?.cashChangeGbp),
+          balanceAfterGbp:num(row?.balanceAfterGbp)
+        }))
+      },
+      dividends:{
+        count:dividends.length,
+        events:dividends.slice(0,24).map(row=>({
+          ticker:String(row?.ticker||''),
+          account:String(row?.account||''),
+          exDate:String(row?.exDate||''),
+          payDate:String(row?.payDate||''),
+          expectedAmountGbp:num(row?.expectedAmountGbp),
+          actualAmountGbp:num(row?.actualAmountGbp),
+          status:String(row?.status||'')
+        }))
+      },
+      registrations:registrations.slice(0,10).map(row=>({
+        submittedAt:String(row?.submittedAt||''),
+        ticker:String(row?.ticker||''),
+        account:String(row?.account||''),
+        side:String(row?.side||''),
+        shares:num(row?.shares),
+        totalCostGbp:num(row?.totalCostGbp),
+        status:String(row?.status||'')
+      })),
+      incomingOffers:offers.slice(0,10).map(row=>({
+        offerId:String(row?.offerId||''),
+        ticker:String(row?.ticker||''),
+        account:String(row?.account||''),
+        status:String(row?.status||''),
+        requestedShares:num(row?.requestedShares),
+        offerValueGbp:num(row?.offerValueGbp),
+        estimatedGainLossGbp:num(row?.estimatedGainLossGbp),
+        annualIncomeLostGbp:num(row?.annualIncomeLostGbp),
+        expiresAt:String(row?.expiresAt||'')
+      })),
+      sellTickets:tickets.slice(0,10).map(row=>({
+        ticketId:String(row?.ticketId||''),
+        ticker:String(row?.ticker||''),
+        account:String(row?.account||''),
+        proposedShares:num(row?.proposedShares),
+        approvalStatus:String(row?.approvalStatus||''),
+        estimatedProceedsGbp:num(row?.estimatedProceedsGbp),
+        annualIncomeLostGbp:num(row?.annualIncomeLostGbp)
+      })),
+      platformRules:rules.slice(0,30).map(row=>({
+        ticker:String(row?.ticker||''),
+        preferredAccount:String(row?.preferredAccount||''),
+        allowedAccounts:Array.isArray(row?.allowedAccounts)?row.allowedAccounts:[],
+        currency:String(row?.currency||''),
+        priceUnit:String(row?.priceUnit||'')
+      }))
+    };
+
+    aiLiveBackendCache_={at:now,value:context};
+    return context;
+  }
+
   function aiContextSnapshot(state,page){
     if(!state)return{page,generatedAt:new Date().toISOString(),stateAvailable:false};
 
@@ -530,7 +854,7 @@
     const bills=Array.isArray(state.finance?.bills)?state.finance.bills:[];
     const receipts=Array.isArray(state.registration?.receipts)?state.registration.receipts:[];
 
-    const holdingRows=holdings.slice(0,30).map(row=>({
+    const holdingRows=holdings.slice(0,40).map(row=>({
       account:String(row.account||row.broker||''),
       ticker:String(row.ticker||row.symbol||''),
       name:String(row.name||row.company||''),
@@ -539,20 +863,23 @@
       marketValueGbp:num(row.marketValueGbp??row.currentValueGbp),
       livePriceGbp:num(row.livePriceGbp??row.priceGbp),
       annualIncomeGbp:num(row.annualIncomeGbp??row.annual_income_gbp),
+      sector:String(row.sector||''),
+      role:String(row.role||''),
+      locked:row.locked===true,
       status:String(row.status||'ACTIVE')
     }));
 
-    const totals=holdingRows.reduce((out,row)=>{
-      out.bookCostGbp+=row.bookCostGbp;
-      out.marketValueGbp+=row.marketValueGbp;
-      out.annualIncomeGbp+=row.annualIncomeGbp;
-      return out;
-    },{bookCostGbp:0,marketValueGbp:0,annualIncomeGbp:0});
+    const portfolio=aiPortfolioAnalytics_(holdings);
 
     return{
       page,
       generatedAt:new Date().toISOString(),
       stateAvailable:true,
+      dataAuthority:{
+        preferred:'liveBackend when available; otherwise localClean',
+        portfolioConcentration:'aggregate the same ticker across accounts before discussing economic exposure',
+        executionEvidence:'snapshot values do not prove that a broker trade or money movement executed'
+      },
       attention:buildAttention(state).map(item=>({
         level:item.level,title:item.title,detail:item.detail,page:item.page
       })),
@@ -571,31 +898,39 @@
         maximumSafeRelease:f?.safeSurplus??0,
         paydayDecisionStatus:state.finance?.stage5PaydayDecision?'FROZEN':'NOT_FROZEN',
         potCount:pots.length,
-        pots:pots.slice(0,20).map(row=>({
+        pots:pots.slice(0,24).map(row=>({
+          id:String(row.id||''),
           name:String(row.name||''),
           type:String(row.type||''),
           balanceGbp:num(row.balance??row.currentBalance??row.amount),
           targetGbp:num(row.target??row.targetAmount),
-          status:String(row.status||'')
+          spentGbp:num(row.spent),
+          deadline:String(row.deadline||''),
+          status:String(row.status||''),
+          archived:row.archived===true
         })),
         billCount:bills.length,
-        bills:bills.slice(0,20).map(row=>({
+        bills:bills.slice(0,24).map(row=>({
           name:String(row.name||row.description||''),
           amountGbp:num(row.amount),
           dueDate:String(row.dueDate||row.date||''),
           status:String(row.status||'')
         }))
       },
+      financeOverview:aiFinanceOverviewSnapshot_(state),
+      house:aiHouseSnapshot_(state),
       isa:{
+        taxYear:String(state.finance?.isaTracker?.taxYear||readJSON('aurora-clean:isa-tracker-v1')?.taxYear||'2026/27'),
         annualAllowanceGbp:isa.annual,
         usedGbp:isa.used,
         remainingGbp:isa.left,
-        flexibleReplacementGbp:isa.flexible
+        flexibleReplacementGbp:isa.flexible,
+        igAdditionalCapacityGbp:round2(isa.left+isa.flexible)
       },
       scouting:{
         strategy:String(state.scouting?.strategy||''),
         candidateCount:candidates.length,
-        candidates:candidates.slice(0,20).map(row=>({
+        candidates:candidates.slice(0,24).map(row=>({
           ticker:String(row.ticker||''),
           name:String(row.name||''),
           sector:String(row.sector||''),
@@ -607,7 +942,7 @@
           status:String(state.scouting.allocationPlan.status||''),
           allocatedGbp:num(state.scouting.allocationPlan.allocated),
           allocationCount:Array.isArray(state.scouting.allocationPlan.allocations)?state.scouting.allocationPlan.allocations.length:0,
-          allocations:(state.scouting.allocationPlan.allocations||[]).slice(0,12).map(row=>({
+          allocations:(state.scouting.allocationPlan.allocations||[]).slice(0,16).map(row=>({
             ticker:String(row.ticker||''),
             amountGbp:num(row.amount),
             expectedAnnualIncomeGbp:num(row.expectedAnnualIncome),
@@ -629,28 +964,30 @@
           brokerCashAllocatedGbp:num(state.transfer.route.brokerCashAllocated),
           totalAllocatedGbp:num(state.transfer.route.totalAllocated),
           expectedAnnualIncomeGbp:num(state.transfer.route.expectedAnnualIncome),
-          allocations:(state.transfer.route.allocations||[]).slice(0,12).map(row=>({
+          allocations:(state.transfer.route.allocations||[]).slice(0,16).map(row=>({
             ticker:String(row.ticker||''),
             executionTicker:String(row.executionTicker||''),
             account:String(row.lockedAccount||row.account||''),
             amountGbp:num(row.amount),
+            expectedAnnualIncomeGbp:num(row.expectedAnnualIncome),
             fundingSource:String(row.fundingSource||'')
           }))
         }:null
       },
       registration:{
         receiptCount:receipts.length,
-        latestReceipts:receipts.slice(-8).map(row=>({
+        latestReceipts:receipts.slice(-10).map(row=>({
           ticker:String(row.ticker||''),
+          account:String(row.account||''),
           amountGbp:num(row.amount),
           registeredAt:String(row.registeredAt||'')
         }))
       },
       squad:{
         holdingCount:holdings.length,
-        totals:totals,
         annualIncomeGbp:annualIncome(state),
         monthlyIncomeGbp:annualIncome(state)/12,
+        portfolio,
         holdings:holdingRows
       },
       matchReport:{
@@ -831,10 +1168,17 @@
         const client=await ensureBackendClient();
         const prior=history.slice(-11);
         if(prior.length&&prior[prior.length-1].role==='user'&&prior[prior.length-1].text===command)prior.pop();
+        const localContext=aiContextSnapshot(safeState(),pageName());
+        let liveBackend=null;
+        try{
+          liveBackend=await aiLiveBackendContext_(client);
+        }catch(_){
+          liveBackend={available:false,fetchedAt:new Date().toISOString(),failures:['live backend context unavailable']};
+        }
         const response=await client.post('aiChat',{
           message:command,
           page:pageName(),
-          context:aiContextSnapshot(safeState(),pageName()),
+          context:{...localContext,liveBackend},
           history:prior.slice(-10).map(row=>({
             role:row.role==='ai'?'assistant':'user',
             text:String(row.text||'').slice(0,3500)
