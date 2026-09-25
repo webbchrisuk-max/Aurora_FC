@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260925-scouting-universe-4-live-first';
+  const BUILD = '20260925-scouting-universe-5-preserve-evidence';
   const STATE_KEY = 'aurora-clean:state:v1';
   const MASTER_URL = '../AuroraMaster.json?v=20260925-scouting-universe-3-broker-execution';
   const SHEET_ID = '1ZDdYmyDrvNuz3utKmgsToKL7NqsibzbWyIo0vg-TjcA';
@@ -93,6 +93,10 @@
       market:String(cell(row,['market','exchange']) || '').trim(),
       currency:String(cell(row,['currency']) || '').trim(),
       payoutRisk:String(cell(row,['payout_risk','payout risk','risk']) || '').trim(),
+      scoutStatus:String(cell(row,['scout_status','scout status','status']) || '').trim(),
+      trialStatus:String(cell(row,['trial_status','trial status']) || '').trim(),
+      trialVerdict:String(cell(row,['trial_verdict','trial verdict']) || '').trim(),
+      managerNote:String(cell(row,['manager_note','manager note']) || '').trim(),
       notes:String(cell(row,['notes','note','manager_note','manager note']) || '').trim(),
       fairValueGbp:num(cell(row,['fair_value_gbp','fair value gbp','fair_value','fair value'])),
       livePriceGbp:livePrice,
@@ -203,7 +207,20 @@
         merged.set(next.ticker, combined);
       });
     });
-    const universe = [...merged.values()].map(row => ({...row, approved:!!existingByTicker.get(row.ticker)?.approved}));
+    const universe = [...merged.values()].map(row => {
+      const old=existingByTicker.get(row.ticker)||{};
+      const next={...old,...row,approved:!!old.approved};
+      for(const field of ['sector','role','payoutRisk','notes','scoutStatus','trialStatus','trialVerdict','managerNote','buyPermission','valuationGate','decisionAction','decisionConfidence','dataQuality','evidenceUpdatedAt','brokerYieldSource','brokerSnapshotDate','preferredBroker','executionAccount','executionTicker','executionMarket','executionCurrency','marketSymbol','analystPriceTargetCurrency','analystView']){
+        if(!String(next[field]??'').trim()&&String(old[field]??'').trim())next[field]=old[field];
+      }
+      for(const field of ['livePriceGbp','livePriceNative','annualDpsGbp','yieldPct','referenceYieldPct','brokerYieldPct','fairValueGbp','buyStrength','brokerBuyPriceNative','analystPriceTargetNative']){
+        if(!(num(row[field])>0)&&num(old[field])>0)next[field]=old[field];
+      }
+      if(!Array.isArray(row.enrichmentSources)&&Array.isArray(old.enrichmentSources))next.enrichmentSources=old.enrichmentSources;
+      if(!row.enrichmentUpdatedAt&&old.enrichmentUpdatedAt)next.enrichmentUpdatedAt=old.enrichmentUpdatedAt;
+      if(row.source!=='MARKET WATCH')next.marketWatch=false;
+      return next;
+    });
     const manualOrSquadOnly = existing.filter(row => {
       const ticker = upper(row?.ticker);
       return ticker && !merged.has(ticker) && ['MANUAL','SQUAD'].includes(String(row?.source || '').toUpperCase());
