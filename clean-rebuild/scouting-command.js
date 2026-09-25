@@ -1,12 +1,31 @@
 (() => {
   'use strict';
-  const BUILD='20260925-chief-scout-command-7-broker-execution';
+  const BUILD='20260925-chief-scout-command-8-visible-execution-intel';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
   const money=v=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v));
   const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const brokerLabel=row=>window.AuroraScoutingExecutionProfiles?.accountLabel?.(row)||'Broker review';
+  const nativeMoney=(value,currency)=>{
+    const n=num(value),c=upper(currency);
+    if(!(n>0))return'—';
+    if(c==='AUD')return`A${n.toFixed(3).replace(/0+$/,'').replace(/\.$/,'')}`;
+    if(c==='USD')return`US${n.toFixed(2)}`;
+    if(c==='EUR')return`€${n.toFixed(2)}`;
+    if(c==='GBP')return`£${n.toFixed(2)}`;
+    return`${c?c+' ':''}${n.toFixed(2)}`;
+  };
+  const executionFacts=row=>{
+    const facts=[];
+    const broker=brokerLabel(row);
+    if(broker!=='Broker review')facts.push(['BUY ACCOUNT',broker]);
+    if(num(row.brokerBuyPriceNative)>0)facts.push(['BROKER BUY',nativeMoney(row.brokerBuyPriceNative,row.executionCurrency||row.currency)]);
+    if(num(row.analystPriceTargetNative)>0)facts.push(['ANALYST TARGET',nativeMoney(row.analystPriceTargetNative,row.analystPriceTargetCurrency||row.executionCurrency||row.currency)]);
+    if(row.analystView)facts.push(['ANALYST VIEW',String(row.analystView)]);
+    if(row.marketSymbol)facts.push(['SYMBOL',String(row.marketSymbol)]);
+    return facts;
+  };
 
   function ensureCommand(){
     let host=$('scoutingCommand');if(host)return host;
@@ -76,12 +95,13 @@
     const upside=num(row.upsidePct);
     const reasonBits=[
       `${num(row.networkScore||row.score).toFixed(1)}/100 score`,
-      `${num(row.yieldPct).toFixed(2)}% yield`,
+      `${num(row.yieldPct).toFixed(3)}% yield`,
       row.risk?`${String(row.risk).toLowerCase()} payout risk`:'',
       Number.isFinite(upside)?`${upside>=0?'+':''}${upside.toFixed(1)}% fair-value gap`:'',
       row.held?'already held':'new diversification candidate'
     ].filter(Boolean);
-    return `<article class="scouting-ready-card tier-${tier.toLowerCase()}"><div class="scouting-ready-rank">#${index+1}</div><div><span class="scouting-ready-tier">${esc(tier)}</span><h3>${esc(row.ticker)}</h3><p>${esc(row.name||row.ticker)}</p></div><div class="scouting-ready-score"><strong>${num(row.networkScore||row.score).toFixed(1)}</strong><span>NETWORK SCORE</span></div><div class="scouting-ready-meta"><span>${num(row.yieldPct).toFixed(3)}% yield</span><span>${esc(brokerLabel(row))}</span><span>${esc(row.executionMarket||row.market||'MARKET')}</span><span>${esc(row.verdict)}</span><span>${row.held?'CURRENT HOLDING':'NEW OPPORTUNITY'}</span></div><small>${esc(reasonBits.join(' · '))}</small></article>`;
+    const facts=executionFacts(row);
+    return `<article class="scouting-ready-card tier-${tier.toLowerCase()}" data-ready-ticker="${esc(row.ticker)}"><div class="scouting-ready-rank">#${index+1}</div><div><span class="scouting-ready-tier">${esc(tier)}</span><h3>${esc(row.ticker)}</h3><p>${esc(row.name||row.ticker)}</p></div><div class="scouting-ready-score"><strong>${num(row.networkScore||row.score).toFixed(1)}</strong><span>NETWORK SCORE</span></div><div class="scouting-ready-meta"><span>${num(row.yieldPct).toFixed(3)}% yield</span><span>${esc(brokerLabel(row))}</span><span>${esc(row.executionMarket||row.market||'MARKET')}</span><span>${esc(row.verdict)}</span><span>${row.held?'CURRENT HOLDING':'NEW OPPORTUNITY'}</span></div>${facts.length?`<div class="scouting-ready-exec">${facts.map(([label,value])=>`<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div>`:''}<small>${esc(reasonBits.join(' · '))}</small><button type="button" class="scouting-ready-report" data-ready-report="${esc(row.ticker)}">View full scout report</button></article>`;
   }
 
   function readyBoard(universe){
@@ -132,6 +152,10 @@
     syncCanonicalTopPick(universe,budget,alloc);
     host.innerHTML=`<div class="scouting-mission"><div class="scouting-mission-head"><div><p class="eyebrow scouting-eyebrow">CHIEF SCOUT · READY BOARD</p><h2>${ready.length?`${ready.length} prospect${ready.length===1?' is':'s are'} cleared to buy`:'No prospect has cleared every buy gate yet'}</h2><p>The full scouting pool stays underneath as research. This board shows only candidates with complete evidence and no active decision, payout-risk or valuation block.</p></div><div class="scouting-budget-pill"><span>PAYDAY INVESTMENT BUDGET</span><strong>${money(budget)}</strong></div></div><div class="scouting-mission-kpis"><article class="scouting-mission-kpi"><span>PREMIER</span><strong>${premier}</strong></article><article class="scouting-mission-kpi"><span>ELITE</span><strong>${elite}</strong></article><article class="scouting-mission-kpi"><span>READY</span><strong>${standardReady}</strong></article><article class="scouting-mission-kpi"><span>RESEARCH QUEUE</span><strong>${researchQueue.toLocaleString('en-GB')}</strong></article><article class="scouting-mission-kpi"><span>FULL EVIDENCE</span><strong>${fullEvidence.toLocaleString('en-GB')}</strong></article></div><div class="scouting-ready-board">${readyBoard(universe)}</div>${budget>0?`<div class="scouting-payday-divider"><div><p class="eyebrow">THIS PAYDAY</p><h3>${alloc.length?'Proposed allocation from the ready board':'Waiting for a buy-ready allocation'}</h3></div><span>${strategy}</span></div><div class="scouting-picks">${alloc.length?alloc.map(pickCard).join(''):`<div class="scouting-empty">The Finance mission is live, but no current candidate is eligible for allocation.</div>`}</div>`:''}<div class="scouting-command-actions"><div><span class="scouting-plan-status">${esc(plan.status||'WAITING')}</span><p class="scouting-admin-note">Premier: ${premier} · Elite: ${elite} · Ready: ${standardReady} · Watch: ${watch} · Blocked: ${blocked} · Source: ${esc(sourceLabel)}${enrichment.lastRunAt?` · enrichment ${new Date(enrichment.lastRunAt).toLocaleString('en-GB')}`:''}</p></div><button id="scoutingCommandApprove" type="button" class="finance-primary" ${!alloc.length||plan.status==='APPROVED'?'disabled':''}>${plan.status==='APPROVED'?'Payday Plan Approved ✓':'Approve Payday Plan'}</button></div></div>`;
     $('scoutingCommandApprove')?.addEventListener('click',()=>$('scoutingApprovePlan')?.click());
+    host.querySelectorAll('[data-ready-report]').forEach(button=>button.addEventListener('click',event=>{
+      event.stopPropagation();
+      window.AuroraScoutingNetwork?.openDrawer?.(button.dataset.readyReport);
+    }));
   }
 
   let stableRenderTimer=null;
