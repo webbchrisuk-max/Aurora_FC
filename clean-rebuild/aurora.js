@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260926-shell-12-ai-context';
+  const BUILD = '20260926-shell-13-selective-ai';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -314,7 +314,7 @@
 (() => {
   'use strict';
 
-  const ASSISTANT_BUILD='20260926-aurora-conversation-4-live-context';
+  const ASSISTANT_BUILD='20260926-aurora-conversation-5-selective-context';
   const SESSION_OPEN='aurora-clean:assistant-open:v2';
   const SESSION_PENDING='aurora-clean:assistant-pending:v2';
   const SESSION_HISTORY='aurora-clean:assistant-history:v2';
@@ -715,24 +715,143 @@
     };
   }
 
-  let aiLiveBackendCache_={at:0,value:null};
+  const AI_BACKEND_REQUESTS_={
+    nexus:['nexusDashboardSnapshot',{}],
+    income:['incomeSnapshot',{}],
+    brokerCash:['brokerCashSnapshot',{}],
+    registrations:['listRecentRegistrations',{limit:8}],
+    incomingOffers:['listIncomingOffers',{limit:8}],
+    sellTickets:['listSellTickets',{limit:8}],
+    platformRules:['getPlatformRules',{}]
+  };
 
-  async function aiLiveBackendContext_(client){
-    const now=Date.now();
-    if(aiLiveBackendCache_.value&&now-aiLiveBackendCache_.at<90000){
-      return{...aiLiveBackendCache_.value,cacheAgeSeconds:Math.round((now-aiLiveBackendCache_.at)/1000)};
+  const aiLiveBackendCache_={};
+
+  function aiContextPlan_(message,page){
+    const q=String(message||'').trim().toLowerCase();
+    const p=String(page||'').trim().toLowerCase();
+    const areas=new Set();
+    const backend=new Set();
+    let detailHoldings=false;
+
+    const smallTalk=/^(hi|hello|hey|hiya|thanks|thank you|cheers|ok|okay|cool|nice|great)[!?.\s]*$/i.test(q);
+    const full=/\b(full|complete|everything|all areas|whole dashboard|full update|full status|overall update|everything going on)\b/i.test(q);
+
+    if(full){
+      ['attention','finance','isa','house','scouting','transfer','registration','squad','income','market','match'].forEach(x=>areas.add(x));
+      Object.keys(AI_BACKEND_REQUESTS_).forEach(x=>backend.add(x));
+      detailHoldings=true;
+    }else if(!smallTalk){
+      if(/\b(portfolio|holding|holdings|squad|position|positions|concentration|allocation|diversif|yield|income portfolio|book cost|market value|profit|loss|p\/l)\b/i.test(q)){
+        areas.add('squad'); backend.add('income'); detailHoldings=/\b(holding|holdings|position|positions|list|breakdown|each|individual)\b/i.test(q);
+      }
+      if(/\b(today|market|mover|movers|price|prices|up today|down today|performance today|daily move|best mover|worst mover)\b/i.test(q)){
+        areas.add('market'); backend.add('nexus');
+      }
+      if(/\b(dividend|dividends|income|payment|payments|pay date|ex date|annual income|monthly income)\b/i.test(q)){
+        areas.add('income'); backend.add('income');
+      }
+      if(/\b(broker cash|cash balance|ig cash|t212 cash|trading 212 cash|ledger|settlement)\b/i.test(q)){
+        areas.add('income'); backend.add('brokerCash');
+      }
+      if(/\b(isa|allowance|tax year|flexible isa|remaining allowance|monzo investment)\b/i.test(q)){
+        areas.add('isa'); areas.add('finance');
+      }
+      if(/\b(finance|budget|payday|wage|wages|bill|bills|pot|pots|cash flow|safe release|protected cash|commitment)\b/i.test(q)){
+        areas.add('finance');
+      }
+      if(/\b(house|renovation|kitchen|hallway|living room|games room|decorat|flooring|plaster|skirting|dado|panelling|paneling)\b/i.test(q)){
+        areas.add('house');
+      }
+      if(/\b(scout|scouting|candidate|buy candidate|watchlist|allocation plan)\b/i.test(q)){
+        areas.add('scouting');
+      }
+      if(/\b(transfer|route|mission|allocation|funding source|broker route)\b/i.test(q)){
+        areas.add('transfer');
+      }
+      if(/\b(registration|registered|purchase|transaction|receipt|recent buy|recent sale)\b/i.test(q)){
+        areas.add('registration'); backend.add('registrations');
+      }
+      if(/\b(offer|offers|incoming offer|sell desk|sell ticket|sale review)\b/i.test(q)){
+        areas.add('registration'); backend.add('incomingOffers'); backend.add('sellTickets');
+      }
+      if(/\b(platform rule|broker rule|preferred account|allowed account|which broker)\b/i.test(q)){
+        areas.add('transfer'); backend.add('platformRules');
+      }
+      if(/\b(match report|report|summary)\b/i.test(q)){
+        areas.add('match');
+      }
+
+      if(!areas.size){
+        areas.add('attention');
+        if(p==='nexus'||p==='squad'){
+          areas.add('squad'); areas.add('market'); backend.add('income'); backend.add('nexus');
+        }else if(p==='income'){
+          areas.add('income'); backend.add('income');
+        }else if(p==='finance'){
+          areas.add('finance'); areas.add('isa');
+        }else if(p==='transfer'){
+          areas.add('transfer');
+        }else if(p==='registration'){
+          areas.add('registration'); backend.add('registrations');
+        }else if(p==='scouting'){
+          areas.add('scouting');
+        }else if(p==='match-report'){
+          areas.add('match');
+        }
+      }
     }
 
-    const requests=[
-      ['nexus','nexusDashboardSnapshot',{}],
-      ['income','incomeSnapshot',{}],
-      ['brokerCash','brokerCashSnapshot',{}],
-      ['registrations','listRecentRegistrations',{limit:10}],
-      ['incomingOffers','listIncomingOffers',{limit:10}],
-      ['sellTickets','listSellTickets',{limit:10}],
-      ['platformRules','getPlatformRules',{}]
-    ];
+    return{
+      mode:full?'full':(smallTalk?'minimal':'selective'),
+      areas:[...areas],
+      backend:[...backend],
+      detailHoldings
+    };
+  }
 
+  function aiSelectLocalContext_(snapshot,plan){
+    const out={
+      page:snapshot.page,
+      generatedAt:snapshot.generatedAt,
+      stateAvailable:snapshot.stateAvailable,
+      dataAuthority:snapshot.dataAuthority,
+      contextMode:plan.mode,
+      includedAreas:plan.areas
+    };
+    const has=name=>plan.areas.includes(name);
+    if(has('attention'))out.attention=snapshot.attention;
+    if(has('finance')){out.finance=snapshot.finance;out.financeOverview=snapshot.financeOverview;}
+    if(has('isa'))out.isa=snapshot.isa;
+    if(has('house'))out.house=snapshot.house;
+    if(has('scouting'))out.scouting=snapshot.scouting;
+    if(has('transfer'))out.transfer=snapshot.transfer;
+    if(has('registration'))out.registration=snapshot.registration;
+    if(has('match'))out.matchReport=snapshot.matchReport;
+    if(has('squad')){
+      out.squad={
+        holdingCount:snapshot.squad?.holdingCount||0,
+        annualIncomeGbp:snapshot.squad?.annualIncomeGbp||0,
+        monthlyIncomeGbp:snapshot.squad?.monthlyIncomeGbp||0,
+        portfolio:snapshot.squad?.portfolio||null
+      };
+      if(plan.detailHoldings)out.squad.holdings=(snapshot.squad?.holdings||[]).slice(0,30);
+    }
+    return out;
+  }
+
+  async function aiLiveBackendContext_(client,plan){
+    const keys=(plan?.backend||[]).filter(key=>AI_BACKEND_REQUESTS_[key]);
+    if(!keys.length)return null;
+
+    const cacheKey=keys.slice().sort().join('|');
+    const now=Date.now();
+    const cached=aiLiveBackendCache_[cacheKey];
+    if(cached&&now-cached.at<90000){
+      return{...cached.value,cacheAgeSeconds:Math.round((now-cached.at)/1000)};
+    }
+
+    const requests=keys.map(key=>[key,...AI_BACKEND_REQUESTS_[key]]);
     const settled=await Promise.allSettled(requests.map(async row=>({
       key:row[0],
       value:await client.get(row[1],row[2])
@@ -741,27 +860,40 @@
     const raw={};
     const failures=[];
     settled.forEach((result,index)=>{
-      if(result.status==='fulfilled'){
-        raw[result.value.key]=result.value.value||{};
-      }else{
-        failures.push(requests[index][1]);
-      }
+      if(result.status==='fulfilled')raw[result.value.key]=result.value.value||{};
+      else failures.push(requests[index][1]);
     });
-
-    const canonicalHoldings=Array.isArray(raw.income?.holdings)?raw.income.holdings:[];
-    const dividends=Array.isArray(raw.income?.dividends)?raw.income.dividends:[];
-    const movers=Array.isArray(raw.nexus?.market?.movers)?raw.nexus.market.movers:[];
-    const registrations=Array.isArray(raw.registrations?.registrations)?raw.registrations.registrations:[];
-    const offers=Array.isArray(raw.incomingOffers?.offers)?raw.incomingOffers.offers:[];
-    const tickets=Array.isArray(raw.sellTickets?.tickets)?raw.sellTickets.tickets:[];
-    const rules=Array.isArray(raw.platformRules?.platformRules)?raw.platformRules.platformRules:[];
 
     const context={
       available:Object.keys(raw).length>0,
       fetchedAt:new Date().toISOString(),
-      failures,
-      canonicalPortfolio:canonicalHoldings.length?aiPortfolioAnalytics_(canonicalHoldings):null,
-      market:{
+      includedSources:keys,
+      failures
+    };
+
+    if(raw.income){
+      const canonicalHoldings=Array.isArray(raw.income?.holdings)?raw.income.holdings:[];
+      const dividends=Array.isArray(raw.income?.dividends)?raw.income.dividends:[];
+      context.canonicalPortfolio=canonicalHoldings.length?aiPortfolioAnalytics_(canonicalHoldings):null;
+      if(plan.areas.includes('income')){
+        context.dividends={
+          count:dividends.length,
+          events:dividends.slice(0,16).map(row=>({
+            ticker:String(row?.ticker||''),
+            account:String(row?.account||''),
+            exDate:String(row?.exDate||''),
+            payDate:String(row?.payDate||''),
+            expectedAmountGbp:num(row?.expectedAmountGbp),
+            actualAmountGbp:num(row?.actualAmountGbp),
+            status:String(row?.status||'')
+          }))
+        };
+      }
+    }
+
+    if(raw.nexus){
+      const movers=Array.isArray(raw.nexus?.market?.movers)?raw.nexus.market.movers:[];
+      context.market={
         status:String(raw.nexus?.market?.status||''),
         source:String(raw.nexus?.market?.livePriceSource||''),
         portfolioTodayChangeGbp:num(raw.nexus?.market?.portfolioTodayChangeGbp),
@@ -769,18 +901,18 @@
         accounts:raw.nexus?.market?.accounts||{},
         best:raw.nexus?.market?.best||null,
         worst:raw.nexus?.market?.worst||null,
-        movers:movers.slice(0,15).map(row=>({
+        movers:movers.slice(0,10).map(row=>({
           ticker:String(row?.ticker||''),
-          livePriceGbp:num(row?.livePriceGbp),
-          previousCloseGbp:num(row?.previousCloseGbp),
           dayChangeGbp:num(row?.dayChangeGbp),
-          dayChangePct:num(row?.dayChangePct),
-          accounts:Array.isArray(row?.accounts)?row.accounts:[]
+          dayChangePct:num(row?.dayChangePct)
         }))
-      },
-      brokerCash:{
+      };
+    }
+
+    if(raw.brokerCash){
+      context.brokerCash={
         balances:raw.brokerCash?.balances||{},
-        latestLedger:(Array.isArray(raw.brokerCash?.ledger)?raw.brokerCash.ledger:[]).slice(0,12).map(row=>({
+        latestLedger:(Array.isArray(raw.brokerCash?.ledger)?raw.brokerCash.ledger:[]).slice(0,8).map(row=>({
           recordedAt:String(row?.recordedAt||''),
           account:String(row?.account||''),
           type:String(row?.type||''),
@@ -788,20 +920,12 @@
           cashChangeGbp:num(row?.cashChangeGbp),
           balanceAfterGbp:num(row?.balanceAfterGbp)
         }))
-      },
-      dividends:{
-        count:dividends.length,
-        events:dividends.slice(0,24).map(row=>({
-          ticker:String(row?.ticker||''),
-          account:String(row?.account||''),
-          exDate:String(row?.exDate||''),
-          payDate:String(row?.payDate||''),
-          expectedAmountGbp:num(row?.expectedAmountGbp),
-          actualAmountGbp:num(row?.actualAmountGbp),
-          status:String(row?.status||'')
-        }))
-      },
-      registrations:registrations.slice(0,10).map(row=>({
+      };
+    }
+
+    if(raw.registrations){
+      const rows=Array.isArray(raw.registrations?.registrations)?raw.registrations.registrations:[];
+      context.registrations=rows.slice(0,8).map(row=>({
         submittedAt:String(row?.submittedAt||''),
         ticker:String(row?.ticker||''),
         account:String(row?.account||''),
@@ -809,37 +933,43 @@
         shares:num(row?.shares),
         totalCostGbp:num(row?.totalCostGbp),
         status:String(row?.status||'')
-      })),
-      incomingOffers:offers.slice(0,10).map(row=>({
+      }));
+    }
+
+    if(raw.incomingOffers){
+      const rows=Array.isArray(raw.incomingOffers?.offers)?raw.incomingOffers.offers:[];
+      context.incomingOffers=rows.slice(0,8).map(row=>({
         offerId:String(row?.offerId||''),
         ticker:String(row?.ticker||''),
         account:String(row?.account||''),
         status:String(row?.status||''),
-        requestedShares:num(row?.requestedShares),
         offerValueGbp:num(row?.offerValueGbp),
         estimatedGainLossGbp:num(row?.estimatedGainLossGbp),
-        annualIncomeLostGbp:num(row?.annualIncomeLostGbp),
-        expiresAt:String(row?.expiresAt||'')
-      })),
-      sellTickets:tickets.slice(0,10).map(row=>({
+        annualIncomeLostGbp:num(row?.annualIncomeLostGbp)
+      }));
+    }
+
+    if(raw.sellTickets){
+      const rows=Array.isArray(raw.sellTickets?.tickets)?raw.sellTickets.tickets:[];
+      context.sellTickets=rows.slice(0,8).map(row=>({
         ticketId:String(row?.ticketId||''),
         ticker:String(row?.ticker||''),
         account:String(row?.account||''),
-        proposedShares:num(row?.proposedShares),
         approvalStatus:String(row?.approvalStatus||''),
-        estimatedProceedsGbp:num(row?.estimatedProceedsGbp),
-        annualIncomeLostGbp:num(row?.annualIncomeLostGbp)
-      })),
-      platformRules:rules.slice(0,30).map(row=>({
+        estimatedProceedsGbp:num(row?.estimatedProceedsGbp)
+      }));
+    }
+
+    if(raw.platformRules){
+      const rows=Array.isArray(raw.platformRules?.platformRules)?raw.platformRules.platformRules:[];
+      context.platformRules=rows.slice(0,24).map(row=>({
         ticker:String(row?.ticker||''),
         preferredAccount:String(row?.preferredAccount||''),
-        allowedAccounts:Array.isArray(row?.allowedAccounts)?row.allowedAccounts:[],
-        currency:String(row?.currency||''),
-        priceUnit:String(row?.priceUnit||'')
-      }))
-    };
+        allowedAccounts:Array.isArray(row?.allowedAccounts)?row.allowedAccounts:[]
+      }));
+    }
 
-    aiLiveBackendCache_={at:now,value:context};
+    aiLiveBackendCache_[cacheKey]={at:now,value:context};
     return context;
   }
 
@@ -1166,22 +1296,25 @@
       const thinking=thinkingMessage();
       try{
         const client=await ensureBackendClient();
-        const prior=history.slice(-11);
+        const prior=history.slice(-7);
         if(prior.length&&prior[prior.length-1].role==='user'&&prior[prior.length-1].text===command)prior.pop();
-        const localContext=aiContextSnapshot(safeState(),pageName());
+        const currentPage=pageName();
+        const plan=aiContextPlan_(command,currentPage);
+        const fullLocalContext=aiContextSnapshot(safeState(),currentPage);
+        const localContext=aiSelectLocalContext_(fullLocalContext,plan);
         let liveBackend=null;
         try{
-          liveBackend=await aiLiveBackendContext_(client);
+          liveBackend=await aiLiveBackendContext_(client,plan);
         }catch(_){
           liveBackend={available:false,fetchedAt:new Date().toISOString(),failures:['live backend context unavailable']};
         }
         const response=await client.post('aiChat',{
           message:command,
-          page:pageName(),
-          context:{...localContext,liveBackend},
-          history:prior.slice(-10).map(row=>({
+          page:currentPage,
+          context:liveBackend?{...localContext,liveBackend}:localContext,
+          history:prior.slice(-6).map(row=>({
             role:row.role==='ai'?'assistant':'user',
-            text:String(row.text||'').slice(0,3500)
+            text:String(row.text||'').slice(0,1800)
           }))
         });
         thinking.remove();
