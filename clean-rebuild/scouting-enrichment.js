@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD='20260925-scouting-enrichment-4-broker-execution';
+  const BUILD='20260925-scouting-enrichment-5-stale-only';
   const SHEET_ID='1ZDdYmyDrvNuz3utKmgsToKL7NqsibzbWyIo0vg-TjcA';
   const GLOBAL_SHEET_ID='1N_kmoc9fwnwuWR1Jo0Qwi_0wF3Ifb5bTApnzlRNUSYk';
   const SOURCES={
@@ -57,7 +57,7 @@
       evidenceUpdatedAt:evidenceTimestamp(row)
     };
   }
-  async function fetchRows(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json();return Array.isArray(d)?d:[]}
+  async function fetchRows(url){const r=await fetch(url,{cache:'default'});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json();return Array.isArray(d)?d:[]}
   function mergeEvidence(map,next){
     const old=map.get(next.ticker)||{ticker:next.ticker,sources:[]};
     const merged={...old,...next,sources:[...new Set([...(old.sources||[]),next.source])].filter(Boolean)};
@@ -129,6 +129,16 @@
     }catch(e){lastSummary={matched:0,promoted:0,error:true,message:`Enrichment sweep failed · ${String(e?.message||e)}`}}
     finally{running=false;render(lastSummary)}
   }
-  function boot(){if(!window.AuroraClean){setTimeout(boot,60);return}render(null);setTimeout(()=>sweep('startup'),900);window.addEventListener('aurora-clean:state',()=>{if(!running)setTimeout(()=>render(lastSummary),0)});setInterval(()=>sweep('interval'),15*60*1000);window.AuroraScoutingEnrichment=Object.freeze({BUILD,SHEET_ID,sweep,render});}
+  function boot(){
+    if(!window.AuroraClean){setTimeout(boot,60);return}
+    render(null);
+    const state=window.AuroraClean.readState();
+    const last=Date.parse(state.scouting?.enrichment?.lastRunAt||'');
+    const stale=!Number.isFinite(last)||(Date.now()-last)>10*60*1000;
+    if(stale)setTimeout(()=>sweep('startup-stale'),5000);
+    window.addEventListener('aurora-clean:state',()=>{if(!running)setTimeout(()=>render(lastSummary),0)});
+    setInterval(()=>sweep('interval'),15*60*1000);
+    window.AuroraScoutingEnrichment=Object.freeze({BUILD,SHEET_ID,sweep,render});
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
