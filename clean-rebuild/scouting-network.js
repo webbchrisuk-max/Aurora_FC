@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD='20260925-scouting-network-6-broker-execution';
+  const BUILD='20260925-scouting-network-7-fast-stadium';
   const $=id=>document.getElementById(id);
   const num=v=>{const n=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
   const upper=v=>String(v||'').trim().toUpperCase();
@@ -42,7 +42,10 @@
   function missingEvidence(row,r,strength){const missing=[];if(!(num(row.yieldPct)>0))missing.push('yield');if(!(num(row.livePriceGbp)>0))missing.push('live price');if(!(num(row.annualDpsGbp)>0))missing.push('annual DPS');if(!String(row.sector||'').trim())missing.push('sector');if(r==='UNKNOWN')missing.push('payout risk');if(!hasValuation(row))missing.push('fair value');if(!(strength>0))missing.push('buy strength');return missing}
   function rankingBase(state){
     const A=window.AuroraClean;if(!A)return[];
-    const base=A.scoutingRankings(state);
+    const candidates=Array.isArray(state?.scouting?.candidates)?state.scouting.candidates:[];
+    const useful=candidates.filter(row=>!(row?.marketWatch===true&&row?.dataPending===true));
+    const rankState=useful.length===candidates.length?state:{...state,scouting:{...(state.scouting||{}),candidates:useful}};
+    const base=A.scoutingRankings(rankState);
     return base.map(input=>{
       const row=executionProfile(input);
       const y=Math.max(0,effectiveYield(row)),strength=Math.max(0,Math.min(100,num(row.buyStrength))),up=upside(row),r=risk(row),valuationKnown=hasValuation(row),decision=decisionState(row);
@@ -112,6 +115,12 @@
     host.innerHTML=`<section class="scout-network-panel"><div class="scout-network-head"><div><p class="eyebrow">NATIONAL SCOUTING NETWORK</p><h2>Universe coverage</h2><p>Aurora ranks the entire loaded scouting universe before narrowing it to the final payday recruitment plan.</p></div><span class="scout-network-badge">${c.unique.toLocaleString('en-GB')} UNIQUE STOCKS</span></div><div class="scout-network-grid"><article class="scout-network-kpi"><span>PLAYERS SCOUTED</span><strong>${c.unique.toLocaleString('en-GB')}</strong><small>${c.sourceRows.toLocaleString('en-GB')} Aurora source rows before broad market watch</small></article><article class="scout-network-kpi"><span>BUY-READY</span><strong>${c.top}</strong><small>${c.premier} Premier · ${c.elite} Elite · ${c.ready} Ready</small></article><article class="scout-network-kpi"><span>HIDDEN GEMS</span><strong>${c.gems}</strong><small>new holding · 5%+ yield · buy-ready</small></article><article class="scout-network-kpi"><span>LOW-RISK REPORTS</span><strong>${c.lowRisk}</strong><small>payout risk marked low/safe</small></article><article class="scout-network-kpi"><span>DECISION VETOES</span><strong>${c.vetoed}</strong><small>Decision Engine explicitly blocks buying</small></article><article class="scout-network-kpi"><span>VALID INCOME CANDIDATES</span><strong>${c.validYield}</strong><small>positive forward yield</small></article></div><div class="scout-funnel"><div class="scout-funnel-step"><strong>${c.sourceRows}</strong><span>AURORA SOURCE ROWS</span></div><div class="scout-funnel-step"><strong>${c.unique}</strong><span>UNIQUE TICKERS</span></div><div class="scout-funnel-step"><strong>${c.validYield}</strong><span>VALID YIELD</span></div><div class="scout-funnel-step"><strong>${c.fullData}</strong><span>FULL EVIDENCE</span></div><div class="scout-funnel-step"><strong>${c.top}</strong><span>BUY-READY</span></div></div></section><section class="scout-network-panel"><div class="scout-network-head"><div><p class="eyebrow">SCOUTING PIPELINE</p><h2>From development watch to recruitment meeting</h2><p>Yield, buy strength, valuation, payout risk, concentration, diversification and evidence quality are scored. Decision Engine vetoes, high payout risk and severe overvaluation cannot produce a BUY.</p></div><span class="scout-network-badge">${state.scouting?.strategy==='maximum'?'MAXIMUM INCOME':'SUSTAINABLE INCOME'}</span></div><div class="scout-pipeline"><article class="scout-pipeline-card"><strong>${pipe['DEVELOPMENT WATCH']||0}</strong><span>DEVELOPMENT WATCH</span><small>early/incomplete or blocked cases</small></article><article class="scout-pipeline-card"><strong>${pipe['DEEP SCOUT']||0}</strong><span>DEEP SCOUT</span><small>watchlist / evidence still developing</small></article><article class="scout-pipeline-card"><strong>${pipe['FULL REPORT']||0}</strong><span>FULL REPORT</span><small>BUY · all gates passed</small></article><article class="scout-pipeline-card"><strong>${pipe['RECRUITMENT MEETING']||0}</strong><span>RECRUITMENT MEETING</span><small>STRONG BUY · all gates passed</small></article></div></section><section class="scout-network-panel"><div class="scout-network-head"><div><p class="eyebrow">SCOUTING LEAGUE TABLE</p><h2>Full opportunity pool</h2><p>Search the full universe. Tap a ticker for score drivers, evidence sources and any blocking reason.</p></div><span class="scout-network-badge">TOP ${Math.min(PAGE_SIZE,filtered(rows).length)} ON PAGE</span></div>${table(rows)}</section>`;
     const q=$('scoutSearch'),rf=$('scoutRisk'),sf=$('scoutStage'),sm=$('scoutSort');if(rf)rf.value=riskFilter;if(sf)sf.value=stageFilter;if(sm)sm.value=sortMode;q?.addEventListener('input',e=>{query=e.target.value;page=0;render()});rf?.addEventListener('change',e=>{riskFilter=e.target.value;page=0;render()});sf?.addEventListener('change',e=>{stageFilter=e.target.value;page=0;render()});sm?.addEventListener('change',e=>{sortMode=e.target.value;page=0;render()});$('scoutPrev')?.addEventListener('click',()=>{page=Math.max(0,page-1);render()});$('scoutNext')?.addEventListener('click',()=>{page++;render()});host.querySelectorAll('[data-scout-ticker]').forEach(el=>el.addEventListener('click',()=>openDrawer(el.dataset.scoutTicker)));
   }
-  function boot(){if(!window.AuroraClean){setTimeout(boot,50);return}ensureDrawer();render();window.addEventListener('aurora-clean:state',render);window.AuroraScoutingNetwork=Object.freeze({BUILD,rankings,coverage,render,openDrawer,tierFor,tierRank})}
+  function boot(){
+    if(!window.AuroraClean){setTimeout(boot,50);return}
+    const stadium=document.body?.dataset?.scoutingUi==='stadium';
+    window.AuroraScoutingNetwork=Object.freeze({BUILD,rankings,coverage,render,openDrawer,tierFor,tierRank});
+    if(stadium)return;
+    ensureDrawer();render();window.addEventListener('aurora-clean:state',render);
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
