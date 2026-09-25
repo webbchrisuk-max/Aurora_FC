@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260910-scouting-market-watch-3-storage-safe';
+  const BUILD='20260925-scouting-market-watch-4-idle-metadata';
   const TARGET=2000;
   const SOURCES={
     NASDAQ:'https://raw.githubusercontent.com/rreichel3/US-Stock-Symbols/main/nasdaq/nasdaq_tickers.json',
@@ -13,10 +13,10 @@
   let marketRows=[];
   let writing=false;
   let loaded=false;
-  let storageMode='compact';
+  let storageMode='memory';
 
   async function fetchSymbols(url){
-    const r=await fetch(url,{cache:'no-store'});
+    const r=await fetch(url,{cache:'default'});
     if(!r.ok)throw new Error(`HTTP ${r.status}`);
     const data=await r.json();
     return Array.isArray(data)?data.map(clean).filter(plain):[];
@@ -71,16 +71,13 @@
       A.updateState(next=>{
         next.scouting=next.scouting||{};
         const current=Array.isArray(next.scouting.candidates)?next.scouting.candidates:[];
-        const retained=current.filter(row=>!(String(row?.source||'').toUpperCase()==='MARKET WATCH'&&row?.dataPending));
-        const keys=new Set(retained.map(r=>clean(r?.ticker)).filter(Boolean));
-        const additions=marketRows.filter(r=>!keys.has(r.ticker));
-        next.scouting.candidates=[...retained,...additions];
+        next.scouting.candidates=current.filter(row=>!(String(row?.source||'').toUpperCase()==='MARKET WATCH'&&row?.dataPending));
         next.scouting.marketWatchLoadedAt=new Date().toISOString();
-        next.scouting.marketWatchStorage='COMPACT';
+        next.scouting.marketWatchStorage='MEMORY_ONLY';
         next.scouting.marketWatchCounts={...(next.scouting.marketWatchCounts||{}),unique:marketRows.length,target:TARGET};
         next.scouting.universeCounts={...(next.scouting.universeCounts||{}),marketWatch:marketRows.length};
       });
-      storageMode='compact';
+      storageMode='memory';
       return true;
     }catch(e){
       const text=String(e?.message||e);
@@ -117,7 +114,7 @@
           window.AuroraClean.updateState(state=>{
             state.scouting=state.scouting||{};
             state.scouting.marketWatchCounts={NASDAQ:raw.NASDAQ||0,NYSE:raw.NYSE||0,AMEX:raw.AMEX||0,unique:marketRows.length,target:TARGET};
-            state.scouting.marketWatchStorage='COMPACT';
+            state.scouting.marketWatchStorage='MEMORY_ONLY';
           });
         }catch(e){
           storageMode='memory';
@@ -140,7 +137,9 @@
 
   function boot(){
     if(!window.AuroraClean){setTimeout(boot,60);return;}
-    ensureStatus();load();
+    ensureStatus();
+    const start=()=>load();
+    if('requestIdleCallback' in window)requestIdleCallback(start,{timeout:5000});else setTimeout(start,5000);
     window.addEventListener('aurora-clean:state',()=>{if(!writing&&loaded)setTimeout(decorate,0)});
     window.AuroraScoutingMarketWatch=Object.freeze({BUILD,TARGET,load,apply,decorate,rows:()=>marketRows.slice(),storageMode:()=>storageMode});
   }
