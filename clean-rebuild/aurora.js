@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260925-shell-10-copilot';
+  const BUILD = '20260925-shell-11-conversation';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -314,7 +314,7 @@
 (() => {
   'use strict';
 
-  const ASSISTANT_BUILD='20260925-aurora-copilot-2';
+  const ASSISTANT_BUILD='20260925-aurora-conversation-3';
   const SESSION_OPEN='aurora-clean:assistant-open:v2';
   const SESSION_PENDING='aurora-clean:assistant-pending:v2';
   const SESSION_HISTORY='aurora-clean:assistant-history:v2';
@@ -519,6 +519,172 @@
     return 'Clean Build · page aware · online';
   }
 
+  function aiContextSnapshot(state,page){
+    if(!state)return{page,generatedAt:new Date().toISOString(),stateAvailable:false};
+
+    const f=financeSummary(state);
+    const isa=isaSummary(state);
+    const holdings=Array.isArray(state.squad?.holdings)?state.squad.holdings:[];
+    const candidates=Array.isArray(state.scouting?.candidates)?state.scouting.candidates:[];
+    const pots=Array.isArray(state.finance?.pots)?state.finance.pots:[];
+    const bills=Array.isArray(state.finance?.bills)?state.finance.bills:[];
+    const receipts=Array.isArray(state.registration?.receipts)?state.registration.receipts:[];
+
+    const holdingRows=holdings.slice(0,30).map(row=>({
+      account:String(row.account||row.broker||''),
+      ticker:String(row.ticker||row.symbol||''),
+      name:String(row.name||row.company||''),
+      shares:num(row.shares),
+      bookCostGbp:num(row.bookCostGbp??row.book_cost_gbp),
+      marketValueGbp:num(row.marketValueGbp??row.currentValueGbp),
+      livePriceGbp:num(row.livePriceGbp??row.priceGbp),
+      annualIncomeGbp:num(row.annualIncomeGbp??row.annual_income_gbp),
+      status:String(row.status||'ACTIVE')
+    }));
+
+    const totals=holdingRows.reduce((out,row)=>{
+      out.bookCostGbp+=row.bookCostGbp;
+      out.marketValueGbp+=row.marketValueGbp;
+      out.annualIncomeGbp+=row.annualIncomeGbp;
+      return out;
+    },{bookCostGbp:0,marketValueGbp:0,annualIncomeGbp:0});
+
+    return{
+      page,
+      generatedAt:new Date().toISOString(),
+      stateAvailable:true,
+      attention:buildAttention(state).map(item=>({
+        level:item.level,title:item.title,detail:item.detail,page:item.page
+      })),
+      finance:{
+        expectedWages:num(state.finance?.expectedWages),
+        wagesReceived:num(state.finance?.wagesReceived),
+        availableCash:f?.availableCash??num(state.finance?.availableCash),
+        commitments:f?.commitments??num(state.finance?.commitments),
+        currentAccountBills:f?.billsDue??0,
+        holdingPotBalance:f?.holdingBalance??num(state.finance?.holdingPotBalance),
+        holdingPotTarget:f?.holdingTarget??num(state.finance?.holdingPotTarget),
+        holdingSafetyTopUp:f?.holdingTopUp??0,
+        potFunding:f?.potsDue??0,
+        protectedCash:f?.protectedCash??num(state.finance?.protectedCash),
+        totalReserved:f?.totalReserved??0,
+        maximumSafeRelease:f?.safeSurplus??0,
+        paydayDecisionStatus:state.finance?.stage5PaydayDecision?'FROZEN':'NOT_FROZEN',
+        potCount:pots.length,
+        pots:pots.slice(0,20).map(row=>({
+          name:String(row.name||''),
+          type:String(row.type||''),
+          balanceGbp:num(row.balance??row.currentBalance??row.amount),
+          targetGbp:num(row.target??row.targetAmount),
+          status:String(row.status||'')
+        })),
+        billCount:bills.length,
+        bills:bills.slice(0,20).map(row=>({
+          name:String(row.name||row.description||''),
+          amountGbp:num(row.amount),
+          dueDate:String(row.dueDate||row.date||''),
+          status:String(row.status||'')
+        }))
+      },
+      isa:{
+        annualAllowanceGbp:isa.annual,
+        usedGbp:isa.used,
+        remainingGbp:isa.left,
+        flexibleReplacementGbp:isa.flexible
+      },
+      scouting:{
+        strategy:String(state.scouting?.strategy||''),
+        candidateCount:candidates.length,
+        candidates:candidates.slice(0,20).map(row=>({
+          ticker:String(row.ticker||''),
+          name:String(row.name||''),
+          sector:String(row.sector||''),
+          yieldPct:num(row.yieldPct),
+          score:num(row.score||row.buyStrength),
+          approved:!!row.approved
+        })),
+        allocationPlan:state.scouting?.allocationPlan?{
+          status:String(state.scouting.allocationPlan.status||''),
+          allocatedGbp:num(state.scouting.allocationPlan.allocated),
+          allocationCount:Array.isArray(state.scouting.allocationPlan.allocations)?state.scouting.allocationPlan.allocations.length:0,
+          allocations:(state.scouting.allocationPlan.allocations||[]).slice(0,12).map(row=>({
+            ticker:String(row.ticker||''),
+            amountGbp:num(row.amount),
+            expectedAnnualIncomeGbp:num(row.expectedAnnualIncome),
+            yieldPct:num(row.yieldPct)
+          }))
+        }:null
+      },
+      transfer:{
+        mission:state.transfer?.mission?{
+          id:String(state.transfer.mission.id||''),
+          status:String(state.transfer.mission.status||''),
+          budgetGbp:num(state.transfer.mission.budget),
+          releasedPayday:String(state.transfer.mission.releasedPayday||state.transfer.mission.payday||'')
+        }:null,
+        route:state.transfer?.route?{
+          locked:state.transfer.route.locked===true,
+          financeAllocatedGbp:num(state.transfer.route.financeAllocated),
+          financeLeftBehindGbp:num(state.transfer.route.financeLeftBehind),
+          brokerCashAllocatedGbp:num(state.transfer.route.brokerCashAllocated),
+          totalAllocatedGbp:num(state.transfer.route.totalAllocated),
+          expectedAnnualIncomeGbp:num(state.transfer.route.expectedAnnualIncome),
+          allocations:(state.transfer.route.allocations||[]).slice(0,12).map(row=>({
+            ticker:String(row.ticker||''),
+            executionTicker:String(row.executionTicker||''),
+            account:String(row.lockedAccount||row.account||''),
+            amountGbp:num(row.amount),
+            fundingSource:String(row.fundingSource||'')
+          }))
+        }:null
+      },
+      registration:{
+        receiptCount:receipts.length,
+        latestReceipts:receipts.slice(-8).map(row=>({
+          ticker:String(row.ticker||''),
+          amountGbp:num(row.amount),
+          registeredAt:String(row.registeredAt||'')
+        }))
+      },
+      squad:{
+        holdingCount:holdings.length,
+        totals:totals,
+        annualIncomeGbp:annualIncome(state),
+        monthlyIncomeGbp:annualIncome(state)/12,
+        holdings:holdingRows
+      },
+      matchReport:{
+        lastBuiltAt:String(state.matchReport?.lastBuiltAt||''),
+        summary:String(state.matchReport?.summary||'')
+      }
+    };
+  }
+
+  let backendClientPromise=null;
+  function ensureBackendClient(){
+    if(window.AuroraData2Client)return Promise.resolve(window.AuroraData2Client);
+    if(backendClientPromise)return backendClientPromise;
+    backendClientPromise=new Promise((resolve,reject)=>{
+      const existing=document.querySelector('script[data-aurora-ai-backend]');
+      if(existing){
+        const started=Date.now();
+        const timer=setInterval(()=>{
+          if(window.AuroraData2Client){clearInterval(timer);resolve(window.AuroraData2Client);}
+          else if(Date.now()-started>8000){clearInterval(timer);reject(new Error('Aurora backend client did not load.'));}
+        },80);
+        return;
+      }
+      const script=document.createElement('script');
+      script.src='aurora-backend-client.js?v=20260925-ai-chat-1';
+      script.async=true;
+      script.dataset.auroraAiBackend='1';
+      script.onload=()=>window.AuroraData2Client?resolve(window.AuroraData2Client):reject(new Error('Aurora backend client is unavailable.'));
+      script.onerror=()=>reject(new Error('Aurora backend client could not be loaded.'));
+      document.head.appendChild(script);
+    }).catch(error=>{backendClientPromise=null;throw error;});
+    return backendClientPromise;
+  }
+
   function installAssistant(){
     if(document.getElementById('auroraAssistant'))return;
 
@@ -536,9 +702,9 @@
         '<div id="auroraAssistantMessages" class="aurora-assistant-messages" aria-live="polite"></div>',
         '<form id="auroraAssistantForm" class="aurora-assistant-form">',
           '<label for="auroraAssistantInput">Ask Aurora</label>',
-          '<div><input id="auroraAssistantInput" type="text" autocomplete="off" placeholder="Try: what needs attention?"><button type="submit">Send</button></div>',
+          '<div><input id="auroraAssistantInput" type="text" autocomplete="off" placeholder="Ask me anything about Aurora…"><button id="auroraAssistantSend" type="submit">Send</button></div>',
         '</form>',
-        '<footer class="aurora-assistant-footer">Navigation and read-only commands can run directly. Money movement, route locks and execution still require your normal Aurora controls.</footer>',
+        '<footer class="aurora-assistant-footer">Free-form chat uses the secure Aurora backend when configured. Money movement, route locks and execution still require your normal Aurora controls.</footer>',
       '</section>',
       '<span class="aurora-assistant-label" aria-hidden="true">AURORA AI</span>',
       '<button type="button" class="aurora-assistant-launcher" aria-label="Open Aurora AI co-pilot" aria-controls="auroraAssistantPanel" aria-expanded="false">',
@@ -558,8 +724,10 @@
     const input=root.querySelector('#auroraAssistantInput');
     const quick=root.querySelector('#auroraAssistantQuick');
     const alertCount=root.querySelector('#auroraAssistantAlertCount');
+    const sendButton=root.querySelector('#auroraAssistantSend');
 
     let history=readHistory();
+    let remoteBusy=false;
 
     function addMessage(role,text,actions,remember=true){
       const wrap=document.createElement('article');
@@ -632,6 +800,61 @@
       }
       messages.appendChild(wrap);
       messages.scrollTop=messages.scrollHeight;
+    }
+
+    function setRemoteBusy(busy){
+      remoteBusy=!!busy;
+      root.classList.toggle('is-thinking',remoteBusy);
+      input.disabled=remoteBusy;
+      if(sendButton)sendButton.disabled=remoteBusy;
+    }
+
+    function thinkingMessage(){
+      const wrap=document.createElement('article');
+      wrap.className='aurora-assistant-message is-ai is-thinking-message';
+      const badge=document.createElement('span');
+      badge.className='aurora-assistant-message-role';
+      badge.textContent='AURORA';
+      const p=document.createElement('p');
+      p.textContent='Thinking…';
+      wrap.append(badge,p);
+      messages.appendChild(wrap);
+      messages.scrollTop=messages.scrollHeight;
+      return wrap;
+    }
+
+    async function askRemoteAi(command){
+      if(remoteBusy)return;
+      setRemoteBusy(true);
+      const thinking=thinkingMessage();
+      try{
+        const client=await ensureBackendClient();
+        const prior=history.slice(-11);
+        if(prior.length&&prior[prior.length-1].role==='user'&&prior[prior.length-1].text===command)prior.pop();
+        const response=await client.post('aiChat',{
+          message:command,
+          page:pageName(),
+          context:aiContextSnapshot(safeState(),pageName()),
+          history:prior.slice(-10).map(row=>({
+            role:row.role==='ai'?'assistant':'user',
+            text:String(row.text||'').slice(0,3500)
+          }))
+        });
+        thinking.remove();
+        const answer=String(response?.answer||'').trim();
+        if(!answer)throw new Error('Aurora AI returned an empty response.');
+        addMessage('ai',answer);
+      }catch(error){
+        thinking.remove();
+        const raw=String(error?.message||error||'Aurora AI backend unavailable.');
+        const safe=/not configured|unknown action|unsupported|OPENAI_API_KEY/i.test(raw)
+          ? 'Free-form AI chat is installed on the page, but the server-side AI connection still needs its one-time backend setup. Your local Aurora commands continue to work normally.'
+          : 'I could not reach the conversational AI service just now. Your local Aurora commands are still available.';
+        addMessage('ai',safe,[{label:'Local commands',command:'help'}]);
+      }finally{
+        setRemoteBusy(false);
+        setTimeout(()=>input.focus({preventScroll:true}),30);
+      }
     }
 
     function highlight(selector){
@@ -842,7 +1065,7 @@
         return;
       }
 
-      addMessage('ai','I do not have a safe local command for that yet. Type “help” to see what I can do, or use “page status” and “what needs attention?”.');
+      askRemoteAi(command);
     }
 
     function renderQuick(){
@@ -915,6 +1138,7 @@
 
     form.addEventListener('submit',event=>{
       event.preventDefault();
+      if(remoteBusy)return;
       const value=input.value;
       input.value='';
       handleCommand(value,true);
