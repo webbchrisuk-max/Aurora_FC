@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='20260924-transfer-broker-assign-5-security-map';
+  const BUILD='20260925-transfer-broker-assign-6-scouting-route-lock';
   const upper=v=>String(v||'').trim().toUpperCase();
   const brokerCode=row=>{
     const a=upper(row?.lockedAccount||row?.account||row?.broker||row?.preferredBroker||row?.platform);
@@ -12,6 +12,7 @@
   const financeRows=state=>Array.isArray(state?.transfer?.route?.allocations)?state.transfer.route.allocations:[];
   function executionSpec(row,account){
     const underlying=window.AuroraClean?.canonicalScoutingTicker?.(row?.underlyingTicker||row?.ticker)||upper(row?.underlyingTicker||row?.ticker);
+    if(underlying==='FMG'&&account==='IG')return{underlyingTicker:'FMG',executionTicker:'FMG',executionMarket:'ASX',executionCurrency:'AUD',securityName:'Fortescue Ltd'};
     if(underlying==='FMG'&&account==='T212')return{underlyingTicker:'FMG',executionTicker:'FVJ',executionMarket:'GETTEX',executionCurrency:'EUR',securityName:'Fortescue'};
     return{underlyingTicker:underlying,executionTicker:upper(row?.ticker),executionMarket:'',executionCurrency:''};
   }
@@ -26,6 +27,8 @@
       const rows=Array.isArray(route.allocations)?route.allocations:[];
       const row=rows.find(r=>(legId&&String(r.legId||'')===String(legId))||(!legId&&upper(r.ticker)===upper(ticker)));
       if(!row||brokerCode(row)===account)return;
+      const fixedBroker=row.brokerLocked===true?brokerCode(row):'';
+      if(fixedBroker&&fixedBroker!==account)return;
       row.lockedAccount=account;
       row.account=account;
       Object.assign(row,executionSpec(row,account));
@@ -45,8 +48,9 @@
 
   function buttons(row){
     if(!row)return'';
-    const leg=String(row.legId||''),ticker=upper(row.ticker),current=brokerCode(row);
-    const btn=(code,label)=>`<button type="button" data-assign-broker="${code}" data-leg-id="${leg}" data-ticker="${ticker}" class="${current===code?'is-selected':''}" aria-pressed="${current===code?'true':'false'}" ${current===code?'disabled':''}>${label}${current===code?' ✓':''}</button>`;
+    const leg=String(row.legId||''),ticker=upper(row.ticker),current=brokerCode(row),fixed=row.brokerLocked===true;
+    const btn=(code,label)=>`<button type="button" data-assign-broker="${code}" data-leg-id="${leg}" data-ticker="${ticker}" class="${current===code?'is-selected':''}" aria-pressed="${current===code?'true':'false'}" ${current===code||fixed?'disabled':''}>${label}${current===code?' ✓':''}</button>`;
+    if(fixed&&current)return `<div class="transfer-broker-assign" data-broker-controls="${leg||ticker}" data-selected-broker="${current}"><span>Scouting route locked</span>${btn(current,current==='IG'?'IG ISA':'Trading 212 ISA')}</div>`;
     return `<div class="transfer-broker-assign" data-broker-controls="${leg||ticker}" data-selected-broker="${current}"><span>${current?'Broker':'Assign broker'}</span>${btn('IG','IG ISA')}${btn('T212','Trading 212 ISA')}</div>`;
   }
 
