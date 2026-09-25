@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD='20260923-scouting-enrichment-3-evidence-priority';
+  const BUILD='20260925-scouting-enrichment-4-broker-execution';
   const SHEET_ID='1ZDdYmyDrvNuz3utKmgsToKL7NqsibzbWyIo0vg-TjcA';
   const GLOBAL_SHEET_ID='1N_kmoc9fwnwuWR1Jo0Qwi_0wF3Ifb5bTApnzlRNUSYk';
   const SOURCES={
@@ -103,7 +103,7 @@
         if((e.payoutRisk&&!next.payoutRisk)||upper(next.payoutRisk)==='UNKNOWN')next.payoutRisk=e.payoutRisk||next.payoutRisk;
         if(e.livePriceGbp>0)next.livePriceGbp=e.livePriceGbp;
         if(e.annualDpsGbp>0)next.annualDpsGbp=e.annualDpsGbp;
-        if(e.yieldPct>0)next.yieldPct=Number(e.yieldPct.toFixed(4));
+        if(e.yieldPct>0&&!(num(next.brokerYieldPct)>0))next.yieldPct=Number(e.yieldPct.toFixed(4));
         if(e.fairValueGbp>0)next.fairValueGbp=e.fairValueGbp;
         if(e.buyStrength>0)next.buyStrength=Number(e.buyStrength.toFixed(1));
         next.enrichmentSources=e.sources;next.enrichmentUpdatedAt=new Date().toISOString();
@@ -113,10 +113,15 @@
         if(e.decisionAction)next.decisionAction=e.decisionAction;
         if(e.decisionConfidence)next.decisionConfidence=e.decisionConfidence;
         if(e.dataQuality)next.dataQuality=e.dataQuality;
-        const nowReady=num(next.livePriceGbp)>0&&num(next.yieldPct)>0;
-        next.dataPending=!nowReady;
+        const profiled=window.AuroraScoutingExecutionProfiles?.resolve?.(next)||next;
+        if(num(profiled.brokerYieldPct)>0){
+          if(!(num(profiled.referenceYieldPct)>0))profiled.referenceYieldPct=num(next.yieldPct);
+          profiled.yieldPct=Number(num(profiled.brokerYieldPct).toFixed(4));
+        }
+        const nowReady=num(profiled.livePriceGbp)>0&&num(profiled.yieldPct)>0;
+        profiled.dataPending=!nowReady;
         if(wasPending&&nowReady)promoted++;
-        return next;
+        return profiled;
       });
       const now=new Date().toISOString();
       A.updateState(state=>{state.scouting=state.scouting||{};state.scouting.candidates=nextRows;state.scouting.enrichment={build:BUILD,workbook:'AuroraData 2 — Consolidated',sheetId:SHEET_ID,lastRunAt:now,reason,sourceRows,evidenceTickers:map.size,matched,promoted,sourceCounts,errors};});
