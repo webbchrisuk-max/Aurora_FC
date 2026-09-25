@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD = '20260926-shell-15-ai-resilient';
+  const BUILD = '20260926-shell-16-dividend-date-fix';
   const STATE_KEY = 'aurora-clean:state:v1';
   const LIVE_STATE_KEYS = ['aurora2:state:v1', 'aurora2:state:backup:lastgood'];
 
@@ -314,7 +314,7 @@
 (() => {
   'use strict';
 
-  const ASSISTANT_BUILD='20260926-aurora-conversation-7-resilient';
+  const ASSISTANT_BUILD='20260926-aurora-conversation-8-dividend-date-fix';
   const SESSION_OPEN='aurora-clean:assistant-open:v2';
   const SESSION_PENDING='aurora-clean:assistant-pending:v2';
   const SESSION_HISTORY='aurora-clean:assistant-history:v2';
@@ -1457,17 +1457,36 @@
       const thinking=thinkingMessage();
       try{
         const client=await ensureBackendClient();
-        const snapshot=await client.get('incomeSnapshot',{});
+        let snapshot=null;
+        try{
+          snapshot=await client.get('incomeSnapshot',{});
+        }catch(liveError){
+          console.warn('Aurora next-dividend live snapshot unavailable; checking verified cache',liveError);
+        }
+
+        if(!Array.isArray(snapshot?.dividends)){
+          const cached=readJSON('aurora-clean:income-snapshot:v1');
+          if(Array.isArray(cached?.snapshot?.dividends))snapshot=cached.snapshot;
+        }
+
         const rows=Array.isArray(snapshot?.dividends)?snapshot.dividends:[];
         const start=new Date();start.setHours(0,0,0,0);
-        const parseDate=value=>{
-          const raw=String(value||'').trim();
-          if(!raw)return null;
-          const d=/^\d{4}-\d{2}-\d{2}$/.test(raw)?new Date(raw+'T12:00:00'):new Date(raw);
+
+        const parseDividendDate=value=>{
+          if(value===null||value===undefined||value==='')return null;
+          if(typeof value==='number'&&Number.isFinite(value)){
+            const d=new Date(Date.UTC(1899,11,30)+Math.round(value)*86400000);
+            return Number.isNaN(d.getTime())?null:d;
+          }
+          const raw=String(value).trim();
+          const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if(iso)return new Date(iso[1]+'-'+iso[2]+'-'+iso[3]+'T12:00:00');
+          const d=new Date(raw);
           return Number.isNaN(d.getTime())?null:d;
         };
+
         const upcoming=rows.map(raw=>{
-          const payDate=parseDate(raw?.payDate??raw?.pay_date??raw?.paymentDate??raw?.payment_date);
+          const payDate=parseDividendDate(raw?.payDate??raw?.pay_date??raw?.paymentDate??raw?.payment_date);
           const status=upper(raw?.status||'FORECAST');
           const shares=Math.max(0,num(raw?.sharesEligible??raw?.shares_eligible??raw?.eligibleShares));
           const dps=Math.max(0,num(raw?.dividendPerShareGbp??raw?.dividend_per_share_gbp??raw?.dpsGbp));
@@ -1476,19 +1495,24 @@
             ticker:upper(raw?.ticker||raw?.symbol),
             account:String(raw?.account||''),
             payDate,
-            exDate:parseDate(raw?.exDate??raw?.ex_date),
+            exDate:parseDividendDate(raw?.exDate??raw?.ex_date),
             amount:explicit>0?explicit:(shares>0&&dps>0?shares*dps:0),
             status
           };
-        }).filter(row=>row.ticker&&row.payDate&&row.payDate>=start&&!/ARCHIVED|CANCELLED|CANCELED|MISSED|PAID/.test(row.status))
-          .sort((a,b)=>a.payDate-b.payDate||b.amount-a.amount);
+        }).filter(row=>
+          row.ticker&&
+          row.payDate&&
+          row.payDate>=start&&
+          !/ARCHIVED|CANCELLED|CANCELED|MISSED|PAID/.test(row.status)
+        ).sort((a,b)=>a.payDate-b.payDate||b.amount-a.amount);
 
         thinking.remove();
         const next=upcoming[0];
         if(!next){
-          addMessage('ai','I cannot see a future-dated dividend in the current AuroraData 2 income snapshot.');
+          addMessage('ai','AuroraData 2 does not currently contain a future-dated unpaid dividend. Open Income Centre to refresh the dividend feed.');
           return;
         }
+
         const pay=next.payDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
         const ex=next.exDate?next.exDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'';
         let answer='Your next recorded dividend is '+next.ticker+' — '+money(next.amount)+' due '+pay;
