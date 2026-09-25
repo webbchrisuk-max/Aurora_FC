@@ -656,7 +656,9 @@
       document.querySelectorAll('[data-finance-tab]').forEach(section=>{
         section.hidden=section.dataset.financeTab!==tab;
       });
-      try{window.AuroraFinanceTabs?.select?.(tab);}catch(_){}
+      if(['payday','bills','pots','house'].includes(tab)){
+        try{window.AuroraFinanceTabs?.select?.(tab);}catch(_){}
+      }
       setTimeout(()=>highlight(target||('[data-finance-tab="'+tab+'"]')),80);
     }
 
