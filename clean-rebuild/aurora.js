@@ -149,10 +149,10 @@
   function currentPageFile(){return String(location.pathname.split('/').pop()||'index.html').toLowerCase()||'index.html';}
   function ensureSidebarAssets(){
     if(!document.querySelector('link[data-aurora-sidebar]')){
-      const link=document.createElement('link');link.rel='stylesheet';link.href='aurora-sidebar.css?v=20260904-mobile-nav-7-fullscreen';link.dataset.auroraSidebar='style';document.head.appendChild(link);
+      const link=document.createElement('link');link.rel='stylesheet';link.href='aurora-sidebar.css?v=20260926-edge-autohide-8';link.dataset.auroraSidebar='style';document.head.appendChild(link);
     }
     if(!document.querySelector('script[data-aurora-sidebar]')){
-      const script=document.createElement('script');script.src='aurora-sidebar.js?v=20260904-mobile-nav-7-fullscreen';script.defer=true;script.dataset.auroraSidebar='script';document.head.appendChild(script);
+      const script=document.createElement('script');script.src='aurora-sidebar.js?v=20260926-edge-autohide-8';script.defer=true;script.dataset.auroraSidebar='script';document.head.appendChild(script);
     }
   }
   function renderNavigation(){
