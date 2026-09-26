@@ -535,3 +535,30 @@ body[data-manager-page="transfer"] .am-hero-art-wrap--transfer:before{
 .am-registration-grid .reg-real-route li{padding:10px;border:1px solid rgba(255,255,255,.055);border-radius:9px;background:#10151a;color:#aeb5bb}
 @media(max-width:1000px){.am-registration-execution .reg-execution-form{grid-template-columns:repeat(2,minmax(0,1fr))}.am-hero-art--registration{object-position:55% center}}
 @media(max-width:650px){.am-registration-grid .finance-form-grid,.am-registration-execution .finance-form-grid,.am-registration-execution .reg-execution-form,.am-registration-execution .scouting-control-grid{grid-template-columns:1fr}}
+
+
+/* REGISTRATION HERO FRAMING UPGRADE · 2026-09-26 */
+body[data-manager-page="registration"] .am-hero-main--art .am-hero-copy h1{
+  font-size:clamp(36px,4.15vw,60px);
+  line-height:.98;
+  max-width:650px;
+}
+body[data-manager-page="registration"] .am-hero-art-wrap--registration{
+  min-height:355px;
+  overflow:hidden;
+}
+body[data-manager-page="registration"] .am-hero-art--registration{
+  inset:0;
+  width:100%;
+  height:100%;
+  max-width:none;
+  max-height:none;
+  object-fit:cover;
+  object-position:40% center;
+  transform:none;
+}
+@media(max-width:1000px){
+  body[data-manager-page="registration"] .am-hero-art--registration{
+    object-position:38% center;
+  }
+}
