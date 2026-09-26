@@ -27,7 +27,7 @@
     ['transfer.html','🔁','Transfer','transfer'],
     ['registration.html','🧾','Registration','registration'],
     ['squad.html','⚽','Squad','squad'],
-    ['../clean-rebuild/income.html','📈','Income','engine']
+    ['income.html','📈','Income','income']
   ];
 
   function state(){return window.AuroraClean?.readState?.()||{finance:{},scouting:{candidates:[]},transfer:{},squad:{holdings:[]}}}
@@ -509,6 +509,7 @@
     else if(page==='transfer')renderTransfer();
     else if(page==='registration'){const s=state();setTextSafe('amRegReceiptCount',String(arr(s.registration?.receipts).length));}
     else if(page==='squad'){const s=state();const count=arr(s.squad?.holdings||s.portfolio?.holdings||s.holdings).length;setTextSafe('amSquadCount',count?String(count):'—');}
+    else if(page==='income'){const p=portfolio(state());setTextSafe('amIncomeHeroMonthly',money(p.monthly));setTextSafe('amIncomeGoalPct',`${Math.min(100,p.monthly/2000*100).toFixed(1)}%`);}
     else if(page==='transfer')renderTransfer();
     const status=$('amTopStatus');if(status)status.textContent=`Clean engine · ${nowLabel()}`;
   }
