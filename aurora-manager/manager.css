@@ -625,3 +625,119 @@ body[data-manager-page="income"] .am-income-hero-art{
   body[data-manager-page="income"] .am-income-hero{grid-template-columns:1fr}
   body[data-manager-page="income"] .am-income-visual--photo{height:330px}
 }
+
+/* INCOME FULL-WIDTH OVERLAY HERO · 2026-09-26 */
+body[data-manager-page="income"] .am-income-hero-stage{
+  display:block;
+  width:100%;
+}
+body[data-manager-page="income"] .am-income-hero--full{
+  position:relative;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:28px;
+  width:100%;
+  min-height:520px;
+  padding:38px;
+  overflow:hidden;
+  isolation:isolate;
+  border-color:rgba(200,169,107,.18);
+  background:#0b0e11;
+}
+body[data-manager-page="income"] .am-income-hero--full:after{display:none}
+body[data-manager-page="income"] .am-income-hero-bg{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  width:100%;
+  height:100%;
+  max-width:none;
+  object-fit:cover;
+  object-position:center center;
+  filter:brightness(.78) contrast(1.05) saturate(.94);
+}
+body[data-manager-page="income"] .am-income-hero-shade{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(7,9,12,.92) 0%,rgba(7,9,12,.68) 31%,rgba(7,9,12,.18) 58%,rgba(7,9,12,.18) 100%),
+    linear-gradient(180deg,rgba(5,7,9,.10) 0%,rgba(5,7,9,.08) 48%,rgba(5,7,9,.72) 100%);
+}
+body[data-manager-page="income"] .am-income-hero--full .am-hero-copy{
+  position:relative;
+  z-index:4;
+  width:min(690px,58%);
+  padding:4px 0;
+  text-shadow:0 2px 22px rgba(0,0,0,.48);
+}
+body[data-manager-page="income"] .am-income-hero--full .am-hero-copy h1{
+  max-width:680px;
+  margin-top:14px;
+  font-size:clamp(38px,4.6vw,68px);
+}
+body[data-manager-page="income"] .am-income-hero--full .am-hero-copy p{
+  max-width:620px;
+  color:#c1c5c7;
+}
+body[data-manager-page="income"] .am-income-form-overlay{
+  position:relative;
+  z-index:5;
+  flex:0 0 min(330px,31%);
+  min-height:190px;
+  padding:22px;
+  border:1px solid rgba(226,207,159,.30);
+  border-radius:16px;
+  background:linear-gradient(145deg,rgba(18,18,16,.78),rgba(11,14,17,.76));
+  backdrop-filter:blur(16px) saturate(1.08);
+  -webkit-backdrop-filter:blur(16px) saturate(1.08);
+  box-shadow:0 20px 48px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.06);
+}
+body[data-manager-page="income"] .am-income-form-overlay h2{
+  font-size:32px;
+  color:#f1e4c0;
+}
+body[data-manager-page="income"] .am-income-form-overlay .am-hero-score{
+  padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+body[data-manager-page="income"] .am-income-form-overlay .am-hero-score strong{
+  font-size:42px;
+}
+body[data-manager-page="income"] .am-income-hero--full>.am-art-chip{z-index:6}
+body[data-manager-page="income"] .am-income-hero--full>.am-art-chip--top{top:18px;right:18px}
+body[data-manager-page="income"] .am-income-hero--full>.am-art-chip--bottom{left:auto;right:18px;bottom:18px;transform:translateY(0)}
+@media(max-width:1000px){
+  body[data-manager-page="income"] .am-income-hero--full{
+    min-height:500px;
+    padding:28px;
+  }
+  body[data-manager-page="income"] .am-income-hero--full .am-hero-copy{width:60%}
+  body[data-manager-page="income"] .am-income-form-overlay{flex-basis:34%}
+}
+@media(max-width:760px){
+  body[data-manager-page="income"] .am-income-hero--full{
+    min-height:620px;
+    padding:24px 18px 18px;
+    flex-direction:column;
+    align-items:stretch;
+    justify-content:flex-end;
+    gap:16px;
+  }
+  body[data-manager-page="income"] .am-income-hero-bg{object-position:56% center}
+  body[data-manager-page="income"] .am-income-hero-shade{
+    background:linear-gradient(180deg,rgba(6,8,10,.18) 0%,rgba(6,8,10,.54) 43%,rgba(6,8,10,.94) 100%);
+  }
+  body[data-manager-page="income"] .am-income-hero--full .am-hero-copy{width:100%}
+  body[data-manager-page="income"] .am-income-hero--full .am-hero-copy h1{font-size:40px}
+  body[data-manager-page="income"] .am-income-form-overlay{
+    flex:0 0 auto;
+    width:100%;
+    min-height:0;
+    padding:16px;
+  }
+  body[data-manager-page="income"] .am-income-form-overlay .am-hero-score{margin-top:12px}
+  body[data-manager-page="income"] .am-income-hero--full>.am-art-chip--bottom{display:none}
+}
