@@ -603,3 +603,25 @@ body[data-manager-page="registration"] .am-hero-art--registration{
 .am-income-hero-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% center;filter:brightness(.9) contrast(1.04) saturate(.92)}
 .am-income-visual--photo:before{z-index:1;background:linear-gradient(90deg,rgba(11,14,17,.42),rgba(11,14,17,.03) 42%,rgba(11,14,17,.06)),linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.2))}
 .am-income-visual--photo .am-art-chip{z-index:2}
+
+
+/* INCOME HERO EXPANDED · 2026-09-26 */
+body[data-manager-page="income"] .am-income-hero{
+  grid-template-columns:minmax(0,.86fr) minmax(430px,1.02fr);
+  min-height:430px;
+}
+body[data-manager-page="income"] .am-income-hero .am-hero-copy h1{
+  font-size:clamp(36px,4.1vw,60px);
+  line-height:.98;
+  max-width:610px;
+}
+body[data-manager-page="income"] .am-income-visual--photo{
+  height:385px;
+}
+body[data-manager-page="income"] .am-income-hero-art{
+  object-position:52% center;
+}
+@media(max-width:1000px){
+  body[data-manager-page="income"] .am-income-hero{grid-template-columns:1fr}
+  body[data-manager-page="income"] .am-income-visual--photo{height:330px}
+}
