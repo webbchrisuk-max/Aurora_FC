@@ -106,7 +106,7 @@
           <table class="am-table">
             <thead>
               <tr>
-                <th>#</th><th>SHARE</th><th>SCORE</th><th>YIELD</th><th>ROUTE</th><th>ORDER LEVEL</th><th>ROUTE AMOUNT</th><th>ACTION</th>
+                <th>#</th><th>SHARE</th><th>SCORE</th><th>YIELD</th><th>ROUTE</th><th>ALLOCATION</th><th>ORDER LEVEL</th><th>ACTION</th>
               </tr>
             </thead>
             <tbody id="amTransferBoardRows"></tbody>
@@ -116,17 +116,18 @@
     </article>
 
     <aside class="am-transfer-side">
-      <div class="am-section-head">
-        <div><h2>Negotiation Desk</h2><p>The live manager queue and Clean route status.</p></div>
-        <span class="am-badge">MANAGER DECISION</span>
-      </div>
-      <div class="am-content">
-        <div class="am-briefing-list" id="amTransferNegotiationList"></div>
-        <div class="am-transfer-summary" id="amTransferSummary"></div>
-      </div>
-    </article>
+      <article class="am-card">
+        <div class="am-section-head">
+          <div><h2>Negotiation Desk</h2><p>The live manager queue and Clean route status.</p></div>
+          <span class="am-badge">MANAGER DECISION</span>
+        </div>
+        <div class="am-content">
+          <div class="am-briefing-list" id="amTransferNegotiationList"></div>
+          <div class="am-transfer-summary" id="amTransferSummary"></div>
+        </div>
+      </article>
 
-    <article class="am-card">
+      <article class="am-card">
       <div class="am-section-head">
         <div><h2>Route Controls</h2><p>These call the same Clean transfer functions used by the classic page.</p></div>
         <span class="am-badge">CLEAN AUTHORITY</span>
