@@ -1,9 +1,10 @@
 (() => {
   'use strict';
 
-  const BUILD='20260926-aurora-investment-manager-1';
+  const BUILD='20260926-aurora-investment-manager-2-transfer-room';
   const PAYDAY_KEY='aurora-manager:payday:v1';
   const SHORTLIST_KEY='aurora-manager:shortlist:v1';
+  const TRANSFER_QUEUE_KEY='aurora-manager:transfer-queue:v1';
   const INCOME_SNAPSHOT='aurora-clean:income-snapshot:v1';
   const CASH_SNAPSHOT='aurora-clean:broker-cash-snapshot:v1';
   const $=id=>document.getElementById(id);
@@ -23,7 +24,7 @@
     ['index.html','🏠','Manager Home','home'],
     ['payday.html','💷','Payday','payday'],
     ['scouting.html','🔎','Scouting','scouting'],
-    ['../clean-rebuild/transfer.html','🔁','Transfer','engine'],
+    ['transfer.html','🔁','Transfer','transfer'],
     ['../clean-rebuild/registration.html','🧾','Registration','engine'],
     ['../clean-rebuild/squad.html','⚽','Squad','engine'],
     ['../clean-rebuild/income.html','📈','Income','engine']
@@ -94,7 +95,7 @@
       ?{title:'Open Payday Room',copy:'Confirm what arrived and release this month’s recruitment budget.',href:'payday.html',label:'Start payday →'}
       :!short.length
         ?{title:'Enter the Scouting Room',copy:`${money(pay.recruitmentPower||pay.shareBudget)} recruitment power is ready for the scouts.`,href:'scouting.html',label:'Start scouting →'}
-        :{title:'Take the shortlist to Transfer',copy:`${short.length} prospect${short.length===1?'':'s'} selected by the manager.`,href:'../clean-rebuild/transfer.html',label:'Open Transfer Centre →'};
+        :{title:'Take the shortlist to Transfer',copy:`${short.length} prospect${short.length===1?'':'s'} selected by the manager.`,href:'transfer.html',label:'Open Transfer Centre →'};
 
     $('amHomeNextTitle').textContent=nextAction.title;$('amHomeNextCopy').textContent=nextAction.copy;$('amHomeNextLink').href=nextAction.href;$('amHomeNextLink').textContent=nextAction.label;
     $('amHomePortfolio').textContent=money(p.market);$('amHomePnl').textContent=`${p.pnl>=0?'+':''}${money(p.pnl)} · ${pct(p.pnlPct)}`;
@@ -105,7 +106,7 @@
     const stages=[
       ['💷','Payday',pay?.status==='RELEASED'?'Budget released':'Awaiting manager','payday.html',pay?.status==='RELEASED'?'ready':'action'],
       ['🔎','Scouting',buy.length?`${buy.length} buy-ready`:`${r.length} reports`,'scouting.html',buy.length?'ready':''],
-      ['🔁','Transfer',mission>0?`${money(mission)} mission`:'Awaiting shortlist','../clean-rebuild/transfer.html',mission>0?'ready':''],
+      ['🔁','Transfer',mission>0?`${money(mission)} mission`:'Awaiting shortlist','transfer.html',mission>0?'ready':''],
       ['🧾','Registration',`${arr(s.registration?.receipts).length} receipts`,'../clean-rebuild/registration.html',''],
       ['⚽','Squad',`${p.list.length} positions`,'../clean-rebuild/squad.html',p.list.length?'ready':''],
       ['📈','Income',`${money(p.annual)}/yr`,'../clean-rebuild/income.html',p.annual>0?'ready':'']
@@ -240,12 +241,122 @@
     $('amDrawerBack').onclick=closeDrawer;document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()},{once:true});
   }
 
+  function transferQueue(){return arr(read(TRANSFER_QUEUE_KEY)?.rows)}
+  function saveTransferQueue(rows){write(TRANSFER_QUEUE_KEY,{rows,updatedAt:new Date().toISOString()})}
+  function routeBroker(row){
+    const a=upper(row?.lockedAccount||row?.account||row?.broker||row?.preferredBroker||row?.platform);
+    if(a.includes('212'))return'Trading 212 ISA';
+    if(a.includes('IG'))return'IG ISA';
+    try{return window.AuroraScoutingExecutionProfiles?.accountLabel?.(row)||'Broker review'}catch(_){return'Broker review'}
+  }
+  function cleanRouteRows(s){
+    const route=s.transfer?.route||{};
+    return [...arr(route.allocations),...arr(route.brokerCashAllocations)].filter(r=>num(r.amount)>0);
+  }
+  function transferCandidates(s){
+    const ranks=rankings(s),byTicker=new Map(ranks.map(r=>[upper(r.ticker),r]));
+    const short=shortlist(),queue=transferQueue();
+    const source=(short.length?short:ranks.filter(r=>r.buyReady).slice(0,10));
+    return source.map((x,i)=>{
+      const r=byTicker.get(upper(x.ticker))||x;
+      const route=cleanRouteRows(s).filter(z=>upper(z.ticker)===upper(r.ticker));
+      const amount=route.reduce((sum,z)=>sum+num(z.amount),0);
+      const cleanBroker=route.length?routeBroker(route[0]):routeBroker(r);
+      const queued=queue.some(q=>upper(q.ticker)===upper(r.ticker));
+      return{...r,managerRank:i+1,routeAmount:amount,managerBroker:cleanBroker,queued};
+    });
+  }
+  function toggleTransferQueue(row){
+    const rows=transferQueue(),ticker=upper(row.ticker),exists=rows.some(x=>upper(x.ticker)===ticker);
+    const next=exists?rows.filter(x=>upper(x.ticker)!==ticker):[...rows,{
+      ticker,name:row.name||ticker,broker:row.managerBroker||routeBroker(row),
+      score:num(row.networkScore||row.score),yieldPct:num(row.yieldPct),
+      amount:num(row.routeAmount),queuedAt:new Date().toISOString()
+    }];
+    saveTransferQueue(next);
+    toast(exists?`${ticker} removed from transfer queue`:`${ticker} queued for transfer review`);
+    renderTransfer();
+  }
+  function transferOrderLevel(row){
+    const price=num(row.brokerBuyPriceNative||row.livePriceNative||row.marketPriceNative||row.priceNative);
+    if(!(price>0))return'Market';
+    return nativeMoney(price,row.executionCurrency||row.currency);
+  }
+  function renderTransfer(){
+    const s=state(),pay=managerPayday(),cash=brokerCash(),candidates=transferCandidates(s),queue=transferQueue(),route=s.transfer?.route||{},mission=s.transfer?.mission||null;
+    const newBudget=num(pay?.shareBudget)||num(mission?.budget)||safeRelease(s);
+    const brokerCashTotal=cash.ig+cash.t212;
+    const routePower=num(route.totalAllocated)||num(pay?.recruitmentPower)||newBudget+brokerCashTotal;
+    const primary=candidates[0]||null;
+    const primaryBroker=primary?.managerBroker||'Broker review';
+    const pending=queue.length||arr(route.allocations).length;
+
+    setTextSafe('amTransferBudget',money(newBudget));
+    setTextSafe('amTransferBrokerCash',money(brokerCashTotal));
+    setTextSafe('amTransferPower',money(routePower));
+    setTextSafe('amTransferRoute',primaryBroker);
+    setTextSafe('amTransferPending',String(pending));
+    setTextSafe('amTransferReadyCount',String(candidates.length));
+    setTextSafe('amTransferBoardCount',`${candidates.length} TARGET${candidates.length===1?'':'S'}`);
+
+    const nextTitle=route.locked?'Route locked for Registration':queue.length?'Manager queue ready for final review':candidates.length?'Review the recruitment shortlist':'Return to Scouting';
+    const nextCopy=route.locked?'The clean transfer route is frozen. Registration can now confirm real broker execution.':queue.length?`${queue.length} target${queue.length===1?' is':'s are'} queued for the final transfer decision.`:candidates.length?'Review broker route, score and current order evidence before moving to the clean execution chain.':'No recruitment targets are available yet.';
+    setTextSafe('amTransferNextAction',nextTitle);
+    setTextSafe('amTransferNextCopy',nextCopy);
+
+    const flow=[
+      ['🔎','Scout',candidates.length?'Reports ready':'Awaiting reports',candidates.length?'ready':''],
+      ['✅','Verify',candidates.filter(r=>r.buyReady).length?`${candidates.filter(r=>r.buyReady).length} cleared`:'Evidence review',candidates.some(r=>r.buyReady)?'ready':''],
+      ['🧑‍💼','Approve',queue.length?`${queue.length} queued`:'Manager decision',queue.length?'ready':'action'],
+      ['🧭','Route',route.allocations?.length?(route.locked?'Locked':'Built'):'Broker routing',''],
+      ['🤝','Buy',mission?.status||'Awaiting execution',''],
+      ['👕','Register',route.locked?'Ready for desk':'After execution',route.locked?'ready':'']
+    ];
+    const flowHost=$('amTransferFlow');
+    if(flowHost)flowHost.innerHTML=flow.map(([icon,title,meta,cls])=>`<div class="am-flow-card ${cls}"><div class="am-flow-icon">${icon}</div><small>TRANSFER STAGE</small><strong>${title}</strong><span>${meta}</span></div>`).join('');
+
+    const body=$('amTransferBoardRows');
+    if(body){
+      body.innerHTML=candidates.length?candidates.map((r,i)=>`<tr data-transfer-row="${esc(r.ticker)}">
+        <td>#${i+1}</td>
+        <td><span class="ticker">${esc(upper(r.ticker))}</span><div>${esc(r.name||r.ticker)}</div></td>
+        <td>${num(r.networkScore||r.score).toFixed(1)}</td>
+        <td>${num(r.yieldPct).toFixed(3)}%</td>
+        <td><span class="am-route-pill">${esc(r.managerBroker||'Broker review')}</span></td>
+        <td>${esc(transferOrderLevel(r))}</td>
+        <td>${r.routeAmount>0?money(r.routeAmount):'—'}</td>
+        <td><button class="am-btn secondary" data-transfer-review="${esc(r.ticker)}">Review</button> <button class="am-btn ${r.queued?'gold':'primary'}" data-transfer-queue="${esc(r.ticker)}">${r.queued?'Queued ✓':'Queue'}</button></td>
+      </tr>`).join(''):'<tr><td colspan="8">No transfer targets yet. Build the manager shortlist in Scouting.</td></tr>';
+      body.querySelectorAll('[data-transfer-review]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();openScout(candidates.find(r=>upper(r.ticker)===upper(btn.dataset.transferReview)))});
+      body.querySelectorAll('[data-transfer-queue]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const row=candidates.find(r=>upper(r.ticker)===upper(btn.dataset.transferQueue));if(row)toggleTransferQueue(row)});
+      body.querySelectorAll('[data-transfer-row]').forEach(tr=>tr.onclick=e=>{if(e.target.closest('button'))return;openScout(candidates.find(r=>upper(r.ticker)===upper(tr.dataset.transferRow)))});
+    }
+
+    const desk=$('amTransferNegotiationList');
+    if(desk){
+      const chosen=queue.length?queue:candidates.slice(0,4);
+      const labels=['Primary target','Backup target','Value target','Income target'];
+      const icons=['🎯','🛡️','📊','🪙'];
+      desk.innerHTML=chosen.length?chosen.slice(0,4).map((r,i)=>`<div class="am-brief"><div class="am-brief-icon">${icons[i]||'📋'}</div><div><strong>${labels[i]||'Transfer target'} · ${esc(upper(r.ticker))}</strong><span>${esc(r.name||r.ticker)} · ${num(r.score||r.networkScore).toFixed(1)} score · ${num(r.yieldPct).toFixed(3)}% yield · ${esc(r.broker||r.managerBroker||routeBroker(r))}</span></div><em>${queue.some(q=>upper(q.ticker)===upper(r.ticker))?'QUEUED':'LIVE'}</em></div>`).join(''):'<div class="am-brief"><div class="am-brief-icon">📋</div><div><strong>No active negotiation list</strong><span>Return to Scouting and shortlist the prospects you want Transfer to review.</span></div><em>WAITING</em></div>';
+    }
+
+    const summary=$('amTransferSummary');
+    if(summary){
+      summary.innerHTML=`<div class="am-transfer-summary-card"><span>MANAGER SHORTLIST</span><strong>${shortlist().length}</strong><small>Selected in the Scouting Room</small></div>
+        <div class="am-transfer-summary-card"><span>TRANSFER QUEUE</span><strong>${queue.length}</strong><small>Targets awaiting the final decision</small></div>
+        <div class="am-transfer-summary-card"><span>CLEAN ROUTE</span><strong>${route.locked?'LOCKED':route.allocations?.length?'BUILT':'WAITING'}</strong><small>${route.locked?'Ready for Registration':route.allocations?.length?'Broker route prepared':'Classic engine remains authoritative'}</small></div>`;
+    }
+    if($('amDrawerBack'))$('amDrawerBack').onclick=closeDrawer;
+  }
+  function setTextSafe(id,value){const el=$(id);if(el)el.textContent=value}
+
   function render(){
     shell();
     const page=document.body.dataset.managerPage;
     if(page==='home')renderHome();
     else if(page==='payday')renderPayday();
     else if(page==='scouting')renderScouting();
+    else if(page==='transfer')renderTransfer();
     const status=$('amTopStatus');if(status)status.textContent=`Clean engine · ${nowLabel()}`;
   }
   function schedule(delay=100){clearTimeout(timer);timer=setTimeout(render,delay)}
@@ -254,7 +365,7 @@
     render();
     window.addEventListener('aurora-clean:state',()=>schedule(100));
     window.addEventListener('storage',()=>schedule(100));
-    window.AuroraInvestmentManager=Object.freeze({BUILD,render,rankings,managerPayday,shortlist});
+    window.AuroraInvestmentManager=Object.freeze({BUILD,render,rankings,managerPayday,shortlist,renderTransfer,transferQueue});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
