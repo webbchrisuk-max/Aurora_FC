@@ -26,7 +26,7 @@
     ['scouting.html','🔎','Scouting','scouting'],
     ['transfer.html','🔁','Transfer','transfer'],
     ['registration.html','🧾','Registration','registration'],
-    ['../clean-rebuild/squad.html','⚽','Squad','engine'],
+    ['squad.html','⚽','Squad','squad'],
     ['../clean-rebuild/income.html','📈','Income','engine']
   ];
 
@@ -108,7 +108,7 @@
       ['🔎','Scouting',buy.length?`${buy.length} buy-ready`:`${r.length} reports`,'scouting.html',buy.length?'ready':''],
       ['🔁','Transfer',mission>0?`${money(mission)} mission`:'Awaiting shortlist','transfer.html',mission>0?'ready':''],
       ['🧾','Registration',`${arr(s.registration?.receipts).length} receipts`,'registration.html',''],
-      ['⚽','Squad',`${p.list.length} positions`,'../clean-rebuild/squad.html',p.list.length?'ready':''],
+      ['⚽','Squad',`${p.list.length} positions`,'squad.html',p.list.length?'ready':''],
       ['📈','Income',`${money(p.annual)}/yr`,'../clean-rebuild/income.html',p.annual>0?'ready':'']
     ];
     $('amHomeFlow').innerHTML=stages.map(([icon,title,meta,href,cls])=>`<a class="am-flow-card ${cls}" href="${href}"><div class="am-flow-icon">${icon}</div><small>DEPARTMENT</small><strong>${title}</strong><span>${meta}</span></a>`).join('');
