@@ -63,7 +63,7 @@
     const snap=read(INCOME_SNAPSHOT)?.snapshot||{};
     const today=new Date();today.setHours(0,0,0,0);
     const rows=arr(snap.dividends).map(r=>{
-      const d=new Date(r.payDate??r.pay_date??r.paymentDate??r.payment_date||'');
+      const d=new Date((r.payDate??r.pay_date??r.paymentDate??r.payment_date) || '');
       return{ticker:upper(r.ticker||r.symbol),date:d,amount:num(r.expectedAmountGbp??r.expected_amount_gbp??r.grossDividendGbp),status:upper(r.status||'FORECAST')};
     }).filter(r=>r.ticker&&!Number.isNaN(r.date.getTime())&&r.date>=today&&!/PAID|CANCELLED|CANCELED|ARCHIVED|MISSED/.test(r.status)).sort((a,b)=>a.date-b.date);
     return rows[0]||null;
@@ -181,7 +181,7 @@
       const next=shortlist().filter(x=>upper(x.ticker)!==upper(btn.dataset.removeShort));saveShortlist(next);toast(`${btn.dataset.removeShort} removed`);
       renderScoutingTables(ranks);
     });
-    $('amScoutShortCount').textContent=`${list.length} SELECTED`;
+    $('amScoutShortCount').textContent=`${list.length} SELECTED`;if($('amScoutShortCountBadge'))$('amScoutShortCountBadge').textContent=`${list.length} SELECTED`; 
   }
   function openScout(row){
     if(!row)return;
@@ -223,7 +223,7 @@
   }
   function renderScouting(){
     const s=state(),r=rankings(s),buy=r.filter(x=>x.buyReady),top=buy[0]||r[0]||null,pay=managerPayday(),budget=num(pay?.recruitmentPower||pay?.shareBudget)||safeRelease(s);
-    $('amScoutBudget').textContent=money(budget);$('amScoutReportCount').textContent=String(r.length);$('amScoutReadyCount').textContent=String(buy.length);
+    $('amScoutBudget').textContent=money(budget);$('amScoutReportCount').textContent=String(r.length);$('amScoutReadyCount').textContent=String(buy.length);if($('amScoutReadyCountMirror'))$('amScoutReadyCountMirror').textContent=String(buy.length);
     if(top){
       $('amScoutTopTicker').textContent=top.ticker;$('amScoutTopName').textContent=`${top.name||top.ticker} is leading the recruitment board`;$('amScoutTopReason').textContent=`${num(top.yieldPct).toFixed(3)}% yield · ${top.verdict||'WATCH'} · ${window.AuroraScoutingExecutionProfiles?.accountLabel?.(top)||'Broker review'}`;
       $('amScoutTopScore').textContent=`${num(top.networkScore||top.score).toFixed(1)}`;
