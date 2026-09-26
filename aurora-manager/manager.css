@@ -249,3 +249,145 @@ a{color:inherit;text-decoration:none}
   .am-scout-lead{grid-template-columns:78px 1fr}.am-scout-badge{width:70px;height:70px;border-radius:17px}.am-scout-score{grid-column:1/-1;text-align:left}
   .am-drawer-grid{grid-template-columns:1fr 1fr}
 }
+
+
+/* FOOTBALL HERO ARTWORK · 2026-09-26 */
+.am-hero-main--art{
+  display:grid;
+  grid-template-columns:minmax(0,1.05fr) minmax(330px,.78fr);
+  align-items:center;
+  gap:10px;
+  min-height:410px;
+  padding:26px 20px 24px 28px;
+}
+.am-hero-copy{position:relative;z-index:4;min-width:0}
+.am-hero-main--art .am-hero-copy h1{max-width:700px}
+.am-hero-main--art .am-hero-copy p{max-width:660px}
+.am-hero-art-wrap{
+  position:relative;
+  align-self:stretch;
+  min-height:355px;
+  overflow:hidden;
+  border-radius:14px;
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 58% 38%,rgba(200,169,107,.10),transparent 38%),
+    linear-gradient(135deg,rgba(255,255,255,.025),rgba(255,255,255,0));
+}
+.am-hero-art-wrap:before{
+  content:"";
+  position:absolute;inset:0;
+  background:
+    linear-gradient(90deg,rgba(15,18,23,.76) 0%,rgba(15,18,23,.10) 29%,rgba(15,18,23,0) 52%),
+    radial-gradient(circle at 72% 26%,rgba(255,255,255,.08),transparent 25%),
+    repeating-linear-gradient(120deg,rgba(255,255,255,.016) 0 1px,transparent 1px 28px);
+  z-index:1;pointer-events:none
+}
+.am-hero-art-wrap:after{
+  content:"";
+  position:absolute;
+  left:5%;right:4%;bottom:5%;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(200,169,107,.28),transparent);
+  z-index:3;
+}
+.am-hero-art{
+  position:absolute;
+  z-index:2;
+  right:-16px;
+  bottom:-4px;
+  width:min(590px,112%);
+  max-width:none;
+  max-height:100%;
+  object-fit:contain;
+  object-position:right bottom;
+  filter:drop-shadow(0 24px 32px rgba(0,0,0,.35));
+  user-select:none;
+  -webkit-user-drag:none;
+}
+.am-hero-art--scouting{right:-18px;width:min(610px,116%)}
+.am-hero-art--payday{right:-8px;bottom:-2px;width:min(600px,114%)}
+.am-hero-art-wrap--manager{
+  background:
+    radial-gradient(circle at 68% 30%,rgba(200,169,107,.13),transparent 38%),
+    radial-gradient(circle at 88% 14%,rgba(110,143,191,.08),transparent 26%),
+    linear-gradient(145deg,#15181d,#101317 68%,#0d1013)
+}
+.am-hero-art-wrap--scouting{
+  background:
+    radial-gradient(circle at 70% 24%,rgba(110,143,191,.13),transparent 36%),
+    radial-gradient(circle at 24% 80%,rgba(200,169,107,.06),transparent 28%),
+    linear-gradient(145deg,#141920,#101419 70%,#0d1014)
+}
+.am-hero-art-wrap--payday{
+  background:
+    radial-gradient(circle at 70% 22%,rgba(200,169,107,.16),transparent 36%),
+    linear-gradient(145deg,#1a1814,#111317 70%,#0d1013)
+}
+.am-art-chip{
+  position:absolute;
+  z-index:5;
+  display:inline-flex;
+  align-items:center;
+  padding:6px 9px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:999px;
+  background:rgba(13,16,20,.72);
+  backdrop-filter:blur(12px);
+  box-shadow:0 10px 24px rgba(0,0,0,.20);
+  color:#c9c0ad;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.12em;
+  white-space:nowrap;
+}
+.am-art-chip:before{
+  content:"";
+  width:5px;height:5px;border-radius:50%;
+  margin-right:6px;background:var(--am-gold)
+}
+.am-art-chip--top{top:12px;right:12px}
+.am-art-chip--bottom{left:12px;bottom:12px}
+.am-btn-static{pointer-events:none}
+.am-hero-main--art:before{
+  content:"";
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:3px;
+  background:linear-gradient(180deg,transparent,rgba(200,169,107,.58),transparent);
+  opacity:.7
+}
+
+/* Give football sections a little more club identity without turning the UI green. */
+.am-section-head{position:relative}
+.am-section-head:before{
+  content:"";
+  position:absolute;
+  left:0;top:50%;transform:translateY(-50%);
+  width:2px;height:24px;border-radius:99px;
+  background:linear-gradient(180deg,transparent,var(--am-gold),transparent);
+  opacity:.55
+}
+.am-section-head>div{padding-left:5px}
+.am-flow-card,.am-brief,.am-objective,.am-question,.am-league{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.018)
+}
+
+@media(max-width:1250px){
+  .am-hero-main--art{grid-template-columns:minmax(0,1fr) minmax(300px,.72fr)}
+  .am-hero-art{right:-24px;width:min(540px,118%)}
+}
+@media(max-width:1000px){
+  .am-hero-main--art{grid-template-columns:1fr;min-height:0;padding:22px}
+  .am-hero-art-wrap{min-height:330px;margin-top:8px}
+  .am-hero-art{left:50%;right:auto;transform:translateX(-50%);width:min(650px,96%);object-position:center bottom}
+  .am-hero-art--scouting,.am-hero-art--payday{left:50%;right:auto;width:min(650px,96%)}
+}
+@media(max-width:760px){
+  .am-hero-main--art{padding:18px}
+  .am-hero-art-wrap{min-height:255px}
+  .am-hero-art{width:min(520px,105%)}
+  .am-art-chip{font-size:6px;padding:5px 7px}
+  .am-art-chip--bottom{left:8px;bottom:8px}
+  .am-art-chip--top{right:8px;top:8px}
+}
