@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b0d10">
+<title>Aurora City FC — Registration Desk</title>
+<link rel="stylesheet" href="../clean-rebuild/registration-desk.css?v=20260827-registration-command-board-1">
+<link rel="stylesheet" href="manager.css?v=20260926-manager-registration-1">
+<script src="../clean-rebuild/aurora.js?v=20260926-shell-19-sidebar-full-hide" defer></script>
+<script src="../clean-rebuild/chairman-settlement-authority.js?v=20260827-chairman-settlement-authority-1" defer></script>
+<script src="../clean-rebuild/aurora-backend-client.js?v=20260910-registration-backend-client-path-fix-1" defer></script>
+<script src="../clean-rebuild/registration-engine.js?v=20260924-registration-broker-execution-5-security-map" defer></script>
+<script src="../clean-rebuild/registration-desk.js?v=20260924-registration-command-board-3-security-map" defer></script>
+<script src="../clean-rebuild/registration-route-bridge.js?v=20260910-registration-route-broker-bridge-1" defer></script>
+<script src="../clean-rebuild/registration-chairman-handoff.js?v=20260827-registration-chairman-handoff-1" defer></script>
+<script src="../clean-rebuild/registration-chairman-execution.js?v=20260827-registration-chairman-execution-1" defer></script>
+<script src="../clean-rebuild/chairman-settlement-lock.js?v=20260827-chairman-settlement-lock-1" defer></script>
+<script src="manager-app.js?v=20260926-manager-registration-1" defer></script>
+</head>
+<body data-manager-app data-manager-page="registration" data-page="registration-real">
+<header class="am-topbar" id="managerTopbar"></header>
+<main class="am-shell">
+<section class="am-hero">
+<article class="am-hero-main am-hero-main--art">
+<div class="am-hero-copy"><div class="am-kicker"><i></i>Registration Desk · Broker Execution</div>
+<h1>Turn completed deals into registered squad positions.</h1>
+<p>Transfer freezes what Aurora intends to buy. Registration records the real broker execution, creates the receipt, then settles confirmed reality into Squad and Income.</p>
+<div class="am-hero-actions"><a class="am-btn secondary" href="transfer.html">← Back to Transfer</a><a class="am-btn" href="../clean-rebuild/registration.html">Open Classic Registration</a><a class="am-btn gold" href="../clean-rebuild/squad.html">Open Squad →</a></div></div>
+<div class="am-hero-art-wrap am-hero-art-wrap--registration" aria-hidden="true"><img class="am-hero-art am-hero-art--registration" src="assets/hero-registration.png?v=20260926-1" alt=""><span class="am-art-chip am-art-chip--top">REGISTRATION WINDOW</span><span class="am-art-chip am-art-chip--bottom">EXECUTION · RECEIPT · SETTLEMENT</span></div>
+</article>
+<aside class="am-hero-side"><div><small>REGISTRATION STATUS</small><h2 id="registrationStatus">Checking…</h2><p id="regMission">Waiting for locked mission.</p></div><div class="am-hero-score"><strong id="amRegReceiptCount">0</strong><span>CONFIRMED RECEIPTS</span></div></aside>
+</section>
+
+<section class="am-grid-2 am-registration-grid">
+<article class="am-card"><div class="am-section-head"><div><h2>Mission received from Transfer</h2><p>The locked route is the official team sheet for execution.</p></div><span class="am-badge">LOCKED ROUTE</span></div><div class="am-content"><ul id="registrationRows" class="reg-real-route"><li>Waiting for locked route.</li></ul><p class="am-reg-foot" id="registrationReceipts">0 receipt(s) recorded for this mission</p></div></article>
+<article class="am-card"><div class="am-section-head"><div><h2>Registration connection</h2><p>AuroraData connection used to record real broker receipts.</p></div><strong id="regConnection" class="am-badge">CHECKING</strong></div><div class="am-content"><p id="regConnectionDetail" class="am-reg-foot">The private token stays in this browser only.</p><div class="finance-form-grid"><label>Apps Script Web-App URL<input id="regEndpoint" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec"><small>Leave blank if this browser is already connected.</small></label><label>Private Token<input id="regToken" type="password" autocomplete="new-password" placeholder="Stored locally only"><small>Never written to GitHub.</small></label></div><div class="finance-actions"><button id="regSaveConnection" type="button">Save Connection</button><button id="regCheckConnection" type="button">Check Connection</button></div></div></article>
+</section>
+
+<section class="am-card am-registration-execution">
+<div class="am-section-head"><div><h2>Confirm broker execution</h2><p>Select one locked purchase leg and enter what actually happened at the broker.</p></div><span class="am-badge">BROKER REALITY</span></div>
+<div class="am-content">
+<div class="finance-form-grid reg-execution-form"><label>Locked Purchase Leg<select id="regLeg"></select><small>One deterministic transaction per locked allocation.</small></label><label>Ticker<input id="regTicker" readonly></label><label>Planned Allocation £<input id="regPlanned" readonly></label><label>Broker Account<select id="regAccount"><option value="">Choose broker…</option><option>IG ISA</option><option>Trading 212 ISA</option></select></label><label>Trade Date<input id="regTradeDate" type="date"></label><label>Shares Bought<input id="regShares" type="number" min="0" step="0.000001" inputmode="decimal"></label><label>Execution Price<input id="regPrice" type="number" min="0" step="0.000001" inputmode="decimal"></label><label>Price Unit<select id="regPriceUnit"><option value="GBP">Major currency per share</option><option value="PENCE">Pence per share</option></select></label><label>Currency<input id="regCurrency" value="GBP" maxlength="3" autocomplete="off"></label><label>FX Rate to GBP<input id="regFx" type="number" min="0" step="0.000001" value="1" inputmode="decimal"></label><label>Fees (native currency)<input id="regFees" type="number" min="0" step="0.01" value="0" inputmode="decimal"></label></div>
+<div class="scouting-control-grid"><article class="scouting-control-card"><span>ACTUAL GBP COST</span><strong id="regActualCost">£0.00</strong><small>Shares × execution price + fees, converted to GBP.</small></article><article class="scouting-control-card"><span>VS LOCKED ALLOCATION</span><strong id="regVariance">£0.00</strong><small>Execution difference from this route leg.</small></article><article class="scouting-control-card scouting-top-card"><span>FUNDING REMAINING</span><strong id="regRemaining">£0.00</strong><small>Finance ceiling or account-locked broker cash.</small></article></div>
+<div class="finance-actions"><button id="regConfirm" type="button" class="finance-primary">Confirm Selected Execution</button></div>
+</div></section>
+
+<section class="am-card am-registration-settle"><div class="am-section-head"><div><h2>Promote confirmed receipts into Squad</h2><p>Settlement unlocks only when every frozen route leg has an AuroraData-confirmed receipt.</p></div><span class="am-badge">MISSION SETTLEMENT</span></div><div class="am-content"><div class="am-flow"><div class="am-flow-card ready"><div class="am-flow-icon">💼</div><small>STEP 1</small><strong>Transfer</strong><span>Route locked</span></div><div class="am-flow-card action"><div class="am-flow-icon">🧾</div><small>STEP 2</small><strong>Execute</strong><span>Confirm purchases</span></div><div class="am-flow-card"><div class="am-flow-icon">✅</div><small>STEP 3</small><strong>Receipt</strong><span>AuroraData proof</span></div><div class="am-flow-card"><div class="am-flow-icon">👕</div><small>STEP 4</small><strong>Register</strong><span>Settle mission</span></div><div class="am-flow-card"><div class="am-flow-icon">📈</div><small>STEP 5</small><strong>Squad + Income</strong><span>Reality promoted</span></div></div><div class="finance-actions"><button id="regSettle" type="button" class="finance-primary" disabled>Settle Confirmed Mission into Squad</button></div></div></section>
+</main>
+<div class="am-drawer-back" id="amDrawerBack"></div><aside class="am-drawer" id="amDrawer"><div id="amDrawerContent"></div></aside><div class="am-toast" id="amToast"></div>
+</body></html>
