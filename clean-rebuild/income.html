@@ -2,123 +2,143 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07110f">
   <title>Aurora Clean — Income Centre</title>
-  <link rel="stylesheet" href="aurora.css?v=20260925-shell-11-conversation">
-  <link rel="stylesheet" href="income-command.css?v=20260827-income-command-colour-1">
+  <link rel="stylesheet" href="aurora.css?v=20260926-shell-17-free-data-router">
+  <link rel="stylesheet" href="income-stadium.css?v=20260926-income-stadium-1">
   <link rel="stylesheet" href="income-target-route.css?v=20260902-income-route-2k-1">
   <link rel="stylesheet" href="income-isa-route-guard.css?v=20260924-income-isa-route-guard-1">
   <script src="aurora.js?v=20260926-shell-17-free-data-router" defer></script>
   <script src="aurora-backend-client.js?v=20260909-clean-backend-client-3-read-route-guard" defer></script>
   <script src="income-engine.js?v=20260826-clean-income-portfolio-value-3" defer></script>
-  <script src="income-command.js?v=20260827-income-command-board-1" defer></script>
+  <script src="income-stadium.js?v=20260926-income-stadium-1" defer></script>
   <script src="income-target-route.js?v=20260902-income-route-2k-1" defer></script>
   <script src="income-isa-route-guard.js?v=20260924-income-isa-route-guard-1" defer></script>
   <script src="income-broker-reconcile.js?v=20260829-income-broker-reconcile-2-backend-write" defer></script>
 </head>
-<body data-page="income-real">
-<nav id="auroraNav"></nav><hr>
+<body data-page="income-real" data-income-ui="stadium">
+<nav id="auroraNav"></nav>
 
-<header class="department-hero">
-  <div>
-    <p class="eyebrow">AURORA CITY FC · INCOME CENTRE</p>
-    <h1>Dividend Income</h1>
-    <p class="department-lead">Squad owns portfolio value and forward income. AuroraData 2 owns dividend dates and broker cash. When a dividend arrives, record the exact amount and the broker that received it.</p>
-  </div>
-  <button id="incomeRefresh" type="button">Refresh Dividends</button>
-</header>
+<div id="incomeToast" hidden style="position:sticky;top:12px;z-index:80;margin:12px auto;max-width:900px;padding:12px 16px;border-radius:12px;background:#102a20;border:1px solid #376a55;font-weight:800"></div>
 
-<div id="incomeToast" hidden style="position:sticky;top:12px;z-index:50;margin:12px auto;max-width:900px;padding:12px 16px;border-radius:12px;background:#10243a;border:1px solid #31506f;font-weight:700"></div>
+<main class="income-stadium-app">
+  <section class="income-stadium-hero">
+    <div class="income-stadium-eyebrow">AURORA CITY FC · TREASURY & INCOME</div>
+    <h1>Dividend Income Centre</h1>
+    <p>Manage the income squad, dividend fixtures, broker cash and the route toward £2,000 per month from the same clean Aurora authorities used by Squad and Transfer.</p>
+    <div class="income-stadium-hero-actions">
+      <span class="income-stadium-status" id="incomeHeroStatus">AuroraData 2 dividend authority</span>
+      <button class="income-stadium-refresh" id="incomeRefresh" type="button">Refresh Dividends</button>
+    </div>
+  </section>
 
-<section class="department-section">
-  <div class="section-heading">
-    <div><p class="eyebrow">PORTFOLIO & INCOME</p><h2>Current position</h2></div>
-    <div><strong id="incomeConnection">CHECKING</strong><p id="incomeConnectionDetail">Connecting to AuroraData 2…</p></div>
-  </div>
-  <div class="scouting-control-grid">
-    <article class="scouting-control-card scouting-top-card"><span>PORTFOLIO MARKET VALUE</span><strong id="incomeMarketValue">£0.00</strong><small>Current value of active Squad holdings</small></article>
-    <article class="scouting-control-card"><span>BOOK COST</span><strong id="incomeBookValue">£0.00</strong><small>Total invested cost basis</small></article>
-    <article class="scouting-control-card"><span>PORTFOLIO PROFIT / LOSS</span><strong id="incomePortfolioPnl">£0.00</strong><small id="incomePortfolioPnlPct">0.00%</small></article>
-  </div>
-  <div class="scouting-control-grid" style="margin-top:12px">
-    <article class="scouting-control-card scouting-top-card"><span>ANNUAL INCOME</span><strong id="incomeAnnual">£0.00</strong><small>Confirmed Squad holdings only</small></article>
-    <article class="scouting-control-card"><span>MONTHLY AVERAGE</span><strong id="incomeMonthly">£0.00</strong><small>Annual run-rate ÷ 12</small></article>
-    <article class="scouting-control-card"><span>NEXT PAYMENT</span><strong id="incomeNextPayment">—</strong><small id="incomeNextPaymentMeta">Waiting for dividend calendar</small></article>
-  </div>
-  <div class="finance-result-grid">
-    <article class="finance-result-card"><span>NEXT 30 DAYS</span><strong id="incomeNext30">£0.00</strong><small>Dated expected payments</small></article>
-    <article class="finance-result-card"><span>NEXT 90 DAYS</span><strong id="incomeNext90">£0.00</strong><small>Dated expected payments</small></article>
-  </div>
-</section>
+  <section class="income-stadium-kpis" aria-label="Income headline figures">
+    <article class="income-stadium-card income-stadium-kpi primary"><span>ANNUAL DIVIDEND INCOME</span><strong id="incomeHeroAnnual">£0.00</strong><small id="incomeHeroAnnualSub">Waiting for Squad income</small></article>
+    <article class="income-stadium-card income-stadium-kpi"><span>MONTHLY AVERAGE</span><strong id="incomeHeroMonthly">£0.00</strong><small>Forward annual income ÷ 12</small></article>
+    <article class="income-stadium-card income-stadium-kpi"><span>RECEIVED YTD</span><strong id="incomeHeroReceived">£0.00</strong><small>Confirmed dividend cash receipts</small></article>
+    <article class="income-stadium-card income-stadium-kpi"><span>NEXT 30 DAYS</span><strong id="incomeHero30">£0.00</strong><small>Dated upcoming payments</small></article>
+    <article class="income-stadium-card income-stadium-kpi"><span>NEXT 90 DAYS</span><strong id="incomeHero90">£0.00</strong><small>Dated upcoming payments</small></article>
+  </section>
 
-<section class="department-section" id="dividendSettlement">
-  <div class="section-heading">
-    <div><p class="eyebrow">BROKER CASH</p><h2>Dividend received</h2></div>
-    <div><strong id="cashStatus">CHECKING</strong><p>Actual broker cash is separate for IG ISA and Trading 212 ISA.</p></div>
-  </div>
-  <div class="finance-result-grid">
-    <article class="finance-result-card"><span>IG ISA CASH</span><strong id="cashBalanceIG">£0.00</strong><small>Available broker cash</small></article>
-    <article class="finance-result-card"><span>TRADING 212 ISA CASH</span><strong id="cashBalanceT212">£0.00</strong><small>Available broker cash</small></article>
-  </div>
-  <div class="finance-actions"><button id="refreshBrokerCash" type="button">Refresh Broker Cash</button></div>
+  <section class="income-stadium-insights">
+    <article class="income-stadium-card income-stadium-insight gold"><div class="label gold">🏆 TOP EARNER</div><small>Largest forward annual dividend producer</small><h3 id="incomeTopTicker">—</h3><b id="incomeTopDetail">—</b></article>
+    <article class="income-stadium-card income-stadium-insight cyan"><div class="label cyan">📅 NEXT FIXTURE</div><small>Next dated dividend payment</small><h3 id="incomeNextTicker">—</h3><b id="incomeNextDetail">—</b></article>
+    <article class="income-stadium-card income-stadium-insight green"><div class="label green">↗ BEST YIELD</div><small>Highest current income yield in the Squad</small><h3 id="incomeBestYieldTicker">—</h3><b id="incomeBestYieldDetail">—</b></article>
+    <article class="income-stadium-card income-stadium-insight gold"><div class="label gold">💷 BIGGEST UPCOMING</div><small>Largest future dated dividend</small><h3 id="incomeBiggestTicker">—</h3><b id="incomeBiggestDetail">—</b></article>
+  </section>
 
-  <div class="finance-input-grid" style="margin-top:18px">
-    <label>Dividend
-      <select id="cashRecordDividend"><option value="">Choose dividend…</option></select>
-    </label>
-    <label>Ticker
-      <input id="cashRecordTicker" type="text" readonly>
-    </label>
-    <label>Expected
-      <input id="cashRecordExpected" type="text" readonly>
-    </label>
-    <label>Broker received into
-      <select id="cashRecordAccount">
-        <option value="IG">IG ISA</option>
-        <option value="T212">Trading 212 ISA</option>
-      </select>
-    </label>
-    <label>Exact amount received £
-      <input id="cashRecordAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
-    </label>
-    <label>Date received
-      <input id="cashRecordDate" type="date">
-    </label>
-  </div>
-  <div class="finance-actions"><button id="recordDividendCash" class="finance-primary" type="button">Record Dividend Received</button></div>
-  <p>Recording a dividend writes the real settlement to AuroraData 2 and adds the cash to the selected broker balance. Duplicate references are protected by the backend.</p>
-  <h3>Recent broker cash activity</h3>
-  <ul id="cashLedger"><li>Loading broker cash ledger…</li></ul>
-</section>
+  <section class="income-stadium-main-grid">
+    <article class="income-stadium-card">
+      <div class="income-stadium-section-head">
+        <div><h2>Dividend Fixtures</h2><p>Everything currently scheduled to land in the broker accounts.</p></div>
+        <span class="income-stadium-badge" id="incomeFixtureCount">0 UPCOMING</span>
+      </div>
+      <div class="income-fixtures" id="incomeFixtureRows"></div>
+    </article>
 
-<section class="department-section">
-  <div class="section-heading">
-    <div><p class="eyebrow">DIVIDEND FIXTURES</p><h2>Everything currently due to be received</h2></div>
-    <p>Only future dated records supplied by AuroraData 2 are shown. Use Record Received when the cash lands.</p>
-  </div>
-  <ul id="incomeUpcomingRows"><li>Loading upcoming dividends…</li></ul>
-</section>
+    <article class="income-stadium-card">
+      <div class="income-stadium-section-head">
+        <div><h2>12-Month Runway</h2><p>Expected dividend cash grouped by payment month.</p></div>
+      </div>
+      <div class="income-runway">
+        <div class="income-runway-chart" id="incomeRunwayChart"></div>
+        <div class="income-runway-total" id="incomeRunwayTotal">Building runway…</div>
+      </div>
+    </article>
+  </section>
 
-<section class="department-section">
-  <div class="section-heading">
-    <div><p class="eyebrow">12-MONTH RUNWAY</p><h2>Dividend cash by month</h2></div>
-    <p>Confirmed and forecast dated payments grouped by their payment month.</p>
-  </div>
-  <ul id="incomeMonthlyRunway"><li>Building monthly runway…</li></ul>
-</section>
+  <section class="income-stadium-card income-stadium-league">
+    <div class="income-stadium-section-head">
+      <div><h2>Income League Table</h2><p>Which holdings are doing the most work for the dividend squad.</p></div>
+      <span class="income-stadium-badge">FORWARD INCOME</span>
+    </div>
+    <div class="income-league-wrap2">
+      <table class="income-league2">
+        <thead><tr><th>#</th><th>HOLDING</th><th>BROKER</th><th>ANNUAL</th><th>MONTHLY</th><th>YIELD</th><th>SHARE OF INCOME</th></tr></thead>
+        <tbody id="incomeLeagueBody"></tbody>
+      </table>
+    </div>
+  </section>
 
-<section class="department-section">
-  <div class="section-heading">
-    <div><p class="eyebrow">INCOME SQUAD</p><h2>Which holdings produce the income</h2></div>
-    <p>Forward annual income and market values are taken from the clean Squad after Registration settlement and live-price refresh.</p>
-  </div>
-  <ul id="incomeProducerRows"><li>Loading income-producing holdings…</li></ul>
-</section>
+  <section class="income-stadium-bottom">
+    <article class="income-stadium-card" id="dividendSettlement">
+      <div class="income-stadium-section-head">
+        <div><h2>Broker Treasury</h2><p>Real dividend cash stays with the broker until Transfer deploys it.</p></div>
+        <span class="income-stadium-badge" id="cashStatus">CHECKING</span>
+      </div>
+      <div class="income-treasury">
+        <div class="income-treasury-grid">
+          <div class="income-treasury-card"><span>IG ISA CASH</span><strong id="cashBalanceIG">£0.00</strong></div>
+          <div class="income-treasury-card"><span>TRADING 212 ISA CASH</span><strong id="cashBalanceT212">£0.00</strong></div>
+        </div>
+        <div class="income-treasury-actions"><button id="refreshBrokerCash" type="button">Refresh Broker Cash</button></div>
+      </div>
+      <div class="income-settlement">
+        <details>
+          <summary>Record dividend received</summary>
+          <div class="income-settlement-grid">
+            <label>Dividend<select id="cashRecordDividend"><option value="">Choose dividend…</option></select></label>
+            <label>Ticker<input id="cashRecordTicker" type="text" readonly></label>
+            <label>Expected<input id="cashRecordExpected" type="text" readonly></label>
+            <label>Broker received into<select id="cashRecordAccount"><option value="IG">IG ISA</option><option value="T212">Trading 212 ISA</option></select></label>
+            <label>Exact amount received £<input id="cashRecordAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label>
+            <label>Date received<input id="cashRecordDate" type="date"></label>
+          </div>
+          <div class="income-treasury-actions"><button id="recordDividendCash" type="button">Record Dividend Received</button></div>
+        </details>
+        <ul class="income-ledger" id="cashLedger"><li>Loading broker cash ledger…</li></ul>
+      </div>
+    </article>
 
-<section class="finance-next-stage">
-  <strong>Cash becomes deployable capital</strong>
-  <p>Dividend receipts remain in their real broker cash account. Transfer can use those balances as available broker cash alongside the next Finance mission instead of treating dividends as already invested.</p>
-</section>
+    <article class="income-stadium-card">
+      <div class="income-stadium-section-head">
+        <div><h2>Season Target · £2,000 / Month</h2><p>The headline objective for the income squad.</p></div>
+        <span class="income-stadium-badge" id="incomeGoalPct">0.0%</span>
+      </div>
+      <div class="income-goal">
+        <div class="income-goal-progress">
+          <div class="income-goal-copy"><strong id="incomeGoalCurrent">£0.00</strong><span>current monthly average</span><div class="income-goal-track"><i id="incomeGoalBar" style="width:0%"></i></div></div>
+          <div class="income-goal-target"><strong>£2,000</strong><span>monthly target</span></div>
+        </div>
+        <div class="income-goal-grid">
+          <div class="income-goal-mini"><span>MONTHLY GAP</span><strong id="incomeGoalGap">£0.00</strong></div>
+          <div class="income-goal-mini"><span>ANNUAL RUN-RATE</span><strong id="incomeGoalAnnual">£0.00</strong></div>
+          <div class="income-goal-mini"><span>RECEIVED YTD</span><strong id="incomeGoalReceived">£0.00</strong></div>
+          <div class="income-goal-mini"><span>INCOME LEADER</span><strong id="incomeGoalLeader">—</strong></div>
+        </div>
+        <div class="income-goal-mini" style="margin-top:7px"><span>NEXT DIVIDEND FIXTURE</span><strong id="incomeGoalNext">—</strong></div>
+      </div>
+    </article>
+  </section>
 
+  <section class="department-section income-engine-bridge" aria-hidden="true">
+    <div id="incomeConnection">CHECKING</div><div id="incomeConnectionDetail">Connecting to AuroraData 2…</div>
+    <div id="incomeMarketValue">£0.00</div><div id="incomeBookValue">£0.00</div><div id="incomePortfolioPnl">£0.00</div><div id="incomePortfolioPnlPct">0.00%</div>
+    <div id="incomeAnnual">£0.00</div><div id="incomeMonthly">£0.00</div><div id="incomeNextPayment">—</div><div id="incomeNextPaymentMeta">—</div>
+    <div id="incomeNext30">£0.00</div><div id="incomeNext90">£0.00</div>
+    <ul id="incomeUpcomingRows"></ul><ul id="incomeMonthlyRunway"></ul><ul id="incomeProducerRows"></ul>
+  </section>
+</main>
 </body>
 </html>
