@@ -444,3 +444,34 @@ a{color:inherit;text-decoration:none}
   .am-transfer-summary{grid-template-columns:1fr}
   .am-hero-art--transfer{left:50%;right:auto;width:min(650px,100%)}
 }
+
+
+/* TRANSFER HERO CLEAN ART · 2026-09-26 */
+body[data-manager-page="transfer"] .am-hero-main--art .am-hero-copy h1{
+  font-size:clamp(36px,4.2vw,60px);
+  max-width:650px;
+}
+body[data-manager-page="transfer"] .am-hero-art-wrap--transfer{
+  min-height:355px;
+}
+body[data-manager-page="transfer"] .am-hero-art--transfer{
+  inset:0;
+  width:100%;
+  height:100%;
+  max-width:none;
+  max-height:none;
+  object-fit:cover;
+  object-position:64% center;
+  transform:none;
+  filter:brightness(.92) contrast(1.03) saturate(.88);
+}
+body[data-manager-page="transfer"] .am-hero-art-wrap--transfer:before{
+  background:
+    linear-gradient(90deg,rgba(15,18,23,.80) 0%,rgba(15,18,23,.24) 32%,rgba(15,18,23,.02) 58%),
+    linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.20));
+}
+@media(max-width:1000px){
+  body[data-manager-page="transfer"] .am-hero-art--transfer{
+    left:0;right:0;transform:none;width:100%;height:100%;object-position:58% center;
+  }
+}
