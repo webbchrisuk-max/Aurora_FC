@@ -596,3 +596,10 @@ body[data-manager-page="registration"] .am-hero-art--registration{
 .am-income-shell .income-stadium-kpi.primary{border-color:rgba(200,169,107,.28)}
 .am-income-shell .income-stadium-league{margin-top:10px}
 @media(max-width:1000px){.am-income-hero{grid-template-columns:1fr;min-height:0}.am-income-visual{height:300px}}
+
+
+/* INCOME CINEMATIC HERO · 2026-09-26 */
+.am-income-visual--photo{background:#0d1013}
+.am-income-hero-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% center;filter:brightness(.9) contrast(1.04) saturate(.92)}
+.am-income-visual--photo:before{z-index:1;background:linear-gradient(90deg,rgba(11,14,17,.42),rgba(11,14,17,.03) 42%,rgba(11,14,17,.06)),linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.2))}
+.am-income-visual--photo .am-art-chip{z-index:2}
