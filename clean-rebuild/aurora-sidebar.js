@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const BUILD='20260926-aurora-sidebar-6-edge-autohide';
+  const BUILD='20260926-aurora-sidebar-7-full-hide';
   const LABELS={
     'index.html':['🏠','Nexus'],
     'finance.html':['💷','Finance Department'],
@@ -141,6 +141,9 @@
     }
   }
   function enhance(){
+    try{localStorage.removeItem('aurora-clean:sidebar-collapsed:v1')}catch(_){}
+    document.documentElement.classList.remove('aurora-sidebar-collapsed');
+    document.documentElement.classList.add('aurora-sidebar-autohide');
     const details=document.getElementById('auroraCleanMenu');if(!details){setTimeout(enhance,50);return;}
     ensureToggle(details);ensureBackdrop(details);ensureMobileClose(details);ensureEdgeTrigger();decorateLinks(details);bindDesktopReveal(details);
     const summary=details.querySelector('summary');
