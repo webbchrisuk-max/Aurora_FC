@@ -203,7 +203,7 @@
         <div><span>READINESS</span><strong>${esc(row.readiness||row.evidenceStatus||'Research')}</strong></div>
       </div>
       <div class="am-hero-actions"><button class="am-btn primary" id="amDrawerShort">${shortlistHas(row.ticker)?'Remove from shortlist':'Add to shortlist'}</button></div>`;
-    $('amDrawerClose').onclick=closeDrawer;$('amDrawerShort').onclick=()=>{toggleShortlist(row);openScout(row);renderScoutingTables(rankings(state()))};
+    $('amDrawerClose').onclick=closeDrawer;$('amDrawerShort').onclick=()=>{toggleShortlist(row);openScout(row);if($('amScoutLeagues'))renderScoutingTables(rankings(state()));else schedule(40)};
     $('amDrawerBack').classList.add('open');$('amDrawer').classList.add('open');
   }
   function closeDrawer(){$('amDrawerBack')?.classList.remove('open');$('amDrawer')?.classList.remove('open')}
