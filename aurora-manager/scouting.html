@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#03110c">
+  <title>Aurora City FC — Scouting Room</title>
+  <link rel="stylesheet" href="manager.css?v=20260926-manager-1">
+  <script src="../clean-rebuild/aurora.js?v=20260926-shell-19-sidebar-full-hide" defer></script>
+  <script src="../clean-rebuild/scouting-execution-profile.js?v=20260925-scouting-execution-profile-1" defer></script>
+  <script src="../clean-rebuild/scouting-network.js?v=20260926-scouting-network-9-research-not-blocked" defer></script>
+  <script src="manager-app.js?v=20260926-manager-1" defer></script>
+</head>
+<body data-manager-app data-manager-page="scouting" data-scouting-ui="stadium">
+<header class="am-topbar" id="managerTopbar"></header>
+
+<main class="am-shell">
+  <section class="am-hero">
+    <article class="am-hero-main">
+      <div class="am-kicker"><i></i>Chief Scout Department</div>
+      <h1>Scout the market. Build the shortlist.</h1>
+      <p>The same Clean scouting engine still decides the scores, evidence gates, yield, broker route and buy-readiness. This layer turns those reports into a football recruitment room.</p>
+      <div class="am-hero-actions">
+        <a class="am-btn secondary" href="payday.html">← Payday Room</a>
+        <a class="am-btn" href="../clean-rebuild/scouting.html">Open Classic Scouting</a>
+      </div>
+    </article>
+    <aside class="am-hero-side">
+      <div><small>RECRUITMENT POWER</small><h2 id="amScoutBudget">£0.00</h2><p>Manager payday session plus current broker cash where available.</p></div>
+      <div class="am-hero-score"><strong id="amScoutReadyCount">0</strong><span>BUY-READY REPORTS</span></div>
+    </aside>
+  </section>
+
+  <section class="am-metrics">
+    <article class="am-card am-metric green"><span>SCOUT REPORTS</span><strong id="amScoutReportCount">0</strong><small>Current Clean scouting universe</small></article>
+    <article class="am-card am-metric gold"><span>BUY-READY</span><strong id="amScoutReadyCountMirror">—</strong><small>Evidence and decision gates passed</small></article>
+    <article class="am-card am-metric"><span>SHORTLISTED</span><strong id="amScoutShortCount">0 SELECTED</strong><small>Manager recruitment shortlist</small></article>
+    <article class="am-card am-metric cyan"><span>FLOW</span><strong>Scout → Transfer</strong><small>Shortlist hands off to the current transfer engine</small></article>
+    <article class="am-card am-metric"><span>AUTHORITY</span><strong>Clean Engine</strong><small>New UI, existing scoring logic</small></article>
+  </section>
+
+  <section class="am-scout-layout" style="margin-top:10px">
+    <article class="am-card am-scout-lead">
+      <div class="am-scout-badge" id="amScoutTopTicker">—</div>
+      <div class="am-scout-copy">
+        <small>TODAY'S LEADING RECRUITMENT TARGET</small>
+        <h2 id="amScoutTopName">Awaiting live scout reports</h2>
+        <p id="amScoutTopReason">The clean scouting engine is loading.</p>
+        <div class="am-scout-tags" id="amScoutTopTags"></div>
+      </div>
+      <div class="am-scout-score"><strong id="amScoutTopScore">—</strong><span>NETWORK SCORE</span><button class="am-btn primary" id="amScoutTopOpen" type="button">Open dossier</button></div>
+    </article>
+
+    <aside class="am-card">
+      <div class="am-section-head"><div><h2>Manager Shortlist</h2><p>Prospects selected for the transfer discussion.</p></div><span class="am-badge" id="amScoutShortCountBadge">LIVE</span></div>
+      <div class="am-content">
+        <div class="am-shortlist" id="amScoutShortlist"></div>
+        <div class="am-hero-actions"><a class="am-btn gold" href="../clean-rebuild/transfer.html">Take shortlist to Transfer →</a></div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="am-grid-2">
+    <article class="am-card">
+      <div class="am-section-head"><div><h2>Scouting Best XI</h2><p>The top eleven live reports placed on the recruitment pitch.</p></div><span class="am-badge">TOP 11</span></div>
+      <div class="am-content"><div class="am-pitch" id="amScoutPitch"></div></div>
+    </article>
+
+    <article class="am-card">
+      <div class="am-section-head"><div><h2>Chief Scout Notes</h2><p>How to use the new room.</p></div><span class="am-badge">MANAGER MODE</span></div>
+      <div class="am-content">
+        <div class="am-briefing-list">
+          <div class="am-brief"><div class="am-brief-icon">🔎</div><div><strong>Open a dossier</strong><span>Tap a player on the pitch or a row in the league tables.</span></div><em>LIVE</em></div>
+          <div class="am-brief"><div class="am-brief-icon">📋</div><div><strong>Build your shortlist</strong><span>Select the shares you want the Transfer Centre to consider.</span></div><em>MANAGER</em></div>
+          <div class="am-brief"><div class="am-brief-icon">🛡️</div><div><strong>Clean gates still apply</strong><span>WATCH shares stay in research until the underlying evidence is ready.</span></div><em>SAFE</em></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="am-card" style="margin-top:10px">
+    <div class="am-section-head"><div><h2>Scouting Pyramid</h2><p>Premier, Championship, League One and research divisions from the same live rankings.</p></div><span class="am-badge">RECRUITMENT NETWORK</span></div>
+    <div class="am-content">
+      <div class="am-scout-toolbar">
+        <input id="amScoutSearch" type="search" placeholder="Search ticker, company or sector…">
+        <select id="amScoutTier">
+          <option value="ALL">All divisions</option>
+          <option value="PREMIER">Premier League</option>
+          <option value="ELITE">Championship</option>
+          <option value="READY">League One</option>
+          <option value="WATCH">League Two / Research</option>
+        </select>
+      </div>
+      <div class="am-leagues" id="amScoutLeagues"></div>
+    </div>
+  </section>
+</main>
+
+<div class="am-drawer-back" id="amDrawerBack"></div>
+<aside class="am-drawer" id="amDrawer"><div id="amDrawerContent"></div></aside>
+<div class="am-toast" id="amToast"></div>
+</body>
+</html>
