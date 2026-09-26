@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07110f">
   <title>Aurora Clean — Income Centre</title>
+  <script>
+  (() => {
+    const q=new URLSearchParams(location.search);
+    if(q.get('classic')!=='1') location.replace('../aurora-manager/income.html?v=20260926-income-new-1');
+  })();
+  </script>
   <link rel="stylesheet" href="aurora.css?v=20260926-shell-17-free-data-router">
   <link rel="stylesheet" href="income-stadium.css?v=20260926-income-stadium-1">
   <link rel="stylesheet" href="income-target-route.css?v=20260902-income-route-2k-1">
