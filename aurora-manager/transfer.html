@@ -9,6 +9,8 @@
   <script src="../clean-rebuild/aurora.js?v=20260926-shell-19-sidebar-full-hide" defer></script>
   <script src="../clean-rebuild/scouting-execution-profile.js?v=20260925-scouting-execution-profile-1" defer></script>
   <script src="../clean-rebuild/scouting-network.js?v=20260926-scouting-network-9-research-not-blocked" defer></script>
+  <script src="../clean-rebuild/transfer-stage2.js?v=20260925-transfer-funding-plan-10-scout-broker-route" defer></script>
+  <script src="../clean-rebuild/transfer-broker-assign.js?v=20260925-transfer-broker-assign-6-scouting-route-lock" defer></script>
   <script src="manager-app.js?v=20260926-manager-transfer-2" defer></script>
 </head>
 <body data-manager-app data-manager-page="transfer" data-scouting-ui="stadium">
@@ -24,7 +26,7 @@
         <div class="am-hero-actions">
           <a class="am-btn secondary" href="scouting.html">← Back to Scouting</a>
           <a class="am-btn" href="../clean-rebuild/transfer.html">Open Classic Transfer</a>
-          <a class="am-btn gold" href="../clean-rebuild/registration.html">Registration Desk →</a>
+          <a class="am-btn gold" id="amTransferRegister" href="../clean-rebuild/registration.html">Registration Desk →</a>
         </div>
       </div>
       <div class="am-hero-art-wrap am-hero-art-wrap--transfer" aria-hidden="true">
@@ -44,6 +46,7 @@
         <strong id="amTransferReadyCount">0</strong>
         <span>TRANSFER TARGETS</span>
       </div>
+      <div class="am-transfer-route-status" id="amTransferRouteStatus">CHECKING TRANSFER ROUTE</div>
     </aside>
   </section>
 
@@ -56,7 +59,7 @@
     <article class="am-card am-metric">
       <span>BROKER CASH</span>
       <strong id="amTransferBrokerCash">£0.00</strong>
-      <small>IG ISA + Trading 212 cash snapshot</small>
+      <small id="amTransferCashSplit">IG £0.00 · T212 £0.00</small>
     </article>
     <article class="am-card am-metric green">
       <span>TOTAL TRANSFER POWER</span>
@@ -78,14 +81,21 @@
   <section class="am-card" style="margin-top:10px">
     <div class="am-section-head">
       <div><h2>Transfer Workflow</h2><p>From Scouting recommendation to completed registration.</p></div>
-      <span class="am-badge">LIVE RECRUITMENT PIPELINE</span>
+      <span class="am-badge">LIVE CLEAN PIPELINE</span>
     </div>
     <div class="am-content">
-      <div class="am-flow" id="amTransferFlow"></div>
+      <div class="am-flow">
+        <div class="am-flow-card" data-transfer-step="1"><div class="am-flow-icon">🔎</div><small>STEP 1</small><strong>Scout</strong><span>Build the shortlist</span></div>
+        <div class="am-flow-card" data-transfer-step="2"><div class="am-flow-icon">✅</div><small>STEP 2</small><strong>Verify</strong><span>Approve Scouting plan</span></div>
+        <div class="am-flow-card" data-transfer-step="3"><div class="am-flow-icon">💼</div><small>STEP 3</small><strong>Approve</strong><span>Build funded route</span></div>
+        <div class="am-flow-card" data-transfer-step="4"><div class="am-flow-icon">🧭</div><small>STEP 4</small><strong>Route</strong><span>Review broker path</span></div>
+        <div class="am-flow-card" data-transfer-step="5"><div class="am-flow-icon">🤝</div><small>STEP 5</small><strong>Buy</strong><span>Execute broker order</span></div>
+        <div class="am-flow-card" data-transfer-step="6"><div class="am-flow-icon">👕</div><small>STEP 6</small><strong>Register</strong><span>Add to Squad</span></div>
+      </div>
     </div>
   </section>
 
-  <section class="am-transfer-layout">
+  <section class="am-grid-2 am-transfer-board">
     <article class="am-card">
       <div class="am-section-head">
         <div><h2>Buy-Ready Signings Board</h2><p>The manager shortlist first, then the strongest buy-ready reports if no shortlist exists.</p></div>
@@ -105,31 +115,35 @@
       </div>
     </article>
 
-    <aside class="am-card">
+    <aside class="am-transfer-side">
       <div class="am-section-head">
         <div><h2>Negotiation Desk</h2><p>The live manager queue and Clean route status.</p></div>
         <span class="am-badge">MANAGER DECISION</span>
       </div>
       <div class="am-content">
         <div class="am-briefing-list" id="amTransferNegotiationList"></div>
-        <div class="am-transfer-note">
-          Queueing here is the football-management layer only. The existing Clean Transfer Centre remains the authority for broker assignment, route locking and real execution handoff.
+        <div class="am-transfer-summary" id="amTransferSummary"></div>
+      </div>
+    </article>
+
+    <article class="am-card">
+      <div class="am-section-head">
+        <div><h2>Route Controls</h2><p>These call the same Clean transfer functions used by the classic page.</p></div>
+        <span class="am-badge">CLEAN AUTHORITY</span>
+      </div>
+      <div class="am-content">
+        <div class="am-transfer-toolbar">
+          <button class="am-btn primary" id="amTransferBuild" type="button">Build Approved Route</button>
+          <button class="am-btn gold" id="amTransferLock" type="button">Save + Lock Route</button>
         </div>
-        <div class="am-hero-actions">
-          <a class="am-btn primary" href="../clean-rebuild/transfer.html">Open Final Transfer Controls →</a>
+        <div class="am-transfer-finance-strip">
+          <div><span>MANAGER SHORTLIST</span><strong>Scouting → Transfer</strong></div>
+          <div><span>FUNDING AUTHORITY</span><strong>Clean Finance + Broker Cash</strong></div>
+          <div><span>EXECUTION HANDOFF</span><strong>Registration Desk</strong></div>
         </div>
       </div>
-    </aside>
-  </section>
-
-  <section class="am-card" style="margin-top:10px">
-    <div class="am-section-head">
-      <div><h2>Transfer Room Summary</h2><p>Manager selections alongside the existing Clean route authority.</p></div>
-      <span class="am-badge">SAFE HANDOFF</span>
-    </div>
-    <div class="am-content">
-      <div class="am-transfer-summary" id="amTransferSummary"></div>
-    </div>
+    </article>
+  </aside>
   </section>
 </main>
 
