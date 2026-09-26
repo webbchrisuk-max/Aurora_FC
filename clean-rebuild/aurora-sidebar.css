@@ -53,3 +53,36 @@
   #auroraCleanMenu a{min-height:48px;padding:11px 13px!important;font-size:.92rem!important}
   .aurora-mobile-close{top:10px!important;right:12px!important;width:42px!important;height:42px!important}
 }
+
+/* 2026-09-26 hard override: no legacy 70px rail in desktop auto-hide mode */
+@media (min-width:900px){
+  html.aurora-sidebar-autohide body{padding-left:16px!important}
+  html.aurora-sidebar-autohide body>nav#auroraNav{
+    width:var(--aurora-sidebar-w)!important;
+    min-width:var(--aurora-sidebar-w)!important;
+    max-width:var(--aurora-sidebar-w)!important;
+    padding:16px 12px!important;
+    transform:translateX(calc(-100% - 4px))!important;
+  }
+  html.aurora-sidebar-autohide.aurora-sidebar-revealed body>nav#auroraNav{
+    transform:translateX(0)!important;
+  }
+  html.aurora-sidebar-autohide.aurora-sidebar-collapsed body{
+    padding-left:16px!important;
+  }
+  html.aurora-sidebar-autohide.aurora-sidebar-collapsed body>nav#auroraNav{
+    width:var(--aurora-sidebar-w)!important;
+    min-width:var(--aurora-sidebar-w)!important;
+    max-width:var(--aurora-sidebar-w)!important;
+    padding:16px 12px!important;
+    transform:translateX(calc(-100% - 4px))!important;
+  }
+  html.aurora-sidebar-autohide.aurora-sidebar-collapsed.aurora-sidebar-revealed body>nav#auroraNav{
+    transform:translateX(0)!important;
+  }
+  html.aurora-sidebar-autohide.aurora-sidebar-collapsed .aurora-nav-label{display:block!important}
+  html.aurora-sidebar-autohide.aurora-sidebar-collapsed #auroraCleanMenu a{
+    width:auto!important;min-width:0!important;max-width:none!important;height:auto!important;min-height:46px!important;
+    margin:0!important;padding:10px 12px!important;justify-content:flex-start!important;gap:11px!important;
+  }
+}
