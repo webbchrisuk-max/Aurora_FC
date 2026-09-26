@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#03110c">
+  <title>Aurora City FC — Investment Manager</title>
+  <link rel="stylesheet" href="manager.css?v=20260926-manager-1">
+  <script src="../clean-rebuild/aurora.js?v=20260926-shell-19-sidebar-full-hide" defer></script>
+  <script src="../clean-rebuild/scouting-execution-profile.js?v=20260925-scouting-execution-profile-1" defer></script>
+  <script src="../clean-rebuild/scouting-network.js?v=20260926-scouting-network-9-research-not-blocked" defer></script>
+  <script src="manager-app.js?v=20260926-manager-1" defer></script>
+</head>
+<body data-manager-app data-manager-page="home" data-scouting-ui="stadium">
+<header class="am-topbar" id="managerTopbar"></header>
+
+<main class="am-shell">
+  <section class="am-hero">
+    <article class="am-hero-main">
+      <div class="am-kicker"><i></i>Manager Office · Share Operations</div>
+      <h1>Run the portfolio like a football club.</h1>
+      <p>Payday releases the recruitment budget. Scouting finds the prospects. Transfer completes the signings. Registration adds them to the squad, and Income tracks what the team earns.</p>
+      <div class="am-hero-actions">
+        <a class="am-btn primary" href="payday.html">💷 Start Payday</a>
+        <a class="am-btn" href="scouting.html">🔎 Enter Scouting</a>
+        <a class="am-btn secondary" href="../clean-rebuild/index.html">⚙ Classic Operations</a>
+      </div>
+    </article>
+    <aside class="am-hero-side">
+      <div>
+        <small>NEXT MANAGER ACTION</small>
+        <h2 id="amHomeNextTitle">Loading manager briefing…</h2>
+        <p id="amHomeNextCopy">Reading the clean investment engine.</p>
+      </div>
+      <div class="am-hero-score"><strong id="amHeroScore">—</strong><span id="amHeroScoreLabel">SCOUTING</span></div>
+      <a class="am-btn gold" id="amHomeNextLink" href="payday.html">Open room →</a>
+    </aside>
+  </section>
+
+  <section class="am-metrics">
+    <article class="am-card am-metric green"><span>PORTFOLIO VALUE</span><strong id="amHomePortfolio">£0.00</strong><small>Live Squad market value</small></article>
+    <article class="am-card am-metric"><span>PORTFOLIO FORM</span><strong id="amHomePnl">£0.00 · 0.00%</strong><small>Profit / loss</small></article>
+    <article class="am-card am-metric green"><span>FORWARD INCOME</span><strong id="amHomeIncome">£0.00</strong><small id="amHomeMonthly">£0.00/month</small></article>
+    <article class="am-card am-metric gold"><span>RECRUITMENT BUDGET</span><strong id="amHomeBudget">£0.00</strong><small>Current manager / Finance authority</small></article>
+    <article class="am-card am-metric cyan"><span>SCOUTING NETWORK</span><strong id="amHomeScouts">0</strong><small id="amHomeReady">0 buy-ready</small></article>
+  </section>
+
+  <section class="am-card" style="margin-top:10px">
+    <div class="am-section-head"><div><h2>The Recruitment Journey</h2><p>One football workflow from payday to dividend income.</p></div><span class="am-badge">LIVE CLEAN ENGINE</span></div>
+    <div class="am-content"><div class="am-flow" id="amHomeFlow"></div></div>
+  </section>
+
+  <section class="am-grid-2">
+    <article class="am-card">
+      <div class="am-section-head"><div><h2>Manager Briefing</h2><p>The three things that matter right now.</p></div><span class="am-badge">MATCHDAY VIEW</span></div>
+      <div class="am-content"><div class="am-briefing-list" id="amHomeBriefing"></div></div>
+    </article>
+
+    <article class="am-card">
+      <div class="am-section-head"><div><h2>Season Objectives</h2><p>Long-term progress without leaving the football theme.</p></div><span class="am-badge">BOARD TARGETS</span></div>
+      <div class="am-content">
+        <div class="am-objective-grid" id="amHomeObjectives"></div>
+        <div class="am-progress" aria-label="Monthly dividend income target progress"><i id="amHomeIncomeProgress" style="width:0%"></i></div>
+      </div>
+    </article>
+  </section>
+
+  <section class="am-grid-3">
+    <article class="am-card am-content"><div class="am-kicker"><i></i>Next dividend fixture</div><h2 id="amHomeNextDiv" style="margin:9px 0 2px">—</h2><p id="amHomeNextDivSub" style="margin:0;color:#718a7f;font-size:9px">No dated fixture</p></article>
+    <article class="am-card am-content"><div class="am-kicker"><i></i>Manager principle</div><h2 style="margin:9px 0 2px">Scout → Sign → Register</h2><p style="margin:0;color:#718a7f;font-size:9px">The new interface never replaces the clean financial authorities underneath it.</p></article>
+    <article class="am-card am-content"><div class="am-kicker"><i></i>Classic safety net</div><h2 style="margin:9px 0 2px">Clean Build remains intact</h2><p style="margin:0;color:#718a7f;font-size:9px">Open the existing operational pages whenever you want to verify the raw engine.</p></article>
+  </section>
+</main>
+
+<div class="am-toast" id="amToast"></div>
+</body>
+</html>
