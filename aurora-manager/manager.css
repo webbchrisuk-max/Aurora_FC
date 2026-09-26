@@ -479,8 +479,8 @@ body[data-manager-page="transfer"] .am-hero-art-wrap--transfer:before{
 
 /* TRANSFER HERO EXECUTIVE ART · 2026-09-26 */
 body[data-manager-page="transfer"] .am-hero-main--art .am-hero-copy h1{
-  font-size:clamp(34px,3.8vw,56px);
-  max-width:620px;
+  font-size:clamp(34px,3.7vw,55px);
+  max-width:610px;
 }
 body[data-manager-page="transfer"] .am-hero-art-wrap--transfer{
   min-height:355px;
@@ -493,14 +493,14 @@ body[data-manager-page="transfer"] .am-hero-art--transfer{
   max-width:none;
   max-height:none;
   object-fit:cover;
-  object-position:46% center;
+  object-position:50% center;
   transform:none;
-  filter:brightness(.90) contrast(1.04) saturate(.82);
+  filter:brightness(.92) contrast(1.03) saturate(.88);
 }
 body[data-manager-page="transfer"] .am-hero-art-wrap--transfer:before{
   background:
-    linear-gradient(90deg,rgba(15,18,23,.72) 0%,rgba(15,18,23,.15) 30%,rgba(15,18,23,.02) 58%),
-    linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.18));
+    linear-gradient(90deg,rgba(15,18,23,.72) 0%,rgba(15,18,23,.12) 30%,rgba(15,18,23,.01) 58%),
+    linear-gradient(180deg,rgba(0,0,0,.01),rgba(0,0,0,.16));
 }
 @media(max-width:1000px){
   body[data-manager-page="transfer"] .am-hero-art--transfer{
