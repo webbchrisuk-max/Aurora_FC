@@ -508,6 +508,7 @@
     else if(page==='scouting')renderScouting();
     else if(page==='transfer')renderTransfer();
     else if(page==='registration'){const s=state();setTextSafe('amRegReceiptCount',String(arr(s.registration?.receipts).length));}
+    else if(page==='squad'){const s=state();const count=arr(s.squad?.holdings||s.portfolio?.holdings||s.holdings).length;setTextSafe('amSquadCount',count?String(count):'—');}
     else if(page==='transfer')renderTransfer();
     const status=$('amTopStatus');if(status)status.textContent=`Clean engine · ${nowLabel()}`;
   }
