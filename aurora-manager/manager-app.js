@@ -350,12 +350,163 @@
   }
   function setTextSafe(id,value){const el=$(id);if(el)el.textContent=value}
 
+
+  function transferBrokerCode(row){
+    const a=upper(row?.lockedAccount||row?.account||row?.broker||row?.preferredBroker||row?.platform);
+    if(a.includes('212'))return'T212';
+    if(a.includes('IG'))return'IG';
+    return'';
+  }
+  function transferBrokerLabel(row){
+    const code=transferBrokerCode(row);
+    if(code==='IG')return'IG ISA';
+    if(code==='T212')return'Trading 212 ISA';
+    try{return window.AuroraScoutingExecutionProfiles?.accountLabel?.(row)||'Broker review'}catch(_){return'Broker review'}
+  }
+  function transferCandidateMap(s){
+    const map=new Map();
+    rankings(s).forEach(r=>map.set(upper(r.ticker),r));
+    return map;
+  }
+  function transferRows(s){
+    const route=s.transfer?.route;
+    const map=transferCandidateMap(s);
+    if(Array.isArray(route?.allocations)&&route.allocations.length){
+      return route.allocations.filter(r=>num(r.amount)>0).map((r,i)=>{
+        const scout=map.get(upper(r.underlyingTicker||r.ticker))||map.get(upper(r.ticker))||{};
+        return{
+          source:'ROUTE',rank:num(r.selectionRank)||i+1,ticker:upper(r.underlyingTicker||r.ticker),executionTicker:upper(r.executionTicker||r.ticker),
+          name:r.name||scout.name||r.ticker,amount:num(r.amount),score:num(r.score||scout.networkScore||scout.score),yieldPct:num(r.yieldPct||scout.yieldPct),
+          broker:transferBrokerLabel(r),market:r.executionMarket||scout.executionMarket||scout.market||'',currency:r.executionCurrency||scout.executionCurrency||'',
+          orderLevel:num(scout.brokerBuyPriceNative||scout.livePriceNative||scout.priceNative),locked:route.locked===true,fundingSource:r.fundingSource||'FINANCE'
+        };
+      });
+    }
+    const plan=s.scouting?.allocationPlan;
+    if(Array.isArray(plan?.allocations)&&plan.allocations.length){
+      return plan.allocations.filter(r=>num(r.amount)>0).map((r,i)=>{
+        const scout=map.get(upper(r.ticker))||{};
+        return{
+          source:'PLAN',rank:num(r.selectionRank)||i+1,ticker:upper(r.ticker),executionTicker:upper(r.executionTicker||r.ticker),
+          name:r.name||scout.name||r.ticker,amount:num(r.amount),score:num(r.score||scout.networkScore||scout.score),yieldPct:num(r.yieldPct||scout.yieldPct),
+          broker:transferBrokerLabel(r),market:r.executionMarket||scout.executionMarket||'',currency:r.executionCurrency||scout.executionCurrency||'',
+          orderLevel:num(scout.brokerBuyPriceNative||scout.livePriceNative||scout.priceNative),locked:false,fundingSource:'FINANCE'
+        };
+      });
+    }
+    const short=shortlist();
+    return short.map((x,i)=>{
+      const scout=map.get(upper(x.ticker))||{};
+      return{
+        source:'SHORTLIST',rank:i+1,ticker:upper(x.ticker),executionTicker:upper(scout.executionTicker||x.ticker),
+        name:x.name||scout.name||x.ticker,amount:0,score:num(x.score||scout.networkScore||scout.score),yieldPct:num(x.yieldPct||scout.yieldPct),
+        broker:x.broker||transferBrokerLabel(scout),market:scout.executionMarket||scout.market||'',currency:scout.executionCurrency||'',
+        orderLevel:num(scout.brokerBuyPriceNative||scout.livePriceNative||scout.priceNative),locked:false,fundingSource:''
+      };
+    });
+  }
+  function transferCashSnapshot(){
+    const transfer=read('aurora-clean:transfer-broker-cash:v1')?.snapshot||{};
+    if(transfer?.balances)return{ig:num(transfer.balances.IG),t212:num(transfer.balances.T212)};
+    return brokerCash();
+  }
+  function renderTransferWorkflow(s){
+    const mission=s.transfer?.mission,plan=s.scouting?.allocationPlan,route=s.transfer?.route,receipts=arr(s.registration?.receipts).filter(r=>!mission?.id||String(r.missionId||'')===String(mission.id||''));
+    const stage=route?.locked?5:route?.allocations?.length?4:upper(plan?.status)==='APPROVED'?3:shortlist().length?2:1;
+    document.querySelectorAll('[data-transfer-step]').forEach(el=>{
+      const n=num(el.dataset.transferStep);
+      el.classList.toggle('ready',n<stage);
+      el.classList.toggle('action',n===stage);
+    });
+    const labels={
+      1:['Scout','Build the manager shortlist'],
+      2:['Verify','Approve the Scouting payday plan'],
+      3:['Approve','Build the broker-funded transfer route'],
+      4:['Route','Review brokers and lock the route'],
+      5:['Buy','Execute the broker orders'],
+      6:['Register','Confirm purchases into the Squad']
+    };
+    const [title,copy]=labels[Math.min(6,Math.max(1,stage))];
+    setTextSafe('amTransferNextAction',title);
+    setTextSafe('amTransferNextCopy',copy);
+    setTextSafe('amTransferPending',String(route?.locked?Math.max(0,transferRows(s).length-receipts.length):transferRows(s).length));
+  }
+  function setTextSafe(id,value){const el=$(id);if(el)el.textContent=value}
+  function renderTransfer(){
+    const s=state(),rows=transferRows(s),cash=transferCashSnapshot(),pay=managerPayday(),mission=s.transfer?.mission,route=s.transfer?.route;
+    const newBudget=num(mission?.budget)||num(pay?.shareBudget)||safeRelease(s);
+    const brokerTotal=cash.ig+cash.t212;
+    const totalPower=num(route?.totalAllocated)||num(pay?.recruitmentPower)||(newBudget+brokerTotal);
+    const primary=rows[0]||null;
+    const routeCount=rows.filter(r=>/IG ISA|Trading 212/.test(r.broker)).length;
+
+    setTextSafe('amTransferBudget',money(newBudget));
+    setTextSafe('amTransferBrokerCash',money(brokerTotal));
+    setTextSafe('amTransferPower',money(totalPower));
+    setTextSafe('amTransferRoute',primary?.broker||'Awaiting route');
+    setTextSafe('amTransferReadyCount',String(rows.length));
+    setTextSafe('amTransferBoardCount',`${rows.length} TARGET${rows.length===1?'':'S'}`);
+    setTextSafe('amTransferCashSplit',`IG ${money(cash.ig)} · T212 ${money(cash.t212)}`);
+    setTextSafe('amTransferRouteStatus',route?.locked?'LOCKED FOR REGISTRATION':route?.allocations?.length?'ROUTE BUILT · REVIEW + LOCK':upper(s.scouting?.allocationPlan?.status)==='APPROVED'?'APPROVED SCOUTING PLAN READY':'WAITING FOR APPROVED SCOUTING PLAN');
+
+    const body=$('amTransferBoardRows');
+    if(body){
+      body.innerHTML=rows.length?rows.map((r,i)=>{
+        const order=r.orderLevel>0?nativeMoney(r.orderLevel,r.currency):'—';
+        const amount=r.amount>0?money(r.amount):'—';
+        return `<tr data-transfer-row="${esc(r.ticker)}"><td>#${r.rank||i+1}</td><td><span class="ticker">${esc(r.ticker)}</span><div>${esc(r.name||r.ticker)}${r.executionTicker&&r.executionTicker!==r.ticker?` · → ${esc(r.executionTicker)}`:''}</div></td><td>${r.score.toFixed(1)}</td><td>${r.yieldPct.toFixed(3)}%</td><td><span class="am-route-pill">${esc(r.broker)}</span></td><td>${amount}</td><td>${esc(order)}</td><td><button class="am-btn secondary" data-transfer-review="${esc(r.ticker)}">Review</button></td></tr>`;
+      }).join(''):'<tr><td colspan="8">No transfer targets yet. Build a shortlist in Scouting first.</td></tr>';
+      body.querySelectorAll('[data-transfer-review]').forEach(btn=>btn.onclick=()=>{
+        const scout=rankings(s).find(x=>upper(x.ticker)===upper(btn.dataset.transferReview));
+        if(scout)openScout(scout);
+        else toast(`${btn.dataset.transferReview} is in the transfer route but has no open scout dossier.`);
+      });
+    }
+
+    const negotiation=$('amTransferNegotiationList');
+    if(negotiation){
+      const roles=['Primary target','Backup target','Income target','Value target'];
+      negotiation.innerHTML=rows.length?rows.slice(0,4).map((r,i)=>`<div class="am-brief"><div class="am-brief-icon">${i===0?'🎯':i===1?'🛡️':i===2?'💷':'📊'}</div><div><strong>${roles[i]||'Target'} · ${esc(r.ticker)}</strong><span>${esc(r.name||r.ticker)} · ${r.score.toFixed(1)} score · ${r.yieldPct.toFixed(3)}% · ${esc(r.broker)}</span></div><em>${r.source==='ROUTE'?(route?.locked?'LOCKED':'ROUTED'):r.source==='PLAN'?'APPROVED':'SHORTLIST'}</em></div>`).join(''):'<div class="am-brief"><div class="am-brief-icon">📋</div><div><strong>No transfer targets yet</strong><span>Return to Scouting and build the recruitment shortlist.</span></div><em>WAITING</em></div>';
+    }
+
+    const summary=$('amTransferSummary');
+    if(summary){
+      const allocated=rows.reduce((sum,r)=>sum+r.amount,0);
+      summary.innerHTML=`<div class="am-transfer-card"><span>TRANSFER SUMMARY</span><strong>${rows.length} target${rows.length===1?'':'s'}</strong><small>${money(allocated)} currently allocated · ${routeCount} broker route${routeCount===1?'':'s'} resolved</small></div>
+        <div class="am-transfer-card"><span>ROUTE STATUS</span><strong>${route?.locked?'Locked':'Editable'}</strong><small>${route?.locked?'Ready for the Registration Desk':'Build or review the current Clean route'}</small></div>`;
+    }
+
+    const build=$('amTransferBuild'),lock=$('amTransferLock'),register=$('amTransferRegister');
+    if(build){
+      const can=!!window.AuroraTransferStage2?.buildRoute&&!!mission&&upper(s.scouting?.allocationPlan?.status)==='APPROVED'&&!route?.locked;
+      build.disabled=!can;
+      build.textContent=route?.allocations?.length?'Rebuild Clean Route':'Build Approved Route';
+      build.onclick=()=>{const ok=window.AuroraTransferStage2?.buildRoute?.();toast(ok===false?'Route could not be built yet. Check the approved Scouting plan.':'Transfer route build requested.');setTimeout(()=>schedule(50),120)};
+    }
+    if(lock){
+      const can=!!window.AuroraTransferStage2?.lockRoute&&!!route?.allocations?.length&&!route?.locked;
+      lock.disabled=!can;
+      lock.textContent=route?.locked?'Route Locked ✓':'Save + Lock Route';
+      lock.onclick=()=>{const ok=window.AuroraTransferStage2?.lockRoute?.();toast(ok===false?'Route is not ready to lock.':'Transfer route lock requested.');setTimeout(()=>schedule(50),120)};
+    }
+    if(register){
+      register.href='../clean-rebuild/registration.html';
+      register.classList.toggle('is-disabled',!route?.locked);
+      register.setAttribute('aria-disabled',route?.locked?'false':'true');
+      register.onclick=e=>{if(!route?.locked){e.preventDefault();toast('Lock the transfer route before Registration.')}};
+    }
+
+    renderTransferWorkflow(s);
+    $('amDrawerBack')&&( $('amDrawerBack').onclick=closeDrawer );
+  }
+
   function render(){
     shell();
     const page=document.body.dataset.managerPage;
     if(page==='home')renderHome();
     else if(page==='payday')renderPayday();
     else if(page==='scouting')renderScouting();
+    else if(page==='transfer')renderTransfer();
     else if(page==='transfer')renderTransfer();
     const status=$('amTopStatus');if(status)status.textContent=`Clean engine · ${nowLabel()}`;
   }
