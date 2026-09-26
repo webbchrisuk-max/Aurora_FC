@@ -391,3 +391,56 @@ a{color:inherit;text-decoration:none}
   .am-art-chip--bottom{left:8px;bottom:8px}
   .am-art-chip--top{right:8px;top:8px}
 }
+
+
+/* TRANSFER CENTRE · 2026-09-26 */
+.am-hero-art-wrap--transfer{
+  background:
+    radial-gradient(circle at 72% 24%,rgba(200,169,107,.15),transparent 36%),
+    radial-gradient(circle at 20% 78%,rgba(110,143,191,.08),transparent 28%),
+    linear-gradient(145deg,#191713,#111419 70%,#0d1013)
+}
+.am-hero-art--transfer{
+  right:-10px;
+  bottom:-2px;
+  width:min(620px,118%);
+}
+.am-route-pill{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 7px;
+  border:1px solid rgba(200,169,107,.22);
+  border-radius:999px;
+  background:rgba(200,169,107,.055);
+  color:var(--am-gold-soft);
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.05em;
+}
+.am-transfer-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:10px;margin-top:10px}
+.am-transfer-summary{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:7px;
+}
+.am-transfer-summary-card{
+  padding:11px;
+  border:1px solid rgba(255,255,255,.05);
+  border-radius:10px;
+  background:rgba(255,255,255,.012)
+}
+.am-transfer-summary-card span{display:block;color:#747e87;font-size:7px;font-weight:900;letter-spacing:.07em}
+.am-transfer-summary-card strong{display:block;margin-top:5px;font-size:15px}
+.am-transfer-summary-card small{display:block;margin-top:3px;color:#636d75;font-size:7px}
+.am-transfer-note{
+  margin-top:9px;padding:11px;border:1px solid rgba(200,169,107,.16);
+  border-radius:10px;background:rgba(200,169,107,.03);
+  color:#938c7d;font-size:8px;line-height:1.5
+}
+@media(max-width:1000px){
+  .am-transfer-layout{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .am-transfer-summary{grid-template-columns:1fr}
+  .am-hero-art--transfer{left:50%;right:auto;width:min(650px,100%)}
+}
