@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#03110c">
+  <title>Aurora City FC — Payday Room</title>
+  <link rel="stylesheet" href="manager.css?v=20260926-manager-1">
+  <script src="../clean-rebuild/aurora.js?v=20260926-shell-19-sidebar-full-hide" defer></script>
+  <script src="../clean-rebuild/scouting-execution-profile.js?v=20260925-scouting-execution-profile-1" defer></script>
+  <script src="../clean-rebuild/scouting-network.js?v=20260926-scouting-network-9-research-not-blocked" defer></script>
+  <script src="manager-app.js?v=20260926-manager-1" defer></script>
+</head>
+<body data-manager-app data-manager-page="payday" data-scouting-ui="stadium">
+<header class="am-topbar" id="managerTopbar"></header>
+
+<main class="am-shell">
+  <section class="am-hero">
+    <article class="am-hero-main">
+      <div class="am-kicker"><i></i>Payday Matchday</div>
+      <h1>The Chairman has released payday.</h1>
+      <p>Confirm what arrived, tell Aurora about any overtime or bonus, then decide how much of the Finance-approved money you want to make available for recruitment.</p>
+    </article>
+    <aside class="am-hero-side">
+      <div><small>FINANCE AUTHORITY</small><h2 id="amFinanceApproved">£0.00</h2><p>Maximum safe release currently reported by the existing Clean Finance engine.</p></div>
+      <div class="am-hero-score"><strong>01</strong><span>PAYDAY STAGE</span></div>
+    </aside>
+  </section>
+
+  <section class="am-wizard" style="margin-top:10px">
+    <article class="am-card am-wizard-main">
+      <div class="am-stepper">
+        <div class="am-step active"><b>1</b> Earnings</div>
+        <div class="am-step active"><b>2</b> Recruitment budget</div>
+        <div class="am-step active"><b>3</b> Release</div>
+      </div>
+
+      <div class="am-question">
+        <label for="amPayReceived">How much pay actually landed this payday?</label>
+        <input id="amPayReceived" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+        <p>This is the real pay received figure for the manager briefing. It does not overwrite the Clean Finance engine.</p>
+      </div>
+
+      <div class="am-question">
+        <label for="amPayExtra">Any overtime, bonus or extra pay?</label>
+        <input id="amPayExtra" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+        <p>Optional. Use this to make the payday interaction match what actually happened this month.</p>
+      </div>
+
+      <div class="am-question">
+        <label for="amPayBudget">How much do you want to release for share recruitment?</label>
+        <input id="amPayBudget" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+        <div class="am-quick-row">
+          <button id="amUseApproved" type="button">Use Finance-approved maximum</button>
+          <button type="button" data-budget-pct="75">75% of approved</button>
+          <button type="button" data-budget-pct="50">50% of approved</button>
+        </div>
+        <p>The Investment Manager stores this as its recruitment session. The proven Finance calculations remain untouched.</p>
+      </div>
+
+      <div class="am-hero-actions">
+        <button class="am-btn primary" id="amReleaseBudget" type="button">Release Recruitment Budget</button>
+        <a class="am-btn secondary" href="index.html">Back to Manager Office</a>
+      </div>
+
+      <div class="am-payday-result" id="amPaydayResult">
+        <div class="am-kicker"><i></i>Transfer budget released</div>
+        <h3 id="amPaydayReleased">£0.00</h3>
+        <p>Total recruitment power including available broker cash: <strong id="amPaydayPowerReleased">£0.00</strong></p>
+        <div class="am-hero-actions"><a class="am-btn primary" href="scouting.html">Enter Scouting Room →</a></div>
+      </div>
+    </article>
+
+    <aside class="am-card am-wizard-summary">
+      <div class="am-kicker"><i></i>Payday team sheet</div>
+      <div class="am-summary-total" style="margin-top:13px"><span>TOTAL RECRUITMENT POWER</span><strong id="amPayPower">£0.00</strong></div>
+      <div class="am-summary-line"><span>Pay + extra income</span><strong id="amPayIncomeSummary">£0.00</strong></div>
+      <div class="am-summary-line"><span>New share budget</span><strong id="amPayBudgetSummary">£0.00</strong></div>
+      <div class="am-summary-line"><span>Existing broker cash</span><strong id="amPayBrokerCash">£0.00</strong></div>
+      <div class="am-summary-line"><span>IG ISA cash</span><strong id="amPayIG">£0.00</strong></div>
+      <div class="am-summary-line"><span>Trading 212 ISA cash</span><strong id="amPayT212">£0.00</strong></div>
+      <p style="margin:13px 0 0;color:#718a7f;font-size:9px">This screen is the new football interaction layer. Finance, ISA tracking and broker cash remain owned by the current Clean system.</p>
+    </aside>
+  </section>
+</main>
+
+<div class="am-toast" id="amToast"></div>
+</body>
+</html>
