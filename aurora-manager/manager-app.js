@@ -25,7 +25,7 @@
     ['payday.html','💷','Payday','payday'],
     ['scouting.html','🔎','Scouting','scouting'],
     ['transfer.html','🔁','Transfer','transfer'],
-    ['../clean-rebuild/registration.html','🧾','Registration','engine'],
+    ['registration.html','🧾','Registration','registration'],
     ['../clean-rebuild/squad.html','⚽','Squad','engine'],
     ['../clean-rebuild/income.html','📈','Income','engine']
   ];
@@ -107,7 +107,7 @@
       ['💷','Payday',pay?.status==='RELEASED'?'Budget released':'Awaiting manager','payday.html',pay?.status==='RELEASED'?'ready':'action'],
       ['🔎','Scouting',buy.length?`${buy.length} buy-ready`:`${r.length} reports`,'scouting.html',buy.length?'ready':''],
       ['🔁','Transfer',mission>0?`${money(mission)} mission`:'Awaiting shortlist','transfer.html',mission>0?'ready':''],
-      ['🧾','Registration',`${arr(s.registration?.receipts).length} receipts`,'../clean-rebuild/registration.html',''],
+      ['🧾','Registration',`${arr(s.registration?.receipts).length} receipts`,'registration.html',''],
       ['⚽','Squad',`${p.list.length} positions`,'../clean-rebuild/squad.html',p.list.length?'ready':''],
       ['📈','Income',`${money(p.annual)}/yr`,'../clean-rebuild/income.html',p.annual>0?'ready':'']
     ];
@@ -507,6 +507,7 @@
     else if(page==='payday')renderPayday();
     else if(page==='scouting')renderScouting();
     else if(page==='transfer')renderTransfer();
+    else if(page==='registration'){const s=state();setTextSafe('amRegReceiptCount',String(arr(s.registration?.receipts).length));}
     else if(page==='transfer')renderTransfer();
     const status=$('amTopStatus');if(status)status.textContent=`Clean engine · ${nowLabel()}`;
   }
